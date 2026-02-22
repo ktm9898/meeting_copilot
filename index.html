@@ -1045,7 +1045,7 @@
             const recog = new SpeechRecognition();
             recog.lang = 'ko-KR';
             recog.continuous = true;
-            recog.interimResults = true;
+            recog.interimResults = false;
             recog.maxAlternatives = 1;
 
             recog.onstart = () => {
@@ -1089,43 +1089,21 @@
                     const transcript = result[0].transcript.trim();
                     if (!transcript) continue;
 
-                    if (result.isFinal) {
-                        addSTTLine(transcript, true);
-                        state.speechBuffer.push({ time: Date.now(), text: transcript, final: true });
-                        cleanBuffer();
-                        checkKeywordMatch(transcript);
-                    } else {
-                        updateInterimText(transcript);
-                    }
+                    addSTTLine(transcript, true);
+                    state.speechBuffer.push({ time: Date.now(), text: transcript, final: true });
+                    cleanBuffer();
+                    checkKeywordMatch(transcript);
                 }
             };
 
             return recog;
         }
 
-        // 현재 작성 중인 span (interim이 교체하는 대상)
-        let currentSpan = null;
-        let lastFinalText = '';
-
         function addSTTLine(text, isFinal) {
-            // 중복 final 방지
-            if (text === lastFinalText) return;
-            lastFinalText = text;
-
-            // interim span이 있으면 확정
-            if (currentSpan) {
-                currentSpan.classList.remove('interim');
-                currentSpan.textContent = text + ' ';
-            } else {
-                const span = document.createElement('span');
-                span.className = 'stt-word';
-                span.textContent = text + ' ';
-                sttStream.appendChild(span);
-                currentSpan = span;
-            }
-
-            // 확정 후 다음을 위해 currentSpan 초기화
-            currentSpan = null;
+            const span = document.createElement('span');
+            span.className = 'stt-word';
+            span.textContent = text + ' ';
+            sttStream.appendChild(span);
             sttStream.scrollTop = sttStream.scrollHeight;
 
             // 오래된 텍스트 희미하게
@@ -1135,16 +1113,6 @@
                     words[i].classList.add('old');
                 }
             }
-        }
-
-        function updateInterimText(text) {
-            if (!currentSpan) {
-                currentSpan = document.createElement('span');
-                currentSpan.className = 'stt-word interim';
-                sttStream.appendChild(currentSpan);
-            }
-            currentSpan.textContent = text;
-            sttStream.scrollTop = sttStream.scrollHeight;
         }
 
         function cleanBuffer() {

@@ -844,6 +844,7 @@
             lastMatchTime: 0,
             matchCooldownMs: 5000,   // 같은 행 재매칭 방지 쿨다운
             lastMatchedIndices: new Set(),
+            displayedAnswers: new Set(), // 세션 내 이미 출력된 답변 제목들
             isTransitioning: false,  // 마이크 켜짐/꺼짐 상태 전환 중 플래그
         };
 
@@ -1234,7 +1235,11 @@
             console.log(`🔍 매칭 검사: "${text}" (시트 ${state.sheetData.length}건)`);
 
             state.sheetData.forEach((row, idx) => {
+                // 1. 단기 쿨다운 체크 (동일 단어 연타 방지)
                 if (state.lastMatchedIndices.has(idx) && now - state.lastMatchTime < state.matchCooldownMs) return;
+
+                // 2. 장기 중복 체크 (이미 출력된 카드 방지)
+                if (state.displayedAnswers.has(row.title)) return;
 
                 const matchedKws = row.keywords.filter(kw =>
                     normalizedText.includes(kw.toLowerCase())
@@ -1244,6 +1249,7 @@
                     console.log(`✅ 매칭! [${row.title}] keywords: ${matchedKws.join(', ')}`);
                     state.lastMatchTime = now;
                     state.lastMatchedIndices.add(idx);
+                    state.displayedAnswers.add(row.title); // 출력 이력 추가
 
                     // STT에서 마지막 단어 하이라이트
                     const lastWord = sttStream.querySelector('.stt-word:last-of-type:not(.interim)');

@@ -905,19 +905,19 @@
             try {
                 let text = '';
                 try {
-                    // 직접 호출 시도
                     const res = await fetch(url, { redirect: 'follow' });
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     text = await res.text();
                 } catch (directErr) {
                     console.warn('Direct fetch failed, trying CORS proxy:', directErr);
-                    // CORS 프록시를 통한 재시도
-                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
                     const res = await fetch(proxyUrl);
                     if (!res.ok) throw new Error(`프록시 실패 HTTP ${res.status}`);
                     text = await res.text();
                 }
+                console.log('CSV raw length:', text.length, 'first 200 chars:', text.substring(0, 200));
                 parseCSV(text);
+                console.log('Parsed rows:', state.sheetData.length, 'Sample:', state.sheetData.slice(0, 2));
                 dataDot.classList.add('loaded');
                 dataStatusText.textContent = `${state.sheetData.length}건 로드됨`;
                 showToast(`✅ 시트 데이터 ${state.sheetData.length}건 로드 완료`);

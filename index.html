@@ -1045,7 +1045,7 @@
             const recog = new SpeechRecognition();
             recog.lang = 'ko-KR';
             recog.continuous = true;
-            recog.interimResults = false;
+            recog.interimResults = true;
             recog.maxAlternatives = 1;
 
             recog.onstart = () => {
@@ -1095,21 +1095,43 @@
                     const transcript = result[0].transcript.trim();
                     if (!transcript) continue;
 
-                    addSTTLine(transcript, true);
-                    state.speechBuffer.push({ time: Date.now(), text: transcript, final: true });
-                    cleanBuffer();
-                    checkKeywordMatch(transcript);
+                    if (result.isFinal) {
+                        addSTTLine(transcript, true);
+                        state.speechBuffer.push({ time: Date.now(), text: transcript, final: true });
+                        cleanBuffer();
+                        checkKeywordMatch(transcript);
+                    } else {
+                        updateInterimText(transcript);
+                    }
                 }
             };
 
             return recog;
         }
 
+        // 현재 작성 중인 span (interim이 교체하는 대상)
+        let currentSpan = null;
+        let lastFinalText = '';
+
         function addSTTLine(text, isFinal) {
-            const span = document.createElement('span');
-            span.className = 'stt-word';
-            span.textContent = text + ' ';
-            sttStream.appendChild(span);
+            // 중복 final 방지
+            if (text === lastFinalText) return;
+            lastFinalText = text;
+
+            // interim span이 있으면 확정
+            if (currentSpan) {
+                currentSpan.classList.remove('interim');
+                currentSpan.textContent = text + ' ';
+            } else {
+                const span = document.createElement('span');
+                span.className = 'stt-word';
+                span.textContent = text + ' ';
+                sttStream.appendChild(span);
+                currentSpan = span;
+            }
+
+            // 확정 후 다음을 위해 currentSpan 초기화
+            currentSpan = null;
             sttStream.scrollTop = sttStream.scrollHeight;
 
             // 오래된 텍스트 희미하게
@@ -1119,6 +1141,16 @@
                     words[i].classList.add('old');
                 }
             }
+        }
+
+        function updateInterimText(text) {
+            if (!currentSpan) {
+                currentSpan = document.createElement('span');
+                currentSpan.className = 'stt-word interim';
+                sttStream.appendChild(currentSpan);
+            }
+            currentSpan.textContent = text;
+            sttStream.scrollTop = sttStream.scrollHeight;
         }
 
         function cleanBuffer() {
@@ -1147,7 +1179,7 @@
         }
 
         async function forceUpdateApp() {
-            if (!confirm('앱의 캐시를 모두 삭제하고 최신 버전으로 업데이트하시겠습니까?')) return;
+            if (!confirm('앱의 캐시를 모두 삭제하고 최신 버전으로 업데이트하시겠습니까?\n(API 키와 시트 주소는 그대로 유지됩니다)')) return;
 
             showToast('🔄 업데이트 준비 중...');
 

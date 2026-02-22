@@ -154,12 +154,13 @@
 
         .stt-stream {
             flex: 1;
-            padding: 16px;
+            padding: 12px 16px;
             overflow-y: auto;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             line-height: 1.8;
             color: var(--text-secondary);
             scroll-behavior: smooth;
+            word-break: keep-all;
         }
 
         .stt-stream::-webkit-scrollbar {
@@ -171,28 +172,25 @@
             border-radius: 4px;
         }
 
-        .stt-line {
-            padding: 4px 0;
-            opacity: 0.5;
+        .stt-word {
+            color: var(--text-primary);
             transition: opacity 0.5s;
         }
 
-        .stt-line.recent {
-            opacity: 1;
-            color: var(--text-primary);
+        .stt-word.old {
+            color: var(--text-secondary);
+            opacity: 0.5;
         }
 
-        .stt-line.interim {
-            opacity: 0.7;
+        .stt-word.interim {
             color: var(--accent-blue);
             font-style: italic;
+            opacity: 0.7;
         }
 
-        .stt-line .matched-word {
+        .stt-word.matched {
             color: var(--accent-amber);
             font-weight: 700;
-            text-decoration: underline;
-            text-underline-offset: 3px;
         }
 
         /* --- Right: Flash Cards --- */
@@ -220,11 +218,12 @@
 
         .flash-area {
             flex: 1;
-            padding: 16px;
+            padding: 12px 16px;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            word-break: keep-all;
         }
 
         .flash-area::-webkit-scrollbar {
@@ -236,98 +235,46 @@
             border-radius: 4px;
         }
 
-        .flash-card {
-            background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 20px 24px;
-            border-left: 4px solid var(--accent-blue);
-            cursor: pointer;
-            transition: all var(--transition);
-            position: relative;
-            animation: cardSlideIn 0.4s ease-out;
+        /* 자동 매칭 답변 */
+        .answer-line {
+            display: inline;
         }
 
-        @keyframes cardSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .flash-card:hover {
-            background: var(--bg-card-hover);
-            box-shadow: 0 4px 20px var(--flash-glow);
-        }
-
-        .flash-card.fading {
-            opacity: 0.3;
-            transform: scale(0.98);
-        }
-
-        .flash-card-category {
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: var(--accent-blue);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-
-        .flash-card-type {
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-
-        .flash-card-content {
-            font-size: 1.5rem;
+        .answer-line .answer-label {
+            color: var(--accent-green);
             font-weight: 700;
-            line-height: 1.5;
+            font-size: 0.75rem;
+            margin-right: 4px;
+        }
+
+        .answer-line .answer-text {
             color: var(--text-primary);
-            word-break: keep-all;
         }
 
-        .flash-card-time {
-            position: absolute;
-            top: 12px;
-            right: 16px;
-            font-size: 0.65rem;
+        .answer-line .answer-sep {
             color: var(--text-muted);
+            margin: 0 6px;
         }
 
-        .flash-card-copied {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--accent-green);
-            color: #fff;
-            padding: 8px 20px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
+        /* AI 분석 답변 */
+        .ai-answer {
+            display: block;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: rgba(167, 139, 250, 0.08);
+            border-left: 3px solid var(--accent-purple);
+            border-radius: 0 6px 6px 0;
+            color: var(--text-primary);
+            font-size: 0.88rem;
+            line-height: 1.6;
         }
 
-        .flash-card-copied.show {
-            opacity: 1;
-        }
-
-        /* AI Response Card */
-        .flash-card.ai-card {
-            border-left-color: var(--accent-purple);
-            background: linear-gradient(135deg, var(--bg-card), rgba(167, 139, 250, 0.08));
-        }
-
-        .flash-card.ai-card .flash-card-category {
+        .ai-answer .ai-label {
             color: var(--accent-purple);
+            font-weight: 700;
+            font-size: 0.75rem;
+            display: block;
+            margin-bottom: 4px;
         }
 
         /* Empty State */
@@ -1119,27 +1066,29 @@
 
         function addSTTLine(text, isFinal) {
             // 이전 interim 제거
-            const interim = sttStream.querySelector('.interim');
+            const interim = sttStream.querySelector('.stt-word.interim');
             if (interim) interim.remove();
 
-            const div = document.createElement('div');
-            div.className = 'stt-line recent';
-            div.textContent = text;
-            sttStream.appendChild(div);
+            const span = document.createElement('span');
+            span.className = 'stt-word';
+            span.textContent = text + ' ';
+            sttStream.appendChild(span);
             sttStream.scrollTop = sttStream.scrollHeight;
 
-            // 이전 라인들 opacity 줄이기
-            const lines = sttStream.querySelectorAll('.stt-line');
-            lines.forEach((el, idx) => {
-                if (idx < lines.length - 3) el.classList.remove('recent');
-            });
+            // 오래된 텍스트 희미하게
+            const words = sttStream.querySelectorAll('.stt-word:not(.old)');
+            if (words.length > 20) {
+                for (let i = 0; i < words.length - 10; i++) {
+                    words[i].classList.add('old');
+                }
+            }
         }
 
         function updateInterimText(text) {
-            let interim = sttStream.querySelector('.interim');
+            let interim = sttStream.querySelector('.stt-word.interim');
             if (!interim) {
-                interim = document.createElement('div');
-                interim.className = 'stt-line interim';
+                interim = document.createElement('span');
+                interim.className = 'stt-word interim';
                 sttStream.appendChild(interim);
             }
             interim.textContent = text;
@@ -1162,93 +1111,42 @@
             const now = Date.now();
             const normalizedText = text.toLowerCase();
 
+            console.log(`🔍 매칭 검사: "${text}" (시트 ${state.sheetData.length}건)`);
+
             state.sheetData.forEach((row, idx) => {
-                // 쿨다운 체크
                 if (state.lastMatchedIndices.has(idx) && now - state.lastMatchTime < state.matchCooldownMs) return;
 
-                const matchCount = row.keywords.filter(kw =>
+                const matchedKws = row.keywords.filter(kw =>
                     normalizedText.includes(kw.toLowerCase())
-                ).length;
+                );
 
-                if (matchCount >= sensitivity) {
+                if (matchedKws.length >= sensitivity) {
+                    console.log(`✅ 매칭! [${row.title}] keywords: ${matchedKws.join(', ')}`);
                     state.lastMatchTime = now;
                     state.lastMatchedIndices.add(idx);
 
-                    // 매칭된 키워드 하이라이트
-                    highlightMatchedWords(row.keywords, text);
+                    // STT에서 마지막 단어 하이라이트
+                    const lastWord = sttStream.querySelector('.stt-word:last-of-type:not(.interim)');
+                    if (lastWord) lastWord.classList.add('matched');
 
-                    // 플래시카드 표시
-                    addFlashCard({
-                        title: row.title,
-                        category: row.category,
-                        content: row.summary,
-                        source: 'auto',
-                        matchedKeywords: row.keywords.filter(kw => normalizedText.includes(kw.toLowerCase())),
-                    });
+                    // 답변 텍스트 추가
+                    addAnswer(row.title, row.summary);
 
-                    // 5초 후 쿨다운 해제
                     setTimeout(() => state.lastMatchedIndices.delete(idx), state.matchCooldownMs);
                 }
             });
         }
 
-        function highlightMatchedWords(keywords, text) {
-            const lastLine = sttStream.querySelector('.stt-line.recent:last-of-type');
-            if (!lastLine) return;
-
-            let html = lastLine.textContent;
-            keywords.forEach(kw => {
-                const regex = new RegExp(`(${kw})`, 'gi');
-                html = html.replace(regex, '<span class="matched-word">$1</span>');
-            });
-            lastLine.innerHTML = html;
-        }
-
         // ============================================================
-        //  FLASH CARDS
+        //  ANSWERS (미니멀 텍스트)
         // ============================================================
-        function addFlashCard({ title, category, content, source, matchedKeywords }) {
+        function addAnswer(label, text) {
             flashEmpty.style.display = 'none';
-
-            // 기존 카드들 페이드
-            const existingCards = flashArea.querySelectorAll('.flash-card');
-            existingCards.forEach(c => {
-                if (!c.classList.contains('fading')) {
-                    // 카드가 5개 이상이면 가장 오래된 것 제거
-                    if (existingCards.length >= 5) {
-                        existingCards[0].remove();
-                    }
-                }
-            });
-
-            const card = document.createElement('div');
-            card.className = `flash-card ${source === 'ai' ? 'ai-card' : ''}`;
-
-            const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const kwBadge = matchedKeywords ? matchedKeywords.map(k => `#${k}`).join(' ') : '';
-
-            card.innerHTML = `
-            <div class="flash-card-category">${source === 'ai' ? '🤖 AI 분석' : title}</div>
-            <div class="flash-card-type">${category}${kwBadge ? ' · ' + kwBadge : ''}</div>
-            <div class="flash-card-content">${content}</div>
-            <div class="flash-card-time">${time}</div>
-            <div class="flash-card-copied">✅ 복사됨</div>
-        `;
-
-            // 클릭 → 복사
-            card.addEventListener('click', () => {
-                navigator.clipboard.writeText(content).then(() => {
-                    const copied = card.querySelector('.flash-card-copied');
-                    copied.classList.add('show');
-                    setTimeout(() => copied.classList.remove('show'), 1000);
-                    showToast('📋 클립보드에 복사됨');
-                });
-            });
-
-            flashArea.appendChild(card);
+            const line = document.createElement('div');
+            line.className = 'answer-line';
+            line.innerHTML = `<span class="answer-label">📋 ${label}</span> <span class="answer-text">${text}</span>`;
+            flashArea.appendChild(line);
             flashArea.scrollTop = flashArea.scrollHeight;
-
-            state.flashCards.push({ category, docType, content, source, time });
         }
 
         // ============================================================
@@ -1261,7 +1159,6 @@
                 return;
             }
 
-            // 최근 3분 대화 (버퍼 전체)
             const cutoff = Date.now() - 180000;
             const recentText = state.speechBuffer
                 .filter(b => b.time > cutoff && b.final)
@@ -1273,10 +1170,8 @@
                 return;
             }
 
-            // 매칭된 행의 문서원문 또는 전체 핵심내용 요약
             let contextData = '';
             const normalizedText = recentText.toLowerCase();
-
             const matchedRows = state.sheetData.filter(row =>
                 row.keywords.some(kw => normalizedText.includes(kw.toLowerCase()))
             );
@@ -1320,73 +1215,48 @@ ${contextData || '(등록된 자료 없음)'}
                     body: JSON.stringify({
                         system_instruction: { parts: [{ text: systemInstruction }] },
                         contents: [{ parts: [{ text: userPrompt }] }],
-                        generationConfig: {
-                            temperature: 0.3,
-                            maxOutputTokens: 400,
-                        }
+                        generationConfig: { temperature: 0.3, maxOutputTokens: 400 }
                     })
                 });
 
                 if (!response.ok) throw new Error(`API ${response.status}`);
 
-                // SSE 스트리밍 처리
+                // AI 블록 생성
+                flashEmpty.style.display = 'none';
+                const aiBlock = document.createElement('div');
+                aiBlock.className = 'ai-answer';
+                aiBlock.innerHTML = `<span class="ai-label">🤖 AI 분석</span><span id="aiStreamText">▌</span>`;
+                flashArea.appendChild(aiBlock);
+                flashArea.scrollTop = flashArea.scrollHeight;
+
+                const streamEl = aiBlock.querySelector('#aiStreamText');
+                streamEl.removeAttribute('id');
+
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let fullText = '';
 
-                // 미리 카드 생성
-                flashEmpty.style.display = 'none';
-                const card = document.createElement('div');
-                card.className = 'flash-card ai-card';
-                const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                card.innerHTML = `
-                <div class="flash-card-category">🤖 AI 맥락 분석</div>
-                <div class="flash-card-type">Gemini 2.5 Flash · 최근 3분 대화 기반</div>
-                <div class="flash-card-content" id="aiStreamContent">▌</div>
-                <div class="flash-card-time">${time}</div>
-                <div class="flash-card-copied">✅ 복사됨</div>
-            `;
-                flashArea.appendChild(card);
-                flashArea.scrollTop = flashArea.scrollHeight;
-
-                const contentEl = card.querySelector('#aiStreamContent');
-                contentEl.removeAttribute('id');
-
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-
                     const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split('\n');
-
-                    for (const line of lines) {
+                    for (const line of chunk.split('\n')) {
                         if (line.startsWith('data: ')) {
                             const jsonStr = line.slice(6).trim();
                             if (jsonStr === '[DONE]') continue;
                             try {
                                 const data = JSON.parse(jsonStr);
-                                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                                if (text) {
-                                    fullText += text;
-                                    contentEl.textContent = fullText + ' ▌';
+                                const t = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                                if (t) {
+                                    fullText += t;
+                                    streamEl.textContent = fullText + ' ▌';
                                     flashArea.scrollTop = flashArea.scrollHeight;
                                 }
                             } catch (e) { }
                         }
                     }
                 }
-
-                contentEl.textContent = fullText || '(응답 없음)';
-
-                // 클릭 → 복사
-                card.addEventListener('click', () => {
-                    navigator.clipboard.writeText(fullText).then(() => {
-                        const copied = card.querySelector('.flash-card-copied');
-                        copied.classList.add('show');
-                        setTimeout(() => copied.classList.remove('show'), 1000);
-                        showToast('📋 클립보드에 복사됨');
-                    });
-                });
+                streamEl.textContent = fullText || '(응답 없음)';
 
             } catch (e) {
                 showToast(`❌ AI 분석 실패: ${e.message}`);
@@ -1502,13 +1372,12 @@ ${contextData || '(등록된 자료 없음)'}
             // 핀
             $('btnPin').addEventListener('click', pinCurrentText);
 
-            // 카드 지우기
+            // 답변 지우기
             $('btnClearCards').addEventListener('click', () => {
-                flashArea.querySelectorAll('.flash-card').forEach(c => c.remove());
+                flashArea.querySelectorAll('.answer-line, .ai-answer').forEach(c => c.remove());
                 flashEmpty.style.display = '';
-                state.flashCards = [];
                 state.lastMatchedIndices.clear();
-                showToast('🗑️ 카드 모두 삭제됨');
+                showToast('🗑️ 답변 모두 삭제됨');
             });
 
             // 테마

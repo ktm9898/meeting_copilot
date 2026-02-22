@@ -1555,6 +1555,7 @@ ${recentText}
                 flashArea.querySelectorAll('.answer-line, .ai-answer').forEach(c => c.remove());
                 flashEmpty.style.display = '';
                 state.lastMatchedIndices.clear();
+                state.displayedAnswers.clear(); // 중복 방지 이력 초기화
                 showToast('🗑️ 답변 모두 삭제됨');
             });
 

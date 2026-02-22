@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4a9eff"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="38" fill="#0f0f14"/>
+  <rect x="16" y="16" width="160" height="160" rx="28" fill="#1a1a24"/>
+  <!-- Microphone body -->
+  <rect x="76" y="40" width="40" height="60" rx="20" fill="url(#g)"/>
+  <!-- Microphone stand -->
+  <path d="M60 85 Q60 120 96 120 Q132 120 132 85" fill="none" stroke="url(#g)" stroke-width="6" stroke-linecap="round"/>
+  <line x1="96" y1="120" x2="96" y2="140" stroke="url(#g)" stroke-width="6" stroke-linecap="round"/>
+  <line x1="76" y1="140" x2="116" y2="140" stroke="url(#g)" stroke-width="6" stroke-linecap="round"/>
+  <!-- Sound waves -->
+  <path d="M140 60 Q152 75 140 90" fill="none" stroke="#4a9eff" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+  <path d="M148 50 Q165 75 148 100" fill="none" stroke="#a78bfa" stroke-width="4" stroke-linecap="round" opacity="0.4"/>
+  <!-- AI dot -->
+  <circle cx="150" cy="150" r="16" fill="#a78bfa"/>
+  <text x="150" y="157" font-size="18" text-anchor="middle" fill="white" font-family="sans-serif" font-weight="bold">AI</text>
+</svg>

@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Meeting Copilot</title>
+    <meta name="theme-color" content="#0f0f14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MeetCopilot">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a2e'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='%234a9eff'>🎙</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f0f14;
+            --bg-secondary: #1a1a24;
+            --bg-card: #22223a;
+            --bg-card-hover: #2a2a45;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8888a0;
+            --text-muted: #55556a;
+            --accent-blue: #4a9eff;
+            --accent-green: #34d399;
+            --accent-amber: #fbbf24;
+            --accent-red: #f87171;
+            --accent-purple: #a78bfa;
+            --border-color: #2a2a3e;
+            --flash-glow: rgba(74, 158, 255, 0.15);
+            --radius: 12px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .light-mode {
+            --bg-primary: #f5f5fa;
+            --bg-secondary: #ffffff;
+            --bg-card: #eeeef5;
+            --bg-card-hover: #e0e0ee;
+            --text-primary: #1a1a2e;
+            --text-secondary: #666680;
+            --text-muted: #999aaa;
+            --border-color: #d0d0dd;
+            --flash-glow: rgba(74, 158, 255, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background var(--transition), color var(--transition);
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-logo {
+            font-size: 1.3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-status {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding: 3px 10px;
+            background: var(--bg-card);
+            border-radius: 20px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all var(--transition);
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* --- Left: STT Stream --- */
+        .stt-panel {
+            flex: 0 0 38%;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            background: var(--bg-primary);
+        }
+
+        .stt-header {
+            padding: 12px 16px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stt-stream {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            scroll-behavior: smooth;
+        }
+
+        .stt-stream::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .stt-stream::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .stt-line {
+            padding: 4px 0;
+            opacity: 0.5;
+            transition: opacity 0.5s;
+        }
+
+        .stt-line.recent {
+            opacity: 1;
+            color: var(--text-primary);
+        }
+
+        .stt-line.interim {
+            opacity: 0.7;
+            color: var(--accent-blue);
+            font-style: italic;
+        }
+
+        .stt-line .matched-word {
+            color: var(--accent-amber);
+            font-weight: 700;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        /* --- Right: Flash Cards --- */
+        .flash-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+        }
+
+        .flash-header {
+            padding: 12px 16px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .flash-area {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .flash-area::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .flash-area::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .flash-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            border-left: 4px solid var(--accent-blue);
+            cursor: pointer;
+            transition: all var(--transition);
+            position: relative;
+            animation: cardSlideIn 0.4s ease-out;
+        }
+
+        @keyframes cardSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .flash-card:hover {
+            background: var(--bg-card-hover);
+            box-shadow: 0 4px 20px var(--flash-glow);
+        }
+
+        .flash-card.fading {
+            opacity: 0.3;
+            transform: scale(0.98);
+        }
+
+        .flash-card-category {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .flash-card-type {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .flash-card-content {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.5;
+            color: var(--text-primary);
+            word-break: keep-all;
+        }
+
+        .flash-card-time {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .flash-card-copied {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--accent-green);
+            color: #fff;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .flash-card-copied.show {
+            opacity: 1;
+        }
+
+        /* AI Response Card */
+        .flash-card.ai-card {
+            border-left-color: var(--accent-purple);
+            background: linear-gradient(135deg, var(--bg-card), rgba(167, 139, 250, 0.08));
+        }
+
+        .flash-card.ai-card .flash-card-category {
+            color: var(--accent-purple);
+        }
+
+        /* Empty State */
+        .flash-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            gap: 12px;
+        }
+
+        .flash-empty-icon {
+            font-size: 3rem;
+            opacity: 0.3;
+        }
+
+        .flash-empty-text {
+            font-size: 0.9rem;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* ===== CONTROL BAR ===== */
+        .control-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .control-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mic-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .mic-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            transition: background var(--transition);
+        }
+
+        .mic-dot.active {
+            background: var(--accent-red);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(248, 113, 113, 0);
+            }
+        }
+
+        .control-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ctrl-btn {
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            font-family: 'Noto Sans KR', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all var(--transition);
+        }
+
+        .ctrl-btn:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        .ctrl-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .ctrl-btn.primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: #fff;
+            border: none;
+            font-weight: 700;
+        }
+
+        .ctrl-btn.primary:hover {
+            opacity: 0.9;
+            box-shadow: 0 4px 16px rgba(74, 158, 255, 0.3);
+        }
+
+        .ctrl-btn.primary:disabled {
+            opacity: 0.4;
+        }
+
+        .ctrl-btn.danger {
+            color: var(--accent-red);
+            border-color: var(--accent-red);
+        }
+
+        .ctrl-btn.danger:hover {
+            background: rgba(248, 113, 113, 0.1);
+        }
+
+        /* ===== SETTINGS MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            width: 90%;
+            max-width: 520px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 28px;
+            animation: modalIn 0.3s ease-out;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal h2 {
+            font-size: 1.2rem;
+            font-weight: 900;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color var(--transition);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .form-group .hint {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        /* ===== PINNED PANEL ===== */
+        .pinned-panel {
+            display: none;
+            position: fixed;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 360px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            z-index: 900;
+            flex-direction: column;
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+            }
+
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        .pinned-panel.show {
+            display: flex;
+        }
+
+        .pinned-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .pinned-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .pinned-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .pinned-item {
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+            position: relative;
+        }
+
+        .pinned-item-time {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .pinned-item-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .pinned-item-delete:hover {
+            color: var(--accent-red);
+        }
+
+        /* ===== DATA STATUS BAR ===== */
+        .data-status {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .data-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .data-dot.loaded {
+            background: var(--accent-green);
+        }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 2000;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .stt-panel {
+                flex: 0 0 35%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .flash-card-content {
+                font-size: 1.2rem;
+            }
+
+            .pinned-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <span class="header-logo">🎙 Meeting Copilot</span>
+            <span class="header-status" id="headerStatus">대기 중</span>
+        </div>
+        <div class="header-right">
+            <button class="icon-btn" id="btnTheme" title="테마 전환">🌙</button>
+            <button class="icon-btn" id="btnPins" title="핀 목록">📌</button>
+            <button class="icon-btn" id="btnSettings" title="설정">⚙️</button>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-content">
+        <!-- STT Stream -->
+        <div class="stt-panel">
+            <div class="stt-header">
+                실시간 음성 인식
+                <span class="data-status" id="dataStatus">
+                    <span class="data-dot" id="dataDot"></span>
+                    <span id="dataStatusText">시트 미연결</span>
+                </span>
+            </div>
+            <div class="stt-stream" id="sttStream">
+                <div class="flash-empty">
+                    <div class="flash-empty-icon">🎤</div>
+                    <div class="flash-empty-text">
+                        아래 <strong>듣기 시작</strong> 버튼을 눌러<br>
+                        음성 인식을 시작하세요
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flash Cards -->
+        <div class="flash-panel">
+            <div class="flash-header">
+                <span>답변 카드</span>
+                <button class="icon-btn" id="btnClearCards" title="카드 모두 지우기"
+                    style="width:28px;height:28px;font-size:0.75rem;">🗑️</button>
+            </div>
+            <div class="flash-area" id="flashArea">
+                <div class="flash-empty" id="flashEmpty">
+                    <div class="flash-empty-icon">💡</div>
+                    <div class="flash-empty-text">
+                        음성에서 키워드가 감지되면<br>
+                        여기에 답변이 표시됩니다
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTROL BAR -->
+    <div class="control-bar">
+        <div class="control-left">
+            <div class="mic-indicator">
+                <span class="mic-dot" id="micDot"></span>
+                <span id="micStatus">중지됨</span>
+            </div>
+        </div>
+        <div class="control-right">
+            <button class="ctrl-btn" id="btnPin" title="현재 텍스트 핀">📌 핀</button>
+            <button class="ctrl-btn primary" id="btnContext" title="맥락 분석">🔍 맥락 분석</button>
+            <button class="ctrl-btn" id="btnListen" title="듣기 시작/중지">▶ 듣기 시작</button>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2>⚙️ 설정</h2>
+            <div class="form-group">
+                <label>Gemini API 키</label>
+                <input type="password" id="inputApiKey" placeholder="AIzaSy...">
+                <div class="hint">Gemini 2.0 Flash 모델을 사용합니다</div>
+            </div>
+            <div class="form-group">
+                <label>구글 시트 CSV 공개 URL</label>
+                <input type="url" id="inputSheetUrl"
+                    placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv">
+                <div class="hint">시트 열 순서: 사업구분 | 문서종류 | 핵심내용 요약 | 주요 키워드 | 문서원문</div>
+            </div>
+            <div class="form-group">
+                <label>자동 매칭 민감도 (키워드 최소 일치 수)</label>
+                <input type="number" id="inputSensitivity" value="1" min="1" max="5">
+                <div class="hint">숫자가 클수록 더 많은 키워드가 일치해야 카드가 표시됩니다</div>
+            </div>
+            <div class="modal-actions">
+                <button class="ctrl-btn" id="btnReloadSheet">🔄 시트 새로고침</button>
+                <button class="ctrl-btn" id="btnSettingsClose">닫기</button>
+                <button class="ctrl-btn primary" id="btnSettingsSave">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PINNED PANEL -->
+    <div class="pinned-panel" id="pinnedPanel">
+        <div class="pinned-header">
+            <h3>📌 핀 목록</h3>
+            <button class="icon-btn" id="btnPinsClose" style="width:28px;height:28px;font-size:0.8rem;">✕</button>
+        </div>
+        <div class="pinned-list" id="pinnedList">
+            <div class="flash-empty" style="padding:40px 0;">
+                <div class="flash-empty-text">핀한 메모가 없습니다</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ============================================================
+        //  STATE
+        // ============================================================
+        const state = {
+            listening: false,
+            recognition: null,
+            speechBuffer: [],        // {time, text, final}
+            maxBufferSec: 180,        // 3분 버퍼
+            sheetData: [],           // [{사업구분, 문서종류, 핵심내용요약, 주요키워드[], 문서원문}]
+            flashCards: [],
+            pinnedItems: [],
+            lastMatchTime: 0,
+            matchCooldownMs: 5000,   // 같은 행 재매칭 방지 쿨다운
+            lastMatchedIndices: new Set(),
+        };
+
+        // ============================================================
+        //  WAKE LOCK (화면 꺼짐 방지)
+        // ============================================================
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock is active');
+                } catch (err) {
+                    console.warn(`Wake Lock error: ${err.name}, ${err.message}`);
+                }
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock !== null) {
+                wakeLock.release();
+                wakeLock = null;
+                console.log('Wake Lock released');
+            }
+        }
+
+        // ============================================================
+        //  DOM REFS
+        // ============================================================
+        const $ = id => document.getElementById(id);
+        const sttStream = $('sttStream');
+        const flashArea = $('flashArea');
+        const flashEmpty = $('flashEmpty');
+        const micDot = $('micDot');
+        const micStatus = $('micStatus');
+        const headerStatus = $('headerStatus');
+        const dataDot = $('dataDot');
+        const dataStatusText = $('dataStatusText');
+        const toast = $('toast');
+
+        // ============================================================
+        //  SETTINGS: LOAD / SAVE
+        // ============================================================
+        function loadSettings() {
+            return {
+                apiKey: localStorage.getItem('mc_apiKey') || '',
+                sheetUrl: localStorage.getItem('mc_sheetUrl') || '',
+                sensitivity: parseInt(localStorage.getItem('mc_sensitivity') || '1'),
+            };
+        }
+
+        function saveSettings(s) {
+            localStorage.setItem('mc_apiKey', s.apiKey);
+            localStorage.setItem('mc_sheetUrl', s.sheetUrl);
+            localStorage.setItem('mc_sensitivity', String(s.sensitivity));
+        }
+
+        function initSettingsUI() {
+            const s = loadSettings();
+            $('inputApiKey').value = s.apiKey;
+            $('inputSheetUrl').value = s.sheetUrl;
+            $('inputSensitivity').value = s.sensitivity;
+        }
+
+        // ============================================================
+        //  TOAST
+        // ============================================================
+        function showToast(msg, duration = 2000) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        // ============================================================
+        //  GOOGLE SHEETS CSV LOADER
+        // ============================================================
+        async function loadSheetData(url) {
+            if (!url) { showToast('⚠️ 시트 URL을 설정에서 입력하세요'); return; }
+
+            dataStatusText.textContent = '로드 중...';
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const text = await res.text();
+                parseCSV(text);
+                dataDot.classList.add('loaded');
+                dataStatusText.textContent = `${state.sheetData.length}건 로드됨`;
+                showToast(`✅ 시트 데이터 ${state.sheetData.length}건 로드 완료`);
+            } catch (e) {
+                dataDot.classList.remove('loaded');
+                dataStatusText.textContent = '로드 실패';
+                showToast(`❌ 시트 로드 실패: ${e.message}`);
+                console.error('Sheet load error:', e);
+            }
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length < 2) { state.sheetData = []; return; }
+
+            // 첫 행은 헤더, 나머지를 파싱
+            state.sheetData = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = parseCSVLine(lines[i]);
+                if (cols.length < 5) continue;
+
+                const keywords = cols[3].split(/[,，]/)
+                    .map(k => k.trim())
+                    .filter(k => k.length > 0);
+
+                state.sheetData.push({
+                    category: cols[0].trim(),
+                    docType: cols[1].trim(),
+                    summary: cols[2].trim(),
+                    keywords: keywords,
+                    fullText: cols[4].trim(),
+                });
+            }
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (inQuotes) {
+                    if (ch === '"') {
+                        if (i + 1 < line.length && line[i + 1] === '"') {
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = false;
+                        }
+                    } else {
+                        current += ch;
+                    }
+                } else {
+                    if (ch === '"') {
+                        inQuotes = true;
+                    } else if (ch === ',') {
+                        result.push(current);
+                        current = '';
+                    } else {
+                        current += ch;
+                    }
+                }
+            }
+            result.push(current);
+            return result;
+        }
+
+        // ============================================================
+        //  SPEECH RECOGNITION (STT)
+        // ============================================================
+        function initSTT() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast('❌ 이 브라우저는 음성 인식을 지원하지 않습니다');
+                return null;
+            }
+
+            const recog = new SpeechRecognition();
+            recog.lang = 'ko-KR';
+            recog.continuous = true;
+            recog.interimResults = true;
+            recog.maxAlternatives = 1;
+
+            recog.onstart = () => {
+                state.listening = true;
+                micDot.classList.add('active');
+                micStatus.textContent = '듣는 중...';
+                headerStatus.textContent = '🔴 듣는 중';
+                $('btnListen').innerHTML = '⏹ 중지';
+                $('btnListen').classList.add('danger');
+                $('btnListen').classList.remove('primary');
+
+                // 첫 시작 시 빈 상태 제거
+                const emptyEl = sttStream.querySelector('.flash-empty');
+                if (emptyEl) emptyEl.remove();
+            };
+
+            recog.onend = () => {
+                // 자동 재시작 (의도적 중지가 아닌 경우)
+                if (state.listening) {
+                    try { recog.start(); } catch (e) { }
+                } else {
+                    micDot.classList.remove('active');
+                    micStatus.textContent = '중지됨';
+                    headerStatus.textContent = '대기 중';
+                    $('btnListen').innerHTML = '▶ 듣기 시작';
+                    $('btnListen').classList.remove('danger');
+                }
+            };
+
+            recog.onerror = (e) => {
+                console.warn('STT error:', e.error);
+                if (e.error === 'not-allowed') {
+                    showToast('❌ 마이크 권한이 필요합니다');
+                    state.listening = false;
+                }
+            };
+
+            recog.onresult = (event) => {
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const result = event.results[i];
+                    const transcript = result[0].transcript.trim();
+                    if (!transcript) continue;
+
+                    if (result.isFinal) {
+                        addSTTLine(transcript, true);
+                        state.speechBuffer.push({ time: Date.now(), text: transcript, final: true });
+                        cleanBuffer();
+                        checkKeywordMatch(transcript);
+                    } else {
+                        updateInterimText(transcript);
+                    }
+                }
+            };
+
+            return recog;
+        }
+
+        function addSTTLine(text, isFinal) {
+            // 이전 interim 제거
+            const interim = sttStream.querySelector('.interim');
+            if (interim) interim.remove();
+
+            const div = document.createElement('div');
+            div.className = 'stt-line recent';
+            div.textContent = text;
+            sttStream.appendChild(div);
+            sttStream.scrollTop = sttStream.scrollHeight;
+
+            // 이전 라인들 opacity 줄이기
+            const lines = sttStream.querySelectorAll('.stt-line');
+            lines.forEach((el, idx) => {
+                if (idx < lines.length - 3) el.classList.remove('recent');
+            });
+        }
+
+        function updateInterimText(text) {
+            let interim = sttStream.querySelector('.interim');
+            if (!interim) {
+                interim = document.createElement('div');
+                interim.className = 'stt-line interim';
+                sttStream.appendChild(interim);
+            }
+            interim.textContent = text;
+            sttStream.scrollTop = sttStream.scrollHeight;
+        }
+
+        function cleanBuffer() {
+            const cutoff = Date.now() - state.maxBufferSec * 1000;
+            state.speechBuffer = state.speechBuffer.filter(b => b.time > cutoff);
+        }
+
+        // ============================================================
+        //  KEYWORD MATCHING (AUTO MODE)
+        // ============================================================
+        function checkKeywordMatch(text) {
+            if (state.sheetData.length === 0) return;
+
+            const settings = loadSettings();
+            const sensitivity = settings.sensitivity || 1;
+            const now = Date.now();
+            const normalizedText = text.toLowerCase();
+
+            state.sheetData.forEach((row, idx) => {
+                // 쿨다운 체크
+                if (state.lastMatchedIndices.has(idx) && now - state.lastMatchTime < state.matchCooldownMs) return;
+
+                const matchCount = row.keywords.filter(kw =>
+                    normalizedText.includes(kw.toLowerCase())
+                ).length;
+
+                if (matchCount >= sensitivity) {
+                    state.lastMatchTime = now;
+                    state.lastMatchedIndices.add(idx);
+
+                    // 매칭된 키워드 하이라이트
+                    highlightMatchedWords(row.keywords, text);
+
+                    // 플래시카드 표시
+                    addFlashCard({
+                        category: row.category,
+                        docType: row.docType,
+                        content: row.summary,
+                        source: 'auto',
+                        matchedKeywords: row.keywords.filter(kw => normalizedText.includes(kw.toLowerCase())),
+                    });
+
+                    // 5초 후 쿨다운 해제
+                    setTimeout(() => state.lastMatchedIndices.delete(idx), state.matchCooldownMs);
+                }
+            });
+        }
+
+        function highlightMatchedWords(keywords, text) {
+            const lastLine = sttStream.querySelector('.stt-line.recent:last-of-type');
+            if (!lastLine) return;
+
+            let html = lastLine.textContent;
+            keywords.forEach(kw => {
+                const regex = new RegExp(`(${kw})`, 'gi');
+                html = html.replace(regex, '<span class="matched-word">$1</span>');
+            });
+            lastLine.innerHTML = html;
+        }
+
+        // ============================================================
+        //  FLASH CARDS
+        // ============================================================
+        function addFlashCard({ category, docType, content, source, matchedKeywords }) {
+            flashEmpty.style.display = 'none';
+
+            // 기존 카드들 페이드
+            const existingCards = flashArea.querySelectorAll('.flash-card');
+            existingCards.forEach(c => {
+                if (!c.classList.contains('fading')) {
+                    // 카드가 5개 이상이면 가장 오래된 것 제거
+                    if (existingCards.length >= 5) {
+                        existingCards[0].remove();
+                    }
+                }
+            });
+
+            const card = document.createElement('div');
+            card.className = `flash-card ${source === 'ai' ? 'ai-card' : ''}`;
+
+            const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const kwBadge = matchedKeywords ? matchedKeywords.map(k => `#${k}`).join(' ') : '';
+
+            card.innerHTML = `
+            <div class="flash-card-category">${source === 'ai' ? '🤖 AI 분석' : category}</div>
+            <div class="flash-card-type">${docType}${kwBadge ? ' · ' + kwBadge : ''}</div>
+            <div class="flash-card-content">${content}</div>
+            <div class="flash-card-time">${time}</div>
+            <div class="flash-card-copied">✅ 복사됨</div>
+        `;
+
+            // 클릭 → 복사
+            card.addEventListener('click', () => {
+                navigator.clipboard.writeText(content).then(() => {
+                    const copied = card.querySelector('.flash-card-copied');
+                    copied.classList.add('show');
+                    setTimeout(() => copied.classList.remove('show'), 1000);
+                    showToast('📋 클립보드에 복사됨');
+                });
+            });
+
+            flashArea.appendChild(card);
+            flashArea.scrollTop = flashArea.scrollHeight;
+
+            state.flashCards.push({ category, docType, content, source, time });
+        }
+
+        // ============================================================
+        //  GEMINI API (MANUAL CONTEXT ANALYSIS)
+        // ============================================================
+        async function analyzeContext() {
+            const settings = loadSettings();
+            if (!settings.apiKey) {
+                showToast('⚠️ 설정에서 Gemini API 키를 입력하세요');
+                return;
+            }
+
+            // 최근 3분 대화 (버퍼 전체)
+            const cutoff = Date.now() - 180000;
+            const recentText = state.speechBuffer
+                .filter(b => b.time > cutoff && b.final)
+                .map(b => b.text)
+                .join(' ');
+
+            if (!recentText) {
+                showToast('⚠️ 분석할 최근 대화가 없습니다');
+                return;
+            }
+
+            // 매칭된 행의 문서원문 또는 전체 핵심내용 요약
+            let contextData = '';
+            const normalizedText = recentText.toLowerCase();
+
+            const matchedRows = state.sheetData.filter(row =>
+                row.keywords.some(kw => normalizedText.includes(kw.toLowerCase()))
+            );
+
+            if (matchedRows.length > 0) {
+                contextData = matchedRows.map(r =>
+                    `[${r.category}/${r.docType}]\n${r.fullText || r.summary}`
+                ).join('\n\n---\n\n');
+            } else if (state.sheetData.length > 0) {
+                contextData = state.sheetData.map(r =>
+                    `[${r.category}/${r.docType}] ${r.summary}`
+                ).join('\n');
+            }
+
+            $('btnContext').disabled = true;
+            $('btnContext').innerHTML = '⏳ 분석 중...';
+
+            try {
+                const systemInstruction = `당신은 회의 보조 AI입니다.
+회의 중 질문에 대한 즉각적인 답변 자료를 제공하는 역할입니다.
+아래 규칙을 반드시 따르세요:
+1. 총 100자 이내로 답변하세요.
+2. 주요 수치와 핵심 사실관계를 중심으로 작성하세요.
+3. '항목: 값' 형태로 줄바꿈하여 나열하세요.
+4. 부가 설명, 인사말, 서론, 결론 없이 데이터만 출력하세요.
+5. 참고 자료에 없는 내용은 추측하지 마세요.`;
+
+                const userPrompt = `[최근 회의 대화 (3분)]
+${recentText}
+
+[참고 자료]
+${contextData || '(등록된 자료 없음)'}
+
+위 대화 맥락에서 질문자가 필요로 하는 핵심 수치와 사실관계를 정리해주세요.`;
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${settings.apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        system_instruction: { parts: [{ text: systemInstruction }] },
+                        contents: [{ parts: [{ text: userPrompt }] }],
+                        generationConfig: {
+                            temperature: 0.3,
+                            maxOutputTokens: 400,
+                        }
+                    })
+                });
+
+                if (!response.ok) throw new Error(`API ${response.status}`);
+
+                // SSE 스트리밍 처리
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = '';
+
+                // 미리 카드 생성
+                flashEmpty.style.display = 'none';
+                const card = document.createElement('div');
+                card.className = 'flash-card ai-card';
+                const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                card.innerHTML = `
+                <div class="flash-card-category">🤖 AI 맥락 분석</div>
+                <div class="flash-card-type">Gemini 2.0 Flash · 최근 3분 대화 기반</div>
+                <div class="flash-card-content" id="aiStreamContent">▌</div>
+                <div class="flash-card-time">${time}</div>
+                <div class="flash-card-copied">✅ 복사됨</div>
+            `;
+                flashArea.appendChild(card);
+                flashArea.scrollTop = flashArea.scrollHeight;
+
+                const contentEl = card.querySelector('#aiStreamContent');
+                contentEl.removeAttribute('id');
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const jsonStr = line.slice(6).trim();
+                            if (jsonStr === '[DONE]') continue;
+                            try {
+                                const data = JSON.parse(jsonStr);
+                                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                                if (text) {
+                                    fullText += text;
+                                    contentEl.textContent = fullText + ' ▌';
+                                    flashArea.scrollTop = flashArea.scrollHeight;
+                                }
+                            } catch (e) { }
+                        }
+                    }
+                }
+
+                contentEl.textContent = fullText || '(응답 없음)';
+
+                // 클릭 → 복사
+                card.addEventListener('click', () => {
+                    navigator.clipboard.writeText(fullText).then(() => {
+                        const copied = card.querySelector('.flash-card-copied');
+                        copied.classList.add('show');
+                        setTimeout(() => copied.classList.remove('show'), 1000);
+                        showToast('📋 클립보드에 복사됨');
+                    });
+                });
+
+            } catch (e) {
+                showToast(`❌ AI 분석 실패: ${e.message}`);
+                console.error('Gemini API error:', e);
+            } finally {
+                $('btnContext').disabled = false;
+                $('btnContext').innerHTML = '🔍 맥락 분석';
+            }
+        }
+
+        // ============================================================
+        //  PIN FEATURE
+        // ============================================================
+        function pinCurrentText() {
+            const recent = state.speechBuffer
+                .filter(b => b.final)
+                .slice(-3)
+                .map(b => b.text)
+                .join(' ');
+
+            if (!recent) {
+                showToast('⚠️ 핀할 텍스트가 없습니다');
+                return;
+            }
+
+            const item = {
+                text: recent,
+                time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                id: Date.now(),
+            };
+
+            state.pinnedItems.push(item);
+            renderPinnedList();
+            showToast('📌 핀 저장됨');
+        }
+
+        function renderPinnedList() {
+            const list = $('pinnedList');
+            if (state.pinnedItems.length === 0) {
+                list.innerHTML = '<div class="flash-empty" style="padding:40px 0;"><div class="flash-empty-text">핀한 메모가 없습니다</div></div>';
+                return;
+            }
+
+            list.innerHTML = state.pinnedItems.map(item => `
+            <div class="pinned-item">
+                <div class="pinned-item-time">${item.time}</div>
+                <div>${item.text}</div>
+                <button class="pinned-item-delete" onclick="deletePin(${item.id})">✕</button>
+            </div>
+        `).join('');
+        }
+
+        function deletePin(id) {
+            state.pinnedItems = state.pinnedItems.filter(p => p.id !== id);
+            renderPinnedList();
+        }
+
+        // ============================================================
+        //  THEME
+        // ============================================================
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            $('btnTheme').textContent = isLight ? '🌑' : '🌙';
+            localStorage.setItem('mc_theme', isLight ? 'light' : 'dark');
+        }
+
+        function loadTheme() {
+            const theme = localStorage.getItem('mc_theme') || 'dark';
+            if (theme === 'light') {
+                document.body.classList.add('light-mode');
+                $('btnTheme').textContent = '🌑';
+            }
+        }
+
+        // ============================================================
+        //  EVENT HANDLERS
+        // ============================================================
+        function init() {
+            loadTheme();
+            initSettingsUI();
+            state.recognition = initSTT();
+
+            // 시트 자동 로드
+            const settings = loadSettings();
+            if (settings.sheetUrl) {
+                loadSheetData(settings.sheetUrl);
+            }
+
+            // 듣기 시작/중지
+            $('btnListen').addEventListener('click', () => {
+                if (!state.recognition) {
+                    showToast('❌ 음성 인식을 사용할 수 없습니다');
+                    return;
+                }
+                if (state.listening) {
+                    state.listening = false;
+                    state.recognition.stop();
+                    releaseWakeLock();
+                } else {
+                    try {
+                        state.recognition.start();
+                        requestWakeLock();
+                    } catch (e) {
+                        showToast('❌ 마이크를 시작할 수 없습니다');
+                    }
+                }
+            });
+
+            // 맥락 분석
+            $('btnContext').addEventListener('click', analyzeContext);
+
+            // 핀
+            $('btnPin').addEventListener('click', pinCurrentText);
+
+            // 카드 지우기
+            $('btnClearCards').addEventListener('click', () => {
+                flashArea.querySelectorAll('.flash-card').forEach(c => c.remove());
+                flashEmpty.style.display = '';
+                state.flashCards = [];
+                state.lastMatchedIndices.clear();
+                showToast('🗑️ 카드 모두 삭제됨');
+            });
+
+            // 테마
+            $('btnTheme').addEventListener('click', toggleTheme);
+
+            // 핀 패널
+            $('btnPins').addEventListener('click', () => $('pinnedPanel').classList.toggle('show'));
+            $('btnPinsClose').addEventListener('click', () => $('pinnedPanel').classList.remove('show'));
+
+            // 설정 모달
+            $('btnSettings').addEventListener('click', () => {
+                initSettingsUI();
+                $('settingsModal').classList.add('show');
+            });
+
+            $('settingsClose')?.addEventListener('click', () => $('settingsModal').classList.remove('show'));
+            $('btnSettingsClose').addEventListener('click', () => $('settingsModal').classList.remove('show'));
+
+            $('btnSettingsSave').addEventListener('click', () => {
+                saveSettings({
+                    apiKey: $('inputApiKey').value.trim(),
+                    sheetUrl: $('inputSheetUrl').value.trim(),
+                    sensitivity: parseInt($('inputSensitivity').value) || 1,
+                });
+                showToast('✅ 설정 저장됨');
+                $('settingsModal').classList.remove('show');
+
+                // 시트 URL이 변경되었으면 재로드
+                const s = loadSettings();
+                if (s.sheetUrl) loadSheetData(s.sheetUrl);
+            });
+
+            $('btnReloadSheet').addEventListener('click', () => {
+                const s = loadSettings();
+                loadSheetData(s.sheetUrl || $('inputSheetUrl').value.trim());
+            });
+
+            // 모달 외부 클릭으로 닫기
+            $('settingsModal').addEventListener('click', (e) => {
+                if (e.target === $('settingsModal')) $('settingsModal').classList.remove('show');
+            });
+
+            // 키보드 단축키
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                if (e.key === ' ' || e.code === 'Space') {
+                    e.preventDefault();
+                    $('btnListen').click();
+                }
+                if (e.key === 'c' || e.key === 'C') {
+                    $('btnContext').click();
+                }
+                if (e.key === 'p' || e.key === 'P') {
+                    $('btnPin').click();
+                }
+            });
+        }
+
+        // ============================================================
+        //  PWA SERVICE WORKER
+        // ============================================================
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(err => {
+                console.log('SW registration skipped:', err);
+            });
+        }
+
+        // ============================================================
+        //  BOOT
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

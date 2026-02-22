@@ -136,8 +136,10 @@
             flex: 0 0 38%;
             display: flex;
             flex-direction: column;
+            min-height: 0;
             border-right: 1px solid var(--border-color);
             background: var(--bg-primary);
+            overflow: hidden;
         }
 
         .stt-header {
@@ -198,7 +200,9 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-height: 0;
             background: var(--bg-primary);
+            overflow: hidden;
         }
 
         .flash-header {
@@ -678,13 +682,19 @@
             }
 
             .stt-panel {
-                flex: 0 0 35%;
+                flex: 0 0 40%;
+                max-height: 40%;
                 border-right: none;
                 border-bottom: 1px solid var(--border-color);
             }
 
+            .flash-panel {
+                flex: 1;
+                min-height: 0;
+            }
+
             .flash-card-content {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
 
             .pinned-panel {
@@ -704,6 +714,16 @@
 
             .control-left {
                 display: none;
+            }
+
+            .stt-stream {
+                font-size: 0.85rem;
+                line-height: 1.6;
+                padding: 10px;
+            }
+
+            .stt-line {
+                padding: 2px 0;
             }
         }
     </style>

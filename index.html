@@ -806,7 +806,7 @@
                 <div class="hint">숫자가 클수록 더 많은 키워드가 일치해야 카드가 표시됩니다</div>
             </div>
             <div class="modal-actions">
-                <button class="ctrl-btn" id="btnReloadSheet">🔄 시트 새로고침</button>
+                <button class="ctrl-btn danger" id="btnUpdateApp" style="flex:1.5;">🔄 최신 버전으로 업데이트</button>
                 <button class="ctrl-btn" id="btnSettingsClose">닫기</button>
                 <button class="ctrl-btn primary" id="btnSettingsSave">저장</button>
             </div>
@@ -1146,6 +1146,40 @@
             }
         }
 
+        async function forceUpdateApp() {
+            if (!confirm('앱의 캐시를 모두 삭제하고 최신 버전으로 업데이트하시겠습니까?')) return;
+
+            showToast('🔄 업데이트 준비 중...');
+
+            try {
+                // 1. 모든 캐시 삭제
+                if ('caches' in window) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(key => caches.delete(key)));
+                    console.log('Caches cleared');
+                }
+
+                // 2. 서비스 워커 해제
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                    }
+                    console.log('Service workers unregistered');
+                }
+
+                showToast('🚀 최신 버전 로딩 중...');
+
+                // 3. 서버에서 강제 새로고침
+                setTimeout(() => {
+                    location.reload(true);
+                }, 1000);
+            } catch (e) {
+                console.error('Update failed:', e);
+                showToast('❌ 업데이트 실패: ' + e.message);
+            }
+        }
+
         // ============================================================
         //  KEYWORD MATCHING (AUTO MODE)
         // ============================================================
@@ -1477,10 +1511,7 @@ ${contextData || '(등록된 자료 없음)'}
                 if (s.sheetUrl) loadSheetData(s.sheetUrl);
             });
 
-            $('btnReloadSheet').addEventListener('click', () => {
-                const s = loadSettings();
-                loadSheetData(s.sheetUrl || $('inputSheetUrl').value.trim());
-            });
+            $('btnUpdateApp').addEventListener('click', forceUpdateApp);
 
             // 모달 외부 클릭으로 닫기
             $('settingsModal').addEventListener('click', (e) => {

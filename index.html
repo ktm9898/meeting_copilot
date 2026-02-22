@@ -1421,7 +1421,9 @@ ${recentText}
                     parseSSE(lineBuffer);
                 }
 
-                streamEl.textContent = fullText || '(응답 없음)';
+                // 최종적으로 볼드체 처리된 HTML로 렌더링
+                const finalHtml = fullText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+                streamEl.innerHTML = finalHtml || '(응답 없음)';
 
             } catch (e) {
                 showToast(`❌ AI 분석 실패: ${e.message}`);

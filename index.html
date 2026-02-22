@@ -1102,15 +1102,29 @@
             return recog;
         }
 
-        function addSTTLine(text, isFinal) {
-            // 이전 interim 제거
-            const interim = sttStream.querySelector('.stt-word.interim');
-            if (interim) interim.remove();
+        // 현재 작성 중인 span (interim이 교체하는 대상)
+        let currentSpan = null;
+        let lastFinalText = '';
 
-            const span = document.createElement('span');
-            span.className = 'stt-word';
-            span.textContent = text + ' ';
-            sttStream.appendChild(span);
+        function addSTTLine(text, isFinal) {
+            // 중복 final 방지
+            if (text === lastFinalText) return;
+            lastFinalText = text;
+
+            // interim span이 있으면 확정
+            if (currentSpan) {
+                currentSpan.classList.remove('interim');
+                currentSpan.textContent = text + ' ';
+            } else {
+                const span = document.createElement('span');
+                span.className = 'stt-word';
+                span.textContent = text + ' ';
+                sttStream.appendChild(span);
+                currentSpan = span;
+            }
+
+            // 확정 후 다음을 위해 currentSpan 초기화
+            currentSpan = null;
             sttStream.scrollTop = sttStream.scrollHeight;
 
             // 오래된 텍스트 희미하게
@@ -1123,13 +1137,12 @@
         }
 
         function updateInterimText(text) {
-            let interim = sttStream.querySelector('.stt-word.interim');
-            if (!interim) {
-                interim = document.createElement('span');
-                interim.className = 'stt-word interim';
-                sttStream.appendChild(interim);
+            if (!currentSpan) {
+                currentSpan = document.createElement('span');
+                currentSpan.className = 'stt-word interim';
+                sttStream.appendChild(currentSpan);
             }
-            interim.textContent = text;
+            currentSpan.textContent = text;
             sttStream.scrollTop = sttStream.scrollHeight;
         }
 

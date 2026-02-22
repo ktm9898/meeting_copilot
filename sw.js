@@ -1,9 +1,11 @@
 // Meeting Copilot Service Worker
-const CACHE_NAME = 'meeting-copilot-v7';
+const CACHE_NAME = 'meeting-copilot-v8';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
+  './icon-192.svg',
+  './icon-512.svg',
   'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap'
 ];
 

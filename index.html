@@ -57,6 +57,7 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             height: 100vh;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -265,12 +266,12 @@
         }
 
         .flash-card-category {
-            font-size: 0.7rem;
-            font-weight: 700;
+            font-size: 0.85rem;
+            font-weight: 800;
             color: var(--accent-blue);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
         }
 
         .flash-card-type {
@@ -775,7 +776,7 @@
                 <label>구글 시트 CSV 공개 URL</label>
                 <input type="url" id="inputSheetUrl"
                     placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv">
-                <div class="hint">시트 열 순서: 사업구분 | 문서종류 | 핵심내용 요약 | 주요 키워드 | 문서원문</div>
+                <div class="hint">시트 열 순서: 문서제목 | 사업구분 | 핵심내용 요약 | 주요 키워드 | 문서원문</div>
             </div>
             <div class="form-group">
                 <label>자동 매칭 민감도 (키워드 최소 일치 수)</label>
@@ -918,59 +919,62 @@
         }
 
         function parseCSV(text) {
-            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-            if (lines.length < 2) { state.sheetData = []; return; }
+            const rows = [];
+            let currentRow = [];
+            let currentField = '';
+            let inQuotes = false;
 
-            // 첫 행은 헤더, 나머지를 파싱
-            state.sheetData = [];
-            for (let i = 1; i < lines.length; i++) {
-                const cols = parseCSVLine(lines[i]);
-                if (cols.length < 5) continue;
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
 
+                if (inQuotes) {
+                    if (char === '"' && nextChar === '"') {
+                        currentField += '"';
+                        i++;
+                    } else if (char === '"') {
+                        inQuotes = false;
+                    } else {
+                        currentField += char;
+                    }
+                } else {
+                    if (char === '"') {
+                        inQuotes = true;
+                    } else if (char === ',') {
+                        currentRow.push(currentField.trim());
+                        currentField = '';
+                    } else if (char === '\n' || char === '\r') {
+                        if (char === '\r' && nextChar === '\n') i++;
+                        currentRow.push(currentField.trim());
+                        if (currentRow.some(c => c)) rows.push(currentRow);
+                        currentRow = [];
+                        currentField = '';
+                    } else {
+                        currentField += char;
+                    }
+                }
+            }
+            if (currentField || currentRow.length > 0) {
+                currentRow.push(currentField.trim());
+                rows.push(currentRow);
+            }
+
+            if (rows.length < 2) { state.sheetData = []; return; }
+
+            // 첫 행(헤더) 제외하고 데이터 저장
+            state.sheetData = rows.slice(1).filter(cols => cols.length >= 5).map(cols => {
                 const keywords = cols[3].split(/[,，]/)
                     .map(k => k.trim())
                     .filter(k => k.length > 0);
 
-                state.sheetData.push({
-                    category: cols[0].trim(),
-                    docType: cols[1].trim(),
-                    summary: cols[2].trim(),
+                return {
+                    title: cols[0],
+                    category: cols[1],
+                    summary: cols[2],
                     keywords: keywords,
-                    fullText: cols[4].trim(),
-                });
-            }
-        }
-
-        function parseCSVLine(line) {
-            const result = [];
-            let current = '';
-            let inQuotes = false;
-            for (let i = 0; i < line.length; i++) {
-                const ch = line[i];
-                if (inQuotes) {
-                    if (ch === '"') {
-                        if (i + 1 < line.length && line[i + 1] === '"') {
-                            current += '"';
-                            i++;
-                        } else {
-                            inQuotes = false;
-                        }
-                    } else {
-                        current += ch;
-                    }
-                } else {
-                    if (ch === '"') {
-                        inQuotes = true;
-                    } else if (ch === ',') {
-                        result.push(current);
-                        current = '';
-                    } else {
-                        current += ch;
-                    }
-                }
-            }
-            result.push(current);
-            return result;
+                    fullText: cols[4] || '',
+                };
+            });
         }
 
         // ============================================================
@@ -1106,8 +1110,8 @@
 
                     // 플래시카드 표시
                     addFlashCard({
+                        title: row.title,
                         category: row.category,
-                        docType: row.docType,
                         content: row.summary,
                         source: 'auto',
                         matchedKeywords: row.keywords.filter(kw => normalizedText.includes(kw.toLowerCase())),
@@ -1134,7 +1138,7 @@
         // ============================================================
         //  FLASH CARDS
         // ============================================================
-        function addFlashCard({ category, docType, content, source, matchedKeywords }) {
+        function addFlashCard({ title, category, content, source, matchedKeywords }) {
             flashEmpty.style.display = 'none';
 
             // 기존 카드들 페이드
@@ -1155,8 +1159,8 @@
             const kwBadge = matchedKeywords ? matchedKeywords.map(k => `#${k}`).join(' ') : '';
 
             card.innerHTML = `
-            <div class="flash-card-category">${source === 'ai' ? '🤖 AI 분석' : category}</div>
-            <div class="flash-card-type">${docType}${kwBadge ? ' · ' + kwBadge : ''}</div>
+            <div class="flash-card-category">${source === 'ai' ? '🤖 AI 분석' : title}</div>
+            <div class="flash-card-type">${category}${kwBadge ? ' · ' + kwBadge : ''}</div>
             <div class="flash-card-content">${content}</div>
             <div class="flash-card-time">${time}</div>
             <div class="flash-card-copied">✅ 복사됨</div>
@@ -1210,11 +1214,11 @@
 
             if (matchedRows.length > 0) {
                 contextData = matchedRows.map(r =>
-                    `[${r.category}/${r.docType}]\n${r.fullText || r.summary}`
+                    `[${r.title}/${r.category}]\n${r.fullText || r.summary}`
                 ).join('\n\n---\n\n');
             } else if (state.sheetData.length > 0) {
                 contextData = state.sheetData.map(r =>
-                    `[${r.category}/${r.docType}] ${r.summary}`
+                    `[${r.title}/${r.category}] ${r.summary}`
                 ).join('\n');
             }
 

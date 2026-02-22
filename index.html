@@ -1242,7 +1242,7 @@
                     if (lastWord) lastWord.classList.add('matched');
 
                     // 답변 텍스트 추가
-                    addAnswer(row.title, row.summary);
+                    addAnswer(row.title, row.summary, matchedKws);
 
                     setTimeout(() => state.lastMatchedIndices.delete(idx), state.matchCooldownMs);
                 }
@@ -1259,13 +1259,24 @@
         // ============================================================
         //  ANSWERS (미니멀 텍스트)
         // ============================================================
-        function addAnswer(label, text) {
+        function addAnswer(label, text, matchedKws = []) {
             flashEmpty.style.display = 'none';
             const line = document.createElement('div');
             line.className = 'answer-line';
-            // 문장별 줄바꾸 처리
-            const formatted = text.replace(/\. /g, '.\n');
-            line.innerHTML = `<span class="answer-label">📋 ${label}</span><br><span class="answer-text">${formatted.replace(/\n/g, '<br>')}</span>`;
+
+            // 키워드 표시 (있을 경우)
+            const kwTag = matchedKws.length > 0 ? ` <span style="font-size:0.8em; opacity:0.7;">(키워드: ${matchedKws.join(', ')})</span>` : '';
+
+            // 본문 문장 단위 줄바꿈 (마침표, 물음표 뒤)
+            const formatted = text
+                .replace(/([.?!])\s+/g, '$1\n') // 문장 기호 뒤 공백을 줄바꿈으로
+                .replace(/\n+/g, '\n')         // 중복 줄바꿈 정리
+                .trim();
+
+            line.innerHTML = `
+                <div class="answer-label">📋 ${label}${kwTag}</div>
+                <div class="answer-text" style="white-space: pre-wrap; margin-top: 4px;">${formatted}</div>
+            `;
             flashArea.appendChild(line);
             flashArea.scrollTop = flashArea.scrollHeight;
         }

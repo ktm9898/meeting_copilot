@@ -1006,7 +1006,7 @@
             const recog = new SpeechRecognition();
             recog.lang = 'ko-KR';
             recog.continuous = true;
-            recog.interimResults = true;
+            recog.interimResults = false;
             recog.maxAlternatives = 1;
 
             recog.onstart = () => {
@@ -1050,14 +1050,10 @@
                     const transcript = result[0].transcript.trim();
                     if (!transcript) continue;
 
-                    if (result.isFinal) {
-                        addSTTLine(transcript, true);
-                        state.speechBuffer.push({ time: Date.now(), text: transcript, final: true });
-                        cleanBuffer();
-                        checkKeywordMatch(transcript);
-                    } else {
-                        updateInterimText(transcript);
-                    }
+                    addSTTLine(transcript, true);
+                    state.speechBuffer.push({ time: Date.now(), text: transcript, final: true });
+                    cleanBuffer();
+                    checkKeywordMatch(transcript);
                 }
             };
 
@@ -1135,6 +1131,13 @@
                     setTimeout(() => state.lastMatchedIndices.delete(idx), state.matchCooldownMs);
                 }
             });
+
+            // 매칭 안 된 경우 첫 한번만 상태 표시
+            if (!state._matchDebugShown && state.sheetData.length > 0) {
+                state._matchDebugShown = true;
+                const kwSample = state.sheetData.slice(0, 3).map(r => r.keywords.join(',')).join(' / ');
+                console.log(`📋 시트 키워드 예시: ${kwSample}`);
+            }
         }
 
         // ============================================================
@@ -1193,7 +1196,7 @@
                 const systemInstruction = `당신은 회의 보조 AI입니다.
 회의 중 질문에 대한 즉각적인 답변 자료를 제공하는 역할입니다.
 아래 규칙을 반드시 따르세요:
-1. 총 100자 이내로 답변하세요.
+1. 총 200자 이내로 답변하세요.
 2. 주요 수치와 핵심 사실관계를 중심으로 작성하세요.
 3. '항목: 값' 형태로 줄바꿈하여 나열하세요.
 4. 부가 설명, 인사말, 서론, 결론 없이 데이터만 출력하세요.
@@ -1215,7 +1218,7 @@ ${contextData || '(등록된 자료 없음)'}
                     body: JSON.stringify({
                         system_instruction: { parts: [{ text: systemInstruction }] },
                         contents: [{ parts: [{ text: userPrompt }] }],
-                        generationConfig: { temperature: 0.3, maxOutputTokens: 400 }
+                        generationConfig: { temperature: 0.3, maxOutputTokens: 600 }
                     })
                 });
 

@@ -1501,7 +1501,7 @@ ${contextData || '(등록된 자료 없음)'}
                     $('btnPin').click();
                 }
             });
-        });
+        }
 
         // 백그라운드 복귀 시 자동 재개
         document.addEventListener('visibilitychange', () => {
@@ -1511,7 +1511,6 @@ ${contextData || '(등록된 자료 없음)'}
                 startAudioHeartbeat();
             }
         });
-        }
 
         // ============================================================
         //  PWA SERVICE WORKER

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Meeting Copilot</title>
     <meta name="theme-color" content="#0f0f14">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -354,6 +354,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 12px 20px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
             background: var(--bg-secondary);
             border-top: 1px solid var(--border-color);
             flex-shrink: 0;
@@ -688,6 +689,21 @@
 
             .pinned-panel {
                 width: 100%;
+            }
+
+            .control-bar {
+                padding: 10px 12px;
+                padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
+                gap: 6px;
+            }
+
+            .ctrl-btn {
+                padding: 10px 14px;
+                font-size: 0.8rem;
+            }
+
+            .control-left {
+                display: none;
             }
         }
     </style>

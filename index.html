@@ -898,8 +898,30 @@
         // ============================================================
         //  GOOGLE SHEETS CSV LOADER
         // ============================================================
+        // 구글 시트 URL → CSV export URL 자동 변환
+        function normalizeSheetUrl(url) {
+            // 이미 export URL이면 그대로
+            if (url.includes('/export?') || url.includes('/export?format=csv')) return url;
+
+            // 시트 ID 추출: /spreadsheets/d/{SHEET_ID}/...
+            const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+            if (!match) return url;
+
+            const sheetId = match[1];
+
+            // gid 추출 (있으면)
+            const gidMatch = url.match(/gid=(\d+)/);
+            const gid = gidMatch ? gidMatch[1] : '0';
+
+            return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+        }
+
         async function loadSheetData(url) {
             if (!url) { showToast('⚠️ 시트 URL을 설정에서 입력하세요'); return; }
+
+            // URL 자동 변환
+            url = normalizeSheetUrl(url);
+            console.log('Normalized sheet URL:', url);
 
             dataStatusText.textContent = '로드 중...';
             try {

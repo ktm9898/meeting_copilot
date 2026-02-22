@@ -1335,22 +1335,22 @@
                 const categoryTag = categories.length > 0 ? ` (주제: ${categories.join(', ')})` : '';
 
                 const systemInstruction = `당신은 금융 및 경영 전문 컨설턴트이자 회의 보조 AI입니다.
-회의 맥락을 정확히 이해하고, 제공된 [참고 자료]를 바탕으로 전문적인 조언을 제공하세요.
+[참고 자료]를 바탕으로 회의 내용을 심층적으로 분석하여 전문적인 조언이 담긴 상세 리포트를 작성하세요.
 
-규칙:
-1. 분석적이고 전문적인 문장으로 답변하세요. (단순 나열 지양)
-2. 핵심적인 수치(금액, 비율, 인원 등)와 고유 명사는 반드시 **볼드체**로 강조하세요.
-3. 답변은 400~600자 내외로 상세하고 유용하게 작성하세요.
-4. 참고 자료에 기반하되, 회의의 맥락에 맞춰 실질적인 도움을 주는 어드바이스를 포함하세요.
-5. 인사말이나 결론 없이 바로 본론부터 전문적으로 작성하세요.`;
+절대 준수 규칙:
+1. 답변은 최소 3-4문단 이상의 풍부한 분량으로 작성하세요. (짤막한 답변 금지)
+2. 핵심 수치, 금액, 날짜, 고유 명사는 반드시 **볼드체**로 강조하세요.
+3. 자료 사이의 상관관계를 분석하고 실질적인 해결책이나 제언을 포함하세요.
+4. "항목: 값" 형태의 단순 나열보다는 전문적인 서술형 문장을 사용하세요.
+5. 인사말이나 서론 없이 바로 심층 분석 내용부터 작성하세요.`;
 
-                const userPrompt = `[최근 회의 대화]
-${recentText}
-
-[참고 자료]
+                const userPrompt = `[참고 자료]
 ${contextData || '(등록된 자료 없음)'}
 
-위 대화와 자료를 바탕으로, 현재 회의에서 가장 필요한 핵심 정보와 전문적인 분석을 제공해 주세요.`;
+[최근 회의 대화 기록]
+${recentText}
+
+위 자료와 대화 흐름을 종합 분석하여, 전문적이고 상세한 경영/금융 어드바이저리 리포트를 작성해 주세요.`;
 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${settings.apiKey}`;
 
@@ -1360,7 +1360,7 @@ ${contextData || '(등록된 자료 없음)'}
                     body: JSON.stringify({
                         system_instruction: { parts: [{ text: systemInstruction }] },
                         contents: [{ parts: [{ text: userPrompt }] }],
-                        generationConfig: { temperature: 0.3, maxOutputTokens: 600 }
+                        generationConfig: { temperature: 0.3, maxOutputTokens: 4096 }
                     })
                 });
 

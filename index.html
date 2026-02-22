@@ -1312,7 +1312,7 @@ ${contextData || '(등록된 자료 없음)'}
 
 위 대화 맥락에서 질문자가 필요로 하는 핵심 수치와 사실관계를 정리해주세요.`;
 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${settings.apiKey}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${settings.apiKey}`;
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -1341,7 +1341,7 @@ ${contextData || '(등록된 자료 없음)'}
                 const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                 card.innerHTML = `
                 <div class="flash-card-category">🤖 AI 맥락 분석</div>
-                <div class="flash-card-type">Gemini 2.0 Flash · 최근 3분 대화 기반</div>
+                <div class="flash-card-type">Gemini 2.5 Flash · 최근 3분 대화 기반</div>
                 <div class="flash-card-content" id="aiStreamContent">▌</div>
                 <div class="flash-card-time">${time}</div>
                 <div class="flash-card-copied">✅ 복사됨</div>

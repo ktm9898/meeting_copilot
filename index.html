@@ -1063,9 +1063,13 @@
             };
 
             recog.onend = () => {
-                // 자동 재시작 (의도적 중지가 아닌 경우)
                 if (state.listening) {
-                    try { recog.start(); } catch (e) { }
+                    console.log('STT connection lost. Restarting in 500ms...');
+                    setTimeout(() => {
+                        if (state.listening) {
+                            try { recog.start(); } catch (e) { console.error('Restart failed:', e); }
+                        }
+                    }, 500);
                 } else {
                     micDot.classList.remove('active');
                     micStatus.textContent = '중지됨';
@@ -1080,6 +1084,8 @@
                 if (e.error === 'not-allowed') {
                     showToast('❌ 마이크 권한이 필요합니다');
                     state.listening = false;
+                } else if (e.error === 'network') {
+                    showToast('⚠️ 네트워크 연결 확인 필요');
                 }
             };
 
@@ -1118,6 +1124,26 @@
         function cleanBuffer() {
             const cutoff = Date.now() - state.maxBufferSec * 1000;
             state.speechBuffer = state.speechBuffer.filter(b => b.time > cutoff);
+        }
+
+        // ============================================================
+        //  AUDIO HEARTBEAT (KEEP ALIVE)
+        // ============================================================
+        let audioCtx = null;
+        function startAudioHeartbeat() {
+            if (audioCtx) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = 0.001; // 거의 무음
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                console.log('Audio heartbeat started');
+            } catch (e) {
+                console.warn('Audio heartbeat failed:', e);
+            }
         }
 
         // ============================================================
@@ -1389,6 +1415,7 @@ ${contextData || '(등록된 자료 없음)'}
                     try {
                         state.recognition.start();
                         requestWakeLock();
+                        startAudioHeartbeat();
                     } catch (e) {
                         showToast('❌ 마이크를 시작할 수 없습니다');
                     }
@@ -1474,6 +1501,16 @@ ${contextData || '(등록된 자료 없음)'}
                     $('btnPin').click();
                 }
             });
+        });
+
+        // 백그라운드 복귀 시 자동 재개
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && state.listening) {
+                console.log('App returned to foreground. Ensuring STT is active...');
+                try { state.recognition.start(); } catch (e) { }
+                startAudioHeartbeat();
+            }
+        });
         }
 
         // ============================================================

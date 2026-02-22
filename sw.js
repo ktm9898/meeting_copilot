@@ -1,5 +1,5 @@
 // Meeting Copilot Service Worker
-const CACHE_NAME = 'meeting-copilot-v9';
+const CACHE_NAME = 'meeting-copilot-v10';
 const ASSETS = [
   './',
   './index.html',

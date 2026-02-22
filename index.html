@@ -267,6 +267,7 @@
             color: var(--text-primary);
             font-size: 0.88rem;
             line-height: 1.6;
+            white-space: pre-line;
         }
 
         .ai-answer .ai-label {
@@ -624,6 +625,25 @@
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
+            .header {
+                padding: 6px 12px;
+            }
+
+            .header-logo {
+                font-size: 1rem;
+            }
+
+            .header-status {
+                font-size: 0.65rem;
+                padding: 2px 6px;
+            }
+
+            .icon-btn {
+                width: 30px;
+                height: 30px;
+                font-size: 0.85rem;
+            }
+
             .main-content {
                 flex-direction: column;
             }
@@ -635,13 +655,16 @@
                 border-bottom: 1px solid var(--border-color);
             }
 
+            .stt-header,
+            .flash-header {
+                padding: 4px 10px;
+                font-size: 0.65rem;
+                letter-spacing: 0.5px;
+            }
+
             .flash-panel {
                 flex: 1;
                 min-height: 0;
-            }
-
-            .flash-card-content {
-                font-size: 1.1rem;
             }
 
             .pinned-panel {
@@ -649,28 +672,42 @@
             }
 
             .control-bar {
-                padding: 10px 12px;
-                padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
-                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+                gap: 4px;
             }
 
             .ctrl-btn {
-                padding: 10px 14px;
-                font-size: 0.8rem;
+                padding: 8px 12px;
+                font-size: 0.75rem;
             }
 
             .control-left {
                 display: none;
             }
 
-            .stt-stream {
+            .stt-stream,
+            .flash-area {
                 font-size: 0.85rem;
                 line-height: 1.6;
-                padding: 10px;
+                padding: 6px 10px;
             }
 
-            .stt-line {
-                padding: 2px 0;
+            .answer-line {
+                font-size: 0.82rem;
+            }
+
+            .ai-answer {
+                font-size: 0.82rem;
+                padding: 6px 10px;
+            }
+
+            .flash-empty-icon {
+                font-size: 2rem;
+            }
+
+            .flash-empty-text {
+                font-size: 0.75rem;
             }
         }
     </style>
@@ -684,6 +721,7 @@
             <span class="header-status" id="headerStatus">대기 중</span>
         </div>
         <div class="header-right">
+            <button class="icon-btn" id="btnFullscreen" title="전체화면">⛶</button>
             <button class="icon-btn" id="btnTheme" title="테마 전환">🌙</button>
             <button class="icon-btn" id="btnPins" title="핀 목록">📌</button>
             <button class="icon-btn" id="btnSettings" title="설정">⚙️</button>
@@ -1006,7 +1044,7 @@
             const recog = new SpeechRecognition();
             recog.lang = 'ko-KR';
             recog.continuous = true;
-            recog.interimResults = false;
+            recog.interimResults = true;
             recog.maxAlternatives = 1;
 
             recog.onstart = () => {
@@ -1050,10 +1088,14 @@
                     const transcript = result[0].transcript.trim();
                     if (!transcript) continue;
 
-                    addSTTLine(transcript, true);
-                    state.speechBuffer.push({ time: Date.now(), text: transcript, final: true });
-                    cleanBuffer();
-                    checkKeywordMatch(transcript);
+                    if (result.isFinal) {
+                        addSTTLine(transcript, true);
+                        state.speechBuffer.push({ time: Date.now(), text: transcript, final: true });
+                        cleanBuffer();
+                        checkKeywordMatch(transcript);
+                    } else {
+                        updateInterimText(transcript);
+                    }
                 }
             };
 
@@ -1147,7 +1189,9 @@
             flashEmpty.style.display = 'none';
             const line = document.createElement('div');
             line.className = 'answer-line';
-            line.innerHTML = `<span class="answer-label">📋 ${label}</span> <span class="answer-text">${text}</span>`;
+            // 문장별 줄바꾸 처리
+            const formatted = text.replace(/\. /g, '.\n');
+            line.innerHTML = `<span class="answer-label">📋 ${label}</span><br><span class="answer-text">${formatted.replace(/\n/g, '<br>')}</span>`;
             flashArea.appendChild(line);
             flashArea.scrollTop = flashArea.scrollHeight;
         }
@@ -1385,6 +1429,17 @@ ${contextData || '(등록된 자료 없음)'}
 
             // 테마
             $('btnTheme').addEventListener('click', toggleTheme);
+
+            // 전체화면
+            $('btnFullscreen').addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => { });
+                    $('btnFullscreen').textContent = '⛶';
+                } else {
+                    document.exitFullscreen();
+                    $('btnFullscreen').textContent = '⛶';
+                }
+            });
 
             // 핀 패널
             $('btnPins').addEventListener('click', () => $('pinnedPanel').classList.toggle('show'));

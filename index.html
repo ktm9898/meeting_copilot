@@ -844,6 +844,7 @@
             lastMatchTime: 0,
             matchCooldownMs: 5000,   // 같은 행 재매칭 방지 쿨다운
             lastMatchedIndices: new Set(),
+            isTransitioning: false,  // 마이크 켜짐/꺼짐 상태 전환 중 플래그
         };
 
         // ============================================================
@@ -1050,12 +1051,14 @@
 
             recog.onstart = () => {
                 state.listening = true;
+                state.isTransitioning = false;
                 micDot.classList.add('active');
                 micStatus.textContent = '듣는 중...';
                 headerStatus.textContent = '🔴 듣는 중';
                 $('btnListen').innerHTML = '⏹ 중지';
                 $('btnListen').classList.add('danger');
                 $('btnListen').classList.remove('primary');
+                $('btnListen').disabled = false;
 
                 // 첫 시작 시 빈 상태 제거
                 const emptyEl = sttStream.querySelector('.flash-empty');
@@ -1063,10 +1066,13 @@
             };
 
             recog.onend = () => {
+                state.isTransitioning = false;
+                $('btnListen').disabled = false;
+
                 if (state.listening) {
                     console.log('STT connection lost. Restarting in 500ms...');
                     setTimeout(() => {
-                        if (state.listening) {
+                        if (state.listening && !state.isTransitioning) {
                             try { recog.start(); } catch (e) { console.error('Restart failed:', e); }
                         }
                     }, 500);
@@ -1080,6 +1086,8 @@
             };
 
             recog.onerror = (e) => {
+                state.isTransitioning = false;
+                $('btnListen').disabled = false;
                 console.warn('STT error:', e.error);
                 if (e.error === 'not-allowed') {
                     showToast('❌ 마이크 권한이 필요합니다');
@@ -1367,15 +1375,23 @@ ${contextData || '(등록된 자료 없음)'}
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let fullText = '';
+                let lineBuffer = ''; // 스트리밍 데이터 누적 버퍼
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
+
                     const chunk = decoder.decode(value, { stream: true });
-                    for (const line of chunk.split('\n')) {
+                    lineBuffer += chunk;
+
+                    const lines = lineBuffer.split('\n');
+                    // 마지막 줄이 완성되지 않았을 수 있으므로 다음으로 미룸
+                    lineBuffer = lines.pop();
+
+                    for (const line of lines) {
                         if (line.startsWith('data: ')) {
                             const jsonStr = line.slice(6).trim();
-                            if (jsonStr === '[DONE]') continue;
+                            if (jsonStr === '[DONE]' || !jsonStr) continue;
                             try {
                                 const data = JSON.parse(jsonStr);
                                 const t = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -1384,10 +1400,13 @@ ${contextData || '(등록된 자료 없음)'}
                                     streamEl.textContent = fullText + ' ▌';
                                     flashArea.scrollTop = flashArea.scrollHeight;
                                 }
-                            } catch (e) { }
+                            } catch (e) {
+                                console.warn('JSON parse error in stream:', e, jsonStr);
+                            }
                         }
                     }
                 }
+                // 남은 버퍼 처리 (보통 data: 로 시작하지 않는 경우)
                 streamEl.textContent = fullText || '(응답 없음)';
 
             } catch (e) {
@@ -1480,20 +1499,24 @@ ${contextData || '(등록된 자료 없음)'}
 
             // 듣기 시작/중지
             $('btnListen').addEventListener('click', () => {
-                if (!state.recognition) {
-                    showToast('❌ 음성 인식을 사용할 수 없습니다');
-                    return;
-                }
+                if (!state.recognition || state.isTransitioning) return;
+
                 if (state.listening) {
                     state.listening = false;
+                    state.isTransitioning = true;
+                    $('btnListen').disabled = true;
                     state.recognition.stop();
                     releaseWakeLock();
                 } else {
                     try {
+                        state.isTransitioning = true;
+                        $('btnListen').disabled = true;
                         state.recognition.start();
                         requestWakeLock();
                         startAudioHeartbeat();
                     } catch (e) {
+                        state.isTransitioning = false;
+                        $('btnListen').disabled = false;
                         showToast('❌ 마이크를 시작할 수 없습니다');
                     }
                 }

@@ -795,6 +795,11 @@
                 <div class="hint">Gemini 2.0 Flash 모델을 사용합니다</div>
             </div>
             <div class="form-group">
+                <label>Groq API 키</label>
+                <input type="password" id="inputGroqKey" placeholder="gsk_...">
+                <div class="hint">Whisper 기반 고품질 음성 인식에 사용됩니다</div>
+            </div>
+            <div class="form-group">
                 <label>구글 시트 CSV 공개 URL</label>
                 <input type="url" id="inputSheetUrl"
                     placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv">
@@ -846,6 +851,10 @@
             lastMatchedIndices: new Set(),
             displayedAnswers: new Set(), // 세션 내 이미 출력된 답변 제목들
             isTransitioning: false,  // 마이크 켜짐/꺼짐 상태 전환 중 플래그
+
+            audioStream: null,
+            mediaRecorder: null,
+            audioChunks: [],
         };
 
         // ============================================================
@@ -892,6 +901,7 @@
         function loadSettings() {
             return {
                 apiKey: localStorage.getItem('mc_apiKey') || '',
+                groqKey: localStorage.getItem('mc_groqKey') || '',
                 sheetUrl: localStorage.getItem('mc_sheetUrl') || '',
                 sensitivity: parseInt(localStorage.getItem('mc_sensitivity') || '1'),
             };
@@ -899,6 +909,7 @@
 
         function saveSettings(s) {
             localStorage.setItem('mc_apiKey', s.apiKey);
+            localStorage.setItem('mc_groqKey', s.groqKey);
             localStorage.setItem('mc_sheetUrl', s.sheetUrl);
             localStorage.setItem('mc_sensitivity', String(s.sensitivity));
         }
@@ -906,6 +917,7 @@
         function initSettingsUI() {
             const s = loadSettings();
             $('inputApiKey').value = s.apiKey;
+            $('inputGroqKey').value = s.groqKey;
             $('inputSheetUrl').value = s.sheetUrl;
             $('inputSensitivity').value = s.sensitivity;
         }
@@ -1296,6 +1308,91 @@
         }
 
         // ============================================================
+        //  AUDIO RECORDING (MEDIA RECORDER)
+        // ============================================================
+        let recorderMimeType = '';
+
+        function stopAudioRecording() {
+            if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+                state.mediaRecorder.stop();
+            }
+            if (state.audioStream) {
+                state.audioStream.getTracks().forEach(t => t.stop());
+                state.audioStream = null;
+            }
+        }
+
+        async function startAudioRecording() {
+            try {
+                state.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const types = ['audio/webm', 'audio/mp4', 'audio/ogg'];
+                recorderMimeType = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+                
+                if (recorderMimeType) {
+                    state.mediaRecorder = new MediaRecorder(state.audioStream, { mimeType: recorderMimeType });
+                } else {
+                    state.mediaRecorder = new MediaRecorder(state.audioStream);
+                }
+
+                state.audioChunks = [];
+
+                state.mediaRecorder.ondataavailable = e => {
+                    if (e.data && e.data.size > 0) {
+                        state.audioChunks.push({
+                            time: Date.now(),
+                            blob: e.data
+                        });
+                        const cutoff = Date.now() - state.maxBufferSec * 1000;
+                        state.audioChunks = state.audioChunks.filter(c => c.time > cutoff);
+                    }
+                };
+                
+                state.mediaRecorder.start(5000);
+            } catch (err) {
+                console.error('Audio stream init error:', err);
+                showToast('❌ 마이크 권한이 필요합니다(오디오 녹음)');
+            }
+        }
+
+        async function transcribeAudioWithGroq(apiKey, audioChunks, mimeType) {
+            if (!audioChunks || audioChunks.length === 0) return null;
+            
+            const blobs = audioChunks.map(c => c.blob);
+            let blobType = mimeType;
+            if (!blobType) {
+                blobType = blobs[0]?.type || 'audio/webm';
+            }
+            const finalBlob = new Blob(blobs, { type: blobType });
+            
+            let extension = 'webm';
+            if (blobType.includes('mp4')) extension = 'mp4';
+            else if (blobType.includes('ogg')) extension = 'ogg';
+
+            const file = new File([finalBlob], `audio.${extension}`, { type: blobType });
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('model', 'whisper-large-v3-turbo');
+            formData.append('response_format', 'text');
+            formData.append('language', 'ko');
+
+            try {
+                const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${apiKey}` },
+                    body: formData
+                });
+                if (!res.ok) {
+                    const errorObj = await res.json();
+                    throw new Error(errorObj.error?.message || `HTTP ${res.status}`);
+                }
+                return await res.text();
+            } catch(e) {
+                console.error('Groq API Error:', e);
+                return null;
+            }
+        }
+
+        // ============================================================
         //  GEMINI API (MANUAL CONTEXT ANALYSIS)
         // ============================================================
         async function analyzeContext() {
@@ -1306,15 +1403,55 @@
             }
 
             const cutoff = Date.now() - 180000;
-            const recentText = state.speechBuffer
+            let recentText = state.speechBuffer
                 .filter(b => b.time > cutoff && b.final)
                 .map(b => b.text)
                 .join(' ');
 
-            if (!recentText) {
+            if (!recentText && state.audioChunks.length === 0) {
                 showToast('⚠️ 분석할 최근 대화가 없습니다');
                 return;
             }
+
+            $('btnContext').disabled = true;
+
+            // 고품질 변환 로직
+            if (settings.groqKey && state.audioChunks.length > 0) {
+                $('btnContext').innerHTML = '⏳ 위스퍼 고품질 변환 중...';
+                
+                if (state.mediaRecorder && state.mediaRecorder.state === 'recording') {
+                    state.mediaRecorder.requestData();
+                    await new Promise(r => setTimeout(r, 100)); // 청크 대기
+                }
+
+                showToast('🎙️ 고품질 텍스트로 변환하고 있습니다...');
+
+                const whisperText = await transcribeAudioWithGroq(settings.groqKey, state.audioChunks, recorderMimeType);
+                if (whisperText && whisperText.trim().length > 0) {
+                    recentText = whisperText.trim();
+                    
+                    // UI 스무스 교체
+                    sttStream.innerHTML = '';
+                    const emptyEl = document.createElement('div');
+                    emptyEl.className = 'flash-empty';
+                    emptyEl.style.display = 'none';
+                    sttStream.appendChild(emptyEl);
+
+                    const span = document.createElement('span');
+                    span.className = 'stt-word';
+                    span.innerHTML = '✨ ' + recentText.replace(/\n/g, '<br>') + ' ';
+                    sttStream.appendChild(span);
+                    sttStream.scrollTop = sttStream.scrollHeight;
+                    
+                    state.speechBuffer = [{ time: Date.now(), text: recentText, final: true }];
+                    lastFinalText = recentText; // 중복 추가 방지 리셋
+                    currentSpan = null;
+                } else {
+                    showToast('⚠️ 위스퍼 변환 실패. 기본 텍스트를 사용합니다.');
+                }
+            }
+
+            $('btnContext').innerHTML = '⏳ 맥락 분석 중...';
 
             let contextData = '';
             const normalizedText = recentText.toLowerCase();
@@ -1331,9 +1468,6 @@
                     `[${r.title}/${r.category}] ${r.summary}`
                 ).join('\n');
             }
-
-            $('btnContext').disabled = true;
-            $('btnContext').innerHTML = '⏳ 분석 중...';
 
             try {
                 // 매칭된 카테고리 추출
@@ -1520,7 +1654,7 @@ ${recentText}
             }
 
             // 듣기 시작/중지
-            $('btnListen').addEventListener('click', () => {
+            $('btnListen').addEventListener('click', async () => {
                 if (!state.recognition || state.isTransitioning) return;
 
                 if (state.listening) {
@@ -1528,11 +1662,13 @@ ${recentText}
                     state.isTransitioning = true;
                     $('btnListen').disabled = true;
                     state.recognition.stop();
+                    stopAudioRecording();
                     releaseWakeLock();
                 } else {
                     try {
                         state.isTransitioning = true;
                         $('btnListen').disabled = true;
+                        await startAudioRecording();
                         state.recognition.start();
                         requestWakeLock();
                         startAudioHeartbeat();
@@ -1589,6 +1725,7 @@ ${recentText}
             $('btnSettingsSave').addEventListener('click', () => {
                 saveSettings({
                     apiKey: $('inputApiKey').value.trim(),
+                    groqKey: $('inputGroqKey').value.trim(),
                     sheetUrl: $('inputSheetUrl').value.trim(),
                     sensitivity: parseInt($('inputSensitivity').value) || 1,
                 });

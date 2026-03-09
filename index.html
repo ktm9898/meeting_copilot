@@ -768,6 +768,7 @@
             </div>
         </div>
         <div class="control-right">
+            <button class="ctrl-btn primary" id="btnManualQuery" title="자료확인">💡 자료확인</button>
             <button class="ctrl-btn primary" id="btnContext" title="맥락 분석">🔍 맥락 분석</button>
             <button class="ctrl-btn" id="btnListen" title="듣기 시작/중지">▶ 듣기 시작</button>
         </div>
@@ -1407,29 +1408,35 @@
         // ============================================================
         //  GEMINI API (MANUAL CONTEXT ANALYSIS)
         // ============================================================
-        async function analyzeContext() {
+        async function analyzeContext(manualQuery = null) {
             const settings = loadSettings();
             if (!settings.apiKey) {
                 showToast('⚠️ 설정에서 Gemini API 키를 입력하세요');
                 return;
             }
 
-            const cutoff = Date.now() - 180000;
-            let recentText = state.speechBuffer
-                .filter(b => b.time > cutoff && b.final)
-                .map(b => b.text)
-                .join(' ');
+            let recentText = '';
+            if (typeof manualQuery === 'string' && manualQuery.trim()) {
+                recentText = manualQuery.trim();
+            } else {
+                const cutoff = Date.now() - 180000;
+                recentText = state.speechBuffer
+                    .filter(b => b.time > cutoff && b.final)
+                    .map(b => b.text)
+                    .join(' ');
 
-            if (!recentText && state.audioChunks.length === 0) {
-                showToast('⚠️ 분석할 최근 대화가 없습니다');
-                return;
+                if (!recentText && state.audioChunks.length === 0) {
+                    showToast('⚠️ 분석할 최근 대화가 없습니다');
+                    return;
+                }
             }
 
             $('btnContext').disabled = true;
+            $('btnManualQuery').disabled = true;
 
-            // 고품질 변환 로직
+            // 고품질 변환 로직 (수동 질문이 아닐 때만)
             const isWhisperRealtime = headerStatus.textContent.includes('위스퍼');
-            if (settings.groqKey && state.audioChunks.length > 0 && !isWhisperRealtime) {
+            if (!manualQuery && settings.groqKey && state.audioChunks.length > 0 && !isWhisperRealtime) {
                 $('btnContext').innerHTML = '⏳ 위스퍼 고품질 변환 중...';
 
                 if (state.mediaRecorder && state.mediaRecorder.state === 'recording') {
@@ -1464,7 +1471,11 @@
                 }
             }
 
-            $('btnContext').innerHTML = '⏳ 맥락 분석 중...';
+            if (manualQuery) {
+                $('btnManualQuery').innerHTML = '⏳ 자료 확인 중...';
+            } else {
+                $('btnContext').innerHTML = '⏳ 맥락 분석 중...';
+            }
 
             let contextData = '';
             const normalizedText = recentText.toLowerCase();
@@ -1500,10 +1511,7 @@
                 const userPrompt = `[참고 자료]
 ${contextData || '(등록된 자료 없음)'}
 
-[최근 회의 대화 기록]
-${recentText}
-
-위 자료와 대화 흐름을 종합 분석하여, 전문적이고 상세한 경영/금융 어드바이저리 리포트를 작성해 주세요.`;
+${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 자료와 사용자의 질문을 종합 분석하여, 사용자 질문에 대한 직접적이고 전문적인 경영/금융 어드바이저리 리포트를 작성해 주세요.` : `[최근 회의 대화 기록]\n${recentText}\n\n위 자료와 대화 흐름을 종합 분석하여, 전문적이고 상세한 경영/금융 어드바이저리 리포트를 작성해 주세요.`}`;
 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${settings.apiKey}`;
 
@@ -1523,7 +1531,16 @@ ${recentText}
                 flashEmpty.style.display = 'none';
                 const aiBlock = document.createElement('div');
                 aiBlock.className = 'ai-answer';
-                aiBlock.innerHTML = `<span class="ai-label">🤖 AI 분석${categoryTag}</span><span id="aiStreamText">▌</span>`;
+                const prefixLabel = manualQuery ? `🤖 자료확인${categoryTag}` : `🤖 AI 분석${categoryTag}`;
+                aiBlock.innerHTML = `<span class="ai-label">${prefixLabel}</span><span id="aiStreamText">▌</span>`;
+                if (manualQuery) {
+                    const qTag = document.createElement('div');
+                    qTag.style.fontSize = '0.8rem';
+                    qTag.style.color = 'var(--text-muted)';
+                    qTag.style.marginBottom = '6px';
+                    qTag.innerHTML = `<strong>Q:</strong> ${manualQuery}`;
+                    aiBlock.insertBefore(qTag, aiBlock.firstChild);
+                }
                 flashArea.appendChild(aiBlock);
                 flashArea.scrollTop = flashArea.scrollHeight;
 
@@ -1638,11 +1655,13 @@ ${fullText}`;
                 }
 
             } catch (e) {
-                showToast(`❌ AI 분석 실패: ${e.message}`);
+                showToast(`❌ 분석 실패: ${e.message}`);
                 console.error('Gemini API error:', e);
             } finally {
                 $('btnContext').disabled = false;
+                $('btnManualQuery').disabled = false;
                 $('btnContext').innerHTML = '🔍 맥락 분석';
+                $('btnManualQuery').innerHTML = '💡 자료확인';
             }
         }
 
@@ -1742,7 +1761,15 @@ ${fullText}`;
             });
 
             // 맥락 분석
-            $('btnContext').addEventListener('click', analyzeContext);
+            $('btnContext').addEventListener('click', () => analyzeContext());
+
+            // 자료 확인 (수동 쿼리)
+            $('btnManualQuery').addEventListener('click', () => {
+                const query = prompt('기존 자료(시트)를 기반으로 AI에게 궁금한 점을 질문해 보세요:');
+                if (query && query.trim() !== '') {
+                    analyzeContext(query.trim());
+                }
+            });
 
             // 답변 지우기
             $('btnClearCards').addEventListener('click', () => {

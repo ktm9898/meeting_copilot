@@ -1327,7 +1327,7 @@
                 state.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const types = ['audio/webm', 'audio/mp4', 'audio/ogg'];
                 recorderMimeType = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
-                
+
                 if (recorderMimeType) {
                     state.mediaRecorder = new MediaRecorder(state.audioStream, { mimeType: recorderMimeType });
                 } else {
@@ -1338,15 +1338,31 @@
 
                 state.mediaRecorder.ondataavailable = e => {
                     if (e.data && e.data.size > 0) {
-                        state.audioChunks.push({
+                        const chunkObj = {
                             time: Date.now(),
                             blob: e.data
-                        });
+                        };
+                        state.audioChunks.push(chunkObj);
                         const cutoff = Date.now() - state.maxBufferSec * 1000;
                         state.audioChunks = state.audioChunks.filter(c => c.time > cutoff);
+
+                        // 실시간 5초 간격 위스퍼 변환
+                        const settings = loadSettings();
+                        if (settings.groqKey && state.listening) {
+                            transcribeAudioWithGroq(settings.groqKey, [chunkObj], recorderMimeType)
+                                .then(whisperText => {
+                                    if (whisperText && whisperText.trim().length > 0) {
+                                        const text = whisperText.trim();
+                                        addSTTLine(text, true);
+                                        state.speechBuffer.push({ time: Date.now(), text: text, final: true });
+                                        cleanBuffer();
+                                        checkKeywordMatch(text);
+                                    }
+                                }).catch(err => console.error('Realtime Whisper error:', err));
+                        }
                     }
                 };
-                
+
                 state.mediaRecorder.start(5000);
             } catch (err) {
                 console.error('Audio stream init error:', err);
@@ -1356,14 +1372,14 @@
 
         async function transcribeAudioWithGroq(apiKey, audioChunks, mimeType) {
             if (!audioChunks || audioChunks.length === 0) return null;
-            
+
             const blobs = audioChunks.map(c => c.blob);
             let blobType = mimeType;
             if (!blobType) {
                 blobType = blobs[0]?.type || 'audio/webm';
             }
             const finalBlob = new Blob(blobs, { type: blobType });
-            
+
             let extension = 'webm';
             if (blobType.includes('mp4')) extension = 'mp4';
             else if (blobType.includes('ogg')) extension = 'ogg';
@@ -1386,7 +1402,7 @@
                     throw new Error(errorObj.error?.message || `HTTP ${res.status}`);
                 }
                 return await res.text();
-            } catch(e) {
+            } catch (e) {
                 console.error('Groq API Error:', e);
                 return null;
             }
@@ -1418,7 +1434,7 @@
             // 고품질 변환 로직
             if (settings.groqKey && state.audioChunks.length > 0) {
                 $('btnContext').innerHTML = '⏳ 위스퍼 고품질 변환 중...';
-                
+
                 if (state.mediaRecorder && state.mediaRecorder.state === 'recording') {
                     state.mediaRecorder.requestData();
                     await new Promise(r => setTimeout(r, 100)); // 청크 대기
@@ -1429,7 +1445,7 @@
                 const whisperText = await transcribeAudioWithGroq(settings.groqKey, state.audioChunks, recorderMimeType);
                 if (whisperText && whisperText.trim().length > 0) {
                     recentText = whisperText.trim();
-                    
+
                     // UI 스무스 교체
                     sttStream.innerHTML = '';
                     const emptyEl = document.createElement('div');
@@ -1442,7 +1458,7 @@
                     span.innerHTML = '✨ ' + recentText.replace(/\n/g, '<br>') + ' ';
                     sttStream.appendChild(span);
                     sttStream.scrollTop = sttStream.scrollHeight;
-                    
+
                     state.speechBuffer = [{ time: Date.now(), text: recentText, final: true }];
                     lastFinalText = recentText; // 중복 추가 방지 리셋
                     currentSpan = null;
@@ -1655,26 +1671,81 @@ ${recentText}
 
             // 듣기 시작/중지
             $('btnListen').addEventListener('click', async () => {
-                if (!state.recognition || state.isTransitioning) return;
+                if (state.isTransitioning) return;
+
+                const settings = loadSettings();
+                const useWhisper = !!settings.groqKey;
 
                 if (state.listening) {
                     state.listening = false;
                     state.isTransitioning = true;
                     $('btnListen').disabled = true;
-                    state.recognition.stop();
+
+                    if (state.recognition) {
+                        try { state.recognition.stop(); } catch (e) { }
+                    }
                     stopAudioRecording();
                     releaseWakeLock();
+
+                    if (useWhisper) {
+                        micDot.classList.remove('active');
+                        micStatus.textContent = '중지됨';
+                        headerStatus.textContent = '대기 중';
+                        $('btnListen').innerHTML = '▶ 듣기 시작';
+                        $('btnListen').classList.remove('danger');
+                    }
+
+                    state.isTransitioning = false;
+                    $('btnListen').disabled = false;
                 } else {
                     try {
                         state.isTransitioning = true;
                         $('btnListen').disabled = true;
-                        await startAudioRecording();
-                        state.recognition.start();
-                        requestWakeLock();
-                        startAudioHeartbeat();
+
+                        state.listening = true;
+                        micDot.classList.add('active');
+                        micStatus.textContent = '듣는 중...';
+                        headerStatus.textContent = useWhisper ? '🔴 위스퍼(5초 간격)' : '🔴 듣는 중';
+                        $('btnListen').innerHTML = '⏹ 중지';
+                        $('btnListen').classList.add('danger');
+                        $('btnListen').classList.remove('primary');
+
+                        const emptyEl = sttStream.querySelector('.flash-empty');
+                        if (emptyEl) emptyEl.remove();
+
+                        if (useWhisper) {
+                            // 위스퍼 모드 (5초 간격 녹음 전송)
+                            await startAudioRecording();
+                            requestWakeLock();
+                            startAudioHeartbeat();
+                        } else {
+                            // 기존 Web Speech API
+                            if (state.recognition) {
+                                try { state.recognition.start(); } catch (e) { }
+                            }
+                            setTimeout(async () => {
+                                try {
+                                    await startAudioRecording();
+                                    requestWakeLock();
+                                    startAudioHeartbeat();
+                                } catch (e) {
+                                    console.error('Background audio recording failed:', e);
+                                    showToast('⚠️ 맥락 분석용 오디오 녹음 실패');
+                                }
+                            }, 1000);
+                        }
+
+                        state.isTransitioning = false;
+                        $('btnListen').disabled = false;
                     } catch (e) {
                         state.isTransitioning = false;
                         $('btnListen').disabled = false;
+                        state.listening = false;
+                        micDot.classList.remove('active');
+                        micStatus.textContent = '중지됨';
+                        headerStatus.textContent = '대기 중';
+                        $('btnListen').innerHTML = '▶ 듣기 시작';
+                        $('btnListen').classList.remove('danger');
                         showToast('❌ 마이크를 시작할 수 없습니다');
                     }
                 }

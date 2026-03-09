@@ -807,6 +807,19 @@
         </div>
     </div>
 
+    <!-- MANUAL QUERY MODAL -->
+    <div class="modal-overlay" id="queryModal">
+        <div class="modal" style="max-width: 400px; padding: 20px;">
+            <div class="form-group" style="margin-bottom: 20px;">
+                <input type="text" id="inputManualQuery" placeholder="질문을 입력하세요..."
+                    style="font-size: 1rem; padding: 14px; border-radius: 10px;">
+            </div>
+            <div class="modal-actions" style="margin-top: 0;">
+                <button class="ctrl-btn" id="btnQueryCancel">취소</button>
+                <button class="ctrl-btn primary" id="btnQuerySubmit">확인</button>
+            </div>
+        </div>
+    </div>
 
     <!-- TOAST -->
     <div class="toast" id="toast"></div>
@@ -1707,11 +1720,35 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 자료와 사�
             $('btnContext').addEventListener('click', () => analyzeContext());
 
             // 자료 확인 (수동 쿼리)
+            const queryModal = $('queryModal');
+            const inputQuery = $('inputManualQuery');
+
             $('btnManualQuery').addEventListener('click', () => {
-                const query = prompt('기존 자료(시트)를 기반으로 AI에게 궁금한 점을 질문해 보세요:');
+                inputQuery.value = '';
+                queryModal.classList.add('show');
+                setTimeout(() => inputQuery.focus(), 100);
+            });
+
+            $('btnQueryCancel').addEventListener('click', () => {
+                queryModal.classList.remove('show');
+            });
+
+            $('btnQuerySubmit').addEventListener('click', () => {
+                const query = inputQuery.value;
                 if (query && query.trim() !== '') {
+                    queryModal.classList.remove('show');
                     analyzeContext(query.trim());
                 }
+            });
+
+            inputQuery.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    $('btnQuerySubmit').click();
+                }
+            });
+
+            queryModal.addEventListener('click', (e) => {
+                if (e.target === queryModal) queryModal.classList.remove('show');
             });
 
             // 답변 지우기

@@ -1516,7 +1516,7 @@
 
 절대 준수 규칙:
 1. 핵심 수치, 금액, 날짜, 고유 명사 등 **사실 확인(Fact-check)**이 필요한 정보 중심으로 작성하세요.
-2. 장황한 설명을 생략하고 전체 내용을 **3~4개의 핵심 문장**으로만 짧게 요약하세요. (글자 수 압박으로 문장을 중간에 끊는 행위는 절대 금지! 반드시 온점이나 명확한 끝맺음으로 문장을 완성하세요.)
+2. 장황한 설명을 생략하고, 핵심만 **500자 내외**로 짧고 명확하게 요약 설명하세요. 문장이 중간에 잘리지 않도록 반드시 완성된 형태로 끝맺으세요.
 3. 중요한 사실관계와 수치는 반드시 **볼드체**로 강조하세요.
 4. 자료 간의 상관관계를 분석하여 현재 회의의 쟁점에 대한 구체적인 근거를 제시하세요.
 5. 서론이나 끝인사 없이 바로 핵심 분석 내용부터 전문적인 어조로 작성하세요.`;
@@ -1598,9 +1598,68 @@ ${recentText}
                     parseSSE(lineBuffer);
                 }
 
-                // 최종적으로 볼드체 처리된 HTML로 렌더링
+                // 1차 렌더링
                 const finalHtml = fullText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
                 streamEl.innerHTML = finalHtml || '(응답 없음)';
+
+                // 길이 초과 시 재요약 로직 (2차 스트리밍)
+                if (fullText.length > 550) {
+                    streamEl.innerHTML += '<br><br><span style="color:var(--accent-amber);font-size:0.85em;">⚠️ 분량이 길어 문장 단축 및 재요약 중...</span>';
+                    flashArea.scrollTop = flashArea.scrollHeight;
+
+                    const summaryPrompt = `다음 회의 기반 분석 리포트가 지정된 분량을 초과했습니다. 
+핵심 데이터와 사실관계를 절대 누락하지 말고, 장황한 서술어를 축약하여 전체 내용을 **완성된 문장으로 500자 이내**로 재작성해 주세요. 
+중간에 말이 끊기지 않도록 반드시 온점(.)으로 끝내야 합니다.
+
+[원본 리포트]
+${fullText}`;
+
+                    const summaryRes = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: summaryPrompt }] }],
+                            generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
+                        })
+                    });
+
+                    if (summaryRes.ok) {
+                        const sumReader = summaryRes.body.getReader();
+                        let sumText = '';
+                        let sumLineBuffer = '';
+                        streamEl.innerHTML = '▌'; // 초기화
+
+                        const parseSumSSE = (line) => {
+                            if (line.startsWith('data: ')) {
+                                const jsonStr = line.slice(6).trim();
+                                if (jsonStr === '[DONE]' || !jsonStr) return;
+                                try {
+                                    const data = JSON.parse(jsonStr);
+                                    const t = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                                    if (t) {
+                                        sumText += t;
+                                        streamEl.textContent = sumText + ' ▌';
+                                        flashArea.scrollTop = flashArea.scrollHeight;
+                                    }
+                                } catch (e) { }
+                            }
+                        };
+
+                        while (true) {
+                            const { done, value } = await sumReader.read();
+                            if (done) break;
+                            const chunk = decoder.decode(value, { stream: true });
+                            sumLineBuffer += chunk;
+                            const lines = sumLineBuffer.split('\n');
+                            sumLineBuffer = lines.pop();
+                            for (const line of lines) parseSumSSE(line);
+                        }
+                        if (sumLineBuffer) parseSumSSE(sumLineBuffer);
+
+                        streamEl.innerHTML = sumText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+                        flashArea.scrollTop = flashArea.scrollHeight;
+                    }
+                }
 
             } catch (e) {
                 showToast(`❌ AI 분석 실패: ${e.message}`);

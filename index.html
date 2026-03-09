@@ -17,25 +17,6 @@
         rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0f0f14;
-            --bg-secondary: #1a1a24;
-            --bg-card: #22223a;
-            --bg-card-hover: #2a2a45;
-            --text-primary: #e8e8f0;
-            --text-secondary: #8888a0;
-            --text-muted: #55556a;
-            --accent-blue: #4a9eff;
-            --accent-green: #34d399;
-            --accent-amber: #fbbf24;
-            --accent-red: #f87171;
-            --accent-purple: #a78bfa;
-            --border-color: #2a2a3e;
-            --flash-glow: rgba(74, 158, 255, 0.15);
-            --radius: 12px;
-            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .light-mode {
             --bg-primary: #f5f5fa;
             --bg-secondary: #ffffff;
             --bg-card: #eeeef5;
@@ -43,8 +24,15 @@
             --text-primary: #1a1a2e;
             --text-secondary: #666680;
             --text-muted: #999aaa;
+            --accent-blue: #4a9eff;
+            --accent-green: #34d399;
+            --accent-amber: #fbbf24;
+            --accent-red: #f87171;
+            --accent-purple: #a78bfa;
             --border-color: #d0d0dd;
             --flash-glow: rgba(74, 158, 255, 0.08);
+            --radius: 12px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * {
@@ -53,12 +41,16 @@
             box-sizing: border-box;
         }
 
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+        }
+
         body {
             font-family: 'Noto Sans KR', sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
-            height: 100vh;
-            height: 100dvh;
             display: flex;
             flex-direction: column;
             overflow: hidden;

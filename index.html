@@ -143,6 +143,9 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .stt-stream {
@@ -579,6 +582,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            height: 28px;
         }
 
         .data-dot {
@@ -723,7 +727,7 @@
         <!-- STT Stream -->
         <div class="stt-panel">
             <div class="stt-header">
-                실시간 음성 인식
+                <span>실시간 음성 인식</span>
                 <span class="data-status" id="dataStatus">
                     <span class="data-dot" id="dataDot"></span>
                     <span id="dataStatusText">시트 미연결</span>

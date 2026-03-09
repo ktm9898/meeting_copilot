@@ -722,9 +722,6 @@
             <span class="header-status" id="headerStatus">대기 중</span>
         </div>
         <div class="header-right">
-            <button class="icon-btn" id="btnFullscreen" title="전체화면">⛶</button>
-            <button class="icon-btn" id="btnTheme" title="테마 전환">🌙</button>
-            <button class="icon-btn" id="btnPins" title="핀 목록">📌</button>
             <button class="icon-btn" id="btnSettings" title="설정">⚙️</button>
         </div>
     </div>
@@ -779,7 +776,6 @@
             </div>
         </div>
         <div class="control-right">
-            <button class="ctrl-btn" id="btnPin" title="현재 텍스트 핀">📌 핀</button>
             <button class="ctrl-btn primary" id="btnContext" title="맥락 분석">🔍 맥락 분석</button>
             <button class="ctrl-btn" id="btnListen" title="듣기 시작/중지">▶ 듣기 시작</button>
         </div>
@@ -811,25 +807,13 @@
                 <div class="hint">숫자가 클수록 더 많은 키워드가 일치해야 카드가 표시됩니다</div>
             </div>
             <div class="modal-actions">
-                <button class="ctrl-btn danger" id="btnUpdateApp" style="flex:1.5;">🔄 최신 버전으로 업데이트</button>
+                <button class="ctrl-btn danger" id="btnUpdateApp" style="flex:1.5;">🔄 최신 버전 업데이트</button>
                 <button class="ctrl-btn" id="btnSettingsClose">닫기</button>
                 <button class="ctrl-btn primary" id="btnSettingsSave">저장</button>
             </div>
         </div>
     </div>
 
-    <!-- PINNED PANEL -->
-    <div class="pinned-panel" id="pinnedPanel">
-        <div class="pinned-header">
-            <h3>📌 핀 목록</h3>
-            <button class="icon-btn" id="btnPinsClose" style="width:28px;height:28px;font-size:0.8rem;">✕</button>
-        </div>
-        <div class="pinned-list" id="pinnedList">
-            <div class="flash-empty" style="padding:40px 0;">
-                <div class="flash-empty-text">핀한 메모가 없습니다</div>
-            </div>
-        </div>
-    </div>
 
     <!-- TOAST -->
     <div class="toast" id="toast"></div>
@@ -1092,7 +1076,7 @@
                 } else {
                     micDot.classList.remove('active');
                     micStatus.textContent = '중지됨';
-                    headerStatus.textContent = '대기 중';
+                    headerStatus.textContent = '대기';
                     $('btnListen').innerHTML = '▶ 듣기 시작';
                     $('btnListen').classList.remove('danger');
                 }
@@ -1671,75 +1655,9 @@ ${fullText}`;
         }
 
         // ============================================================
-        //  PIN FEATURE
-        // ============================================================
-        function pinCurrentText() {
-            const recent = state.speechBuffer
-                .filter(b => b.final)
-                .slice(-3)
-                .map(b => b.text)
-                .join(' ');
-
-            if (!recent) {
-                showToast('⚠️ 핀할 텍스트가 없습니다');
-                return;
-            }
-
-            const item = {
-                text: recent,
-                time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                id: Date.now(),
-            };
-
-            state.pinnedItems.push(item);
-            renderPinnedList();
-            showToast('📌 핀 저장됨');
-        }
-
-        function renderPinnedList() {
-            const list = $('pinnedList');
-            if (state.pinnedItems.length === 0) {
-                list.innerHTML = '<div class="flash-empty" style="padding:40px 0;"><div class="flash-empty-text">핀한 메모가 없습니다</div></div>';
-                return;
-            }
-
-            list.innerHTML = state.pinnedItems.map(item => `
-            <div class="pinned-item">
-                <div class="pinned-item-time">${item.time}</div>
-                <div>${item.text}</div>
-                <button class="pinned-item-delete" onclick="deletePin(${item.id})">✕</button>
-            </div>
-        `).join('');
-        }
-
-        function deletePin(id) {
-            state.pinnedItems = state.pinnedItems.filter(p => p.id !== id);
-            renderPinnedList();
-        }
-
-        // ============================================================
-        //  THEME
-        // ============================================================
-        function toggleTheme() {
-            document.body.classList.toggle('light-mode');
-            const isLight = document.body.classList.contains('light-mode');
-            $('btnTheme').textContent = isLight ? '🌑' : '🌙';
-            localStorage.setItem('mc_theme', isLight ? 'light' : 'dark');
-        }
-
-        function loadTheme() {
-            const theme = localStorage.getItem('mc_theme') || 'dark';
-            if (theme === 'light') {
-                document.body.classList.add('light-mode');
-                $('btnTheme').textContent = '🌑';
-            }
-        }
-
-        // ============================================================
         //  EVENT HANDLERS
         // ============================================================
         function init() {
-            loadTheme();
             initSettingsUI();
             state.recognition = initSTT();
 
@@ -1834,9 +1752,6 @@ ${fullText}`;
             // 맥락 분석
             $('btnContext').addEventListener('click', analyzeContext);
 
-            // 핀
-            $('btnPin').addEventListener('click', pinCurrentText);
-
             // 답변 지우기
             $('btnClearCards').addEventListener('click', () => {
                 flashArea.querySelectorAll('.answer-line, .ai-answer').forEach(c => c.remove());
@@ -1845,25 +1760,6 @@ ${fullText}`;
                 state.displayedAnswers.clear(); // 중복 방지 이력 초기화
                 showToast('🗑️ 답변 모두 삭제됨');
             });
-
-            // 테마
-            $('btnTheme').addEventListener('click', toggleTheme);
-
-            // 전체화면
-            $('btnFullscreen').addEventListener('click', () => {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(() => { });
-                    $('btnFullscreen').textContent = '⛶';
-                } else {
-                    document.exitFullscreen();
-                    $('btnFullscreen').textContent = '⛶';
-                }
-            });
-
-            // 핀 패널
-            $('btnPins').addEventListener('click', () => $('pinnedPanel').classList.toggle('show'));
-            $('btnPinsClose').addEventListener('click', () => $('pinnedPanel').classList.remove('show'));
-
             // 설정 모달
             $('btnSettings').addEventListener('click', () => {
                 initSettingsUI();

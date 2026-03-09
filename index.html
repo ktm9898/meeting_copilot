@@ -1311,8 +1311,13 @@
         //  AUDIO RECORDING (MEDIA RECORDER)
         // ============================================================
         let recorderMimeType = '';
+        let recordInterval = null;
 
         function stopAudioRecording() {
+            if (recordInterval) {
+                clearInterval(recordInterval);
+                recordInterval = null;
+            }
             if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
                 state.mediaRecorder.stop();
             }
@@ -1322,48 +1327,62 @@
             }
         }
 
-        async function startAudioRecording() {
+        async function startAudioRecording(useWhisperChunks = false) {
             try {
                 state.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const types = ['audio/webm', 'audio/mp4', 'audio/ogg'];
                 recorderMimeType = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
 
-                if (recorderMimeType) {
-                    state.mediaRecorder = new MediaRecorder(state.audioStream, { mimeType: recorderMimeType });
-                } else {
-                    state.mediaRecorder = new MediaRecorder(state.audioStream);
-                }
-
                 state.audioChunks = [];
 
-                state.mediaRecorder.ondataavailable = e => {
-                    if (e.data && e.data.size > 0) {
-                        const chunkObj = {
-                            time: Date.now(),
-                            blob: e.data
-                        };
-                        state.audioChunks.push(chunkObj);
-                        const cutoff = Date.now() - state.maxBufferSec * 1000;
-                        state.audioChunks = state.audioChunks.filter(c => c.time > cutoff);
+                function createRecorder() {
+                    const rec = recorderMimeType
+                        ? new MediaRecorder(state.audioStream, { mimeType: recorderMimeType })
+                        : new MediaRecorder(state.audioStream);
 
-                        // 실시간 5초 간격 위스퍼 변환
-                        const settings = loadSettings();
-                        if (settings.groqKey && state.listening) {
-                            transcribeAudioWithGroq(settings.groqKey, [chunkObj], recorderMimeType)
-                                .then(whisperText => {
-                                    if (whisperText && whisperText.trim().length > 0) {
-                                        const text = whisperText.trim();
-                                        addSTTLine(text, true);
-                                        state.speechBuffer.push({ time: Date.now(), text: text, final: true });
-                                        cleanBuffer();
-                                        checkKeywordMatch(text);
-                                    }
-                                }).catch(err => console.error('Realtime Whisper error:', err));
+                    rec.ondataavailable = e => {
+                        if (e.data && e.data.size > 0) {
+                            const chunkObj = {
+                                time: Date.now(),
+                                blob: e.data
+                            };
+                            state.audioChunks.push(chunkObj);
+                            const cutoff = Date.now() - state.maxBufferSec * 1000;
+                            state.audioChunks = state.audioChunks.filter(c => c.time > cutoff);
+
+                            // 실시간 5초 간격 위스퍼 변환
+                            const settings = loadSettings();
+                            if (settings.groqKey && state.listening && useWhisperChunks) {
+                                transcribeAudioWithGroq(settings.groqKey, [chunkObj], recorderMimeType)
+                                    .then(whisperText => {
+                                        if (whisperText && whisperText.trim().length > 0) {
+                                            const text = whisperText.trim();
+                                            addSTTLine(text, true);
+                                            state.speechBuffer.push({ time: Date.now(), text: text, final: true });
+                                            cleanBuffer();
+                                            checkKeywordMatch(text);
+                                        }
+                                    }).catch(err => console.error('Realtime Whisper error:', err));
+                            }
                         }
-                    }
-                };
+                    };
+                    return rec;
+                }
 
-                state.mediaRecorder.start(5000);
+                state.mediaRecorder = createRecorder();
+
+                if (useWhisperChunks) {
+                    state.mediaRecorder.start();
+                    recordInterval = setInterval(() => {
+                        if (state.listening && state.mediaRecorder && state.mediaRecorder.state === 'recording') {
+                            state.mediaRecorder.stop();
+                            state.mediaRecorder = createRecorder();
+                            state.mediaRecorder.start();
+                        }
+                    }, 5000);
+                } else {
+                    state.mediaRecorder.start(5000);
+                }
             } catch (err) {
                 console.error('Audio stream init error:', err);
                 showToast('❌ 마이크 권한이 필요합니다(오디오 녹음)');
@@ -1432,7 +1451,8 @@
             $('btnContext').disabled = true;
 
             // 고품질 변환 로직
-            if (settings.groqKey && state.audioChunks.length > 0) {
+            const isWhisperRealtime = headerStatus.textContent.includes('위스퍼');
+            if (settings.groqKey && state.audioChunks.length > 0 && !isWhisperRealtime) {
                 $('btnContext').innerHTML = '⏳ 위스퍼 고품질 변환 중...';
 
                 if (state.mediaRecorder && state.mediaRecorder.state === 'recording') {
@@ -1715,7 +1735,7 @@ ${recentText}
 
                         if (useWhisper) {
                             // 위스퍼 모드 (5초 간격 녹음 전송)
-                            await startAudioRecording();
+                            await startAudioRecording(true);
                             requestWakeLock();
                             startAudioHeartbeat();
                         } else {

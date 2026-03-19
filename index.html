@@ -1422,6 +1422,14 @@
                     throw new Error(errorObj.error?.message || `HTTP ${res.status}`);
                 }
                 const resultText = await res.text();
+
+                // ✨ Whisper 환각(Hallucination) 필터링
+                const cleanText = resultText.replace(/[.,!?'"\s]/g, '');
+                if (['감사합니다', '시청해주셔서감사합니다', '이번영상은여기까지입니다'].includes(cleanText)) {
+                    console.log('Filtered Whisper hallucination:', resultText);
+                    return null;
+                }
+
                 state.lastTranscript = (resultText || "").slice(-50);
                 return resultText;
             } catch (e) {

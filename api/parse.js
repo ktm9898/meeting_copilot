@@ -3,13 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-export const config = {
+module.exports.config = {
   api: {
-    bodyParser: false, // formidable로 파일 파싱하기 위해 기본 body-parser 비활성화
+    bodyParser: false,
   },
 };
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS 헤더 설정
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -29,9 +29,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const form = formidable({
+    const parseForm = formidable.formidable || formidable;
+    const form = parseForm({
       keepExtensions: true,
-      maxFileSize: 50 * 1024 * 1024, // 최대 50MB
+      maxFileSize: 50 * 1024 * 1024,
     });
 
     const [fields, files] = await new Promise((resolve, reject) => {

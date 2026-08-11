@@ -1790,16 +1790,9 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
             initSettingsUI();
             state.recognition = initSTT();
 
-            const settings = loadSettings();
-
-            // 스톡시그널 인증 제어: 비밀번호 인증이 완료되지 않은 경우 pinModal 표시
-            if (sessionStorage.getItem('mc_authenticated') === 'true') {
-                $('pinModal').style.display = 'none';
-                if (settings.sheetUrl) loadSheetData(settings.sheetUrl);
-            } else {
-                $('pinModal').style.display = 'flex';
-                setTimeout(() => $('inputPin').focus(), 100);
-            }
+            // 스톡시그널 방식: 접속 시 무조건 보안 비밀번호 입력 모달 표시
+            $('pinModal').style.display = 'flex';
+            setTimeout(() => $('inputPin').focus(), 100);
 
             // 듣기 시작/중지
             $('btnListen').addEventListener('click', async () => {

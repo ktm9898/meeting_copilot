@@ -1922,6 +1922,7 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                         }
                     }
 
+                    console.log('🚀 [Kordoc Server Upload Response]:', data);
                     if (!res.ok || data.error) {
                         throw new Error(data.error || `HTTP ${res.status}`);
                     }

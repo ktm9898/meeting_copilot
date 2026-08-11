@@ -1870,7 +1870,8 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
 
                 try {
                     uploadStatusText.textContent = '🤖 Gemini AI 분석 및 구글 시트 저장 중...';
-                    const res = await fetch('/api/parse', {
+                    const vercelApiUrl = 'https://meeting-copilot-3vundgo3n-ktm9898s-projects.vercel.app/api/parse';
+                    const res = await fetch(vercelApiUrl, {
                         method: 'POST',
                         body: formData
                     });

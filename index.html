@@ -1025,6 +1025,7 @@
                 $('pinModal').style.display = 'none';
                 $('pinError').style.display = 'none';
                 sessionStorage.setItem('mc_authenticated', 'true');
+                sessionStorage.setItem('mc_pin', inputVal);
             } else {
                 $('pinError').style.display = 'block';
             }
@@ -2143,10 +2144,16 @@ ${text.slice(0, 30000)}`;
                         fullText: item.fullText || text.slice(0, 5000)
                     }));
 
+                    const currentPin = sessionStorage.getItem('mc_pin') || settings.appPassword || '';
+                    const payloadData = {
+                        pin: currentPin,
+                        items: payloadItems
+                    };
+
                     const gasRes = await fetch(settings.webhookUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payloadItems)
+                        body: JSON.stringify(payloadData)
                     });
 
                     uploadStatusText.textContent = '지식 DB 직통 등록 완료!';

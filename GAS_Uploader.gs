@@ -13,13 +13,27 @@
  * 6. [배포] 버튼 클릭 후 생성된 '웹 앱 URL'을 복사하여 Meeting Copilot 설정창에 입력합니다.
  */
 
+function getAuthPin() {
+  var pin = PropertiesService.getScriptProperties().getProperty("AUTH_PIN");
+  return pin ? String(pin).trim() : "";
+}
+
 function doPost(e) {
   try {
+    var authPin = getAuthPin();
     var data;
     if (e.postData && e.postData.contents) {
       data = JSON.parse(e.postData.contents);
     } else {
       return responseJSON({ success: false, error: "No post data" });
+    }
+
+    // PIN 검증 (설정되어 있을 경우)
+    if (authPin) {
+      var inputPin = (data && data.pin) ? String(data.pin).trim() : (e.parameter ? String(e.parameter.pin || "").trim() : "");
+      if (inputPin !== authPin) {
+        return responseJSON({ success: false, error: "Unauthorized: Invalid PIN" });
+      }
     }
 
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
@@ -34,7 +48,7 @@ function doPost(e) {
       headerRange.setFontWeight("bold");
     }
 
-    var items = Array.isArray(data) ? data : [data];
+    var items = Array.isArray(data) ? data : (data.items || [data]);
     var insertedCount = 0;
 
     for (var i = 0; i < items.length; i++) {
@@ -63,7 +77,15 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  return responseJSON({ status: "ok", message: "Meeting Copilot GAS Uploader is running." });
+  var authPin = getAuthPin();
+  var inputPin = e.parameter ? String(e.parameter.pin || "").trim() : "";
+  
+  if (authPin) {
+    if (inputPin !== authPin) {
+      return responseJSON({ success: false, error: "Unauthorized: Invalid PIN" });
+    }
+  }
+  return responseJSON({ success: true, status: "ok", message: "Meeting Copilot GAS Uploader is running." });
 }
 
 function responseJSON(obj) {

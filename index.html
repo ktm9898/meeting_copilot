@@ -715,11 +715,11 @@
     <!-- HEADER -->
     <div class="header">
         <div class="header-left">
-            <span class="header-logo">🎙 Meeting Copilot</span>
+            <span class="header-logo">Meeting Copilot</span>
             <span class="header-status" id="headerStatus">대기 중</span>
         </div>
         <div class="header-right">
-            <button class="icon-btn" id="btnSettings" title="설정">⚙️</button>
+            <button class="icon-btn" id="btnSettings" title="설정">⚙</button>
         </div>
     </div>
 
@@ -727,21 +727,9 @@
     <div class="main-content">
         <!-- STT Stream -->
         <div class="stt-panel">
-            <div class="stt-header">
-                <span>실시간 음성 인식</span>
-                <span class="data-status" id="dataStatus">
-                    <span class="data-dot" id="dataDot"></span>
-                    <span id="dataStatusText">시트 미연결</span>
-                </span>
-            </div>
+            <div class="stt-header">실시간 음성 인식</div>
             <div class="stt-stream" id="sttStream">
-                <div class="flash-empty">
-                    <div class="flash-empty-icon">🎤</div>
-                    <div class="flash-empty-text">
-                        아래 <strong>듣기 시작</strong> 버튼을 눌러<br>
-                        음성 인식을 시작하세요
-                    </div>
-                </div>
+                <div class="flash-empty">음성을 듣는 중...</div>
             </div>
         </div>
 
@@ -750,11 +738,11 @@
             <div class="flash-header">
                 <span>답변 카드</span>
                 <button class="icon-btn" id="btnClearCards" title="카드 모두 지우기"
-                    style="width:28px;height:28px;font-size:0.75rem;">🗑️</button>
+                    style="width:28px;height:28px;font-size:0.75rem;">지우기</button>
             </div>
             <div class="flash-area" id="flashArea">
                 <div class="flash-empty" id="flashEmpty">
-                    <div class="flash-empty-icon">💡</div>
+                    <div class="flash-empty-icon">💬</div>
                     <div class="flash-empty-text">
                         음성에서 키워드가 감지되면<br>
                         여기에 답변이 표시됩니다
@@ -773,17 +761,17 @@
             </div>
         </div>
         <div class="control-right">
-            <button class="ctrl-btn primary" id="btnUploadDoc" title="문서 자동 업로드">📁 문서 업로드</button>
-            <button class="ctrl-btn primary" id="btnManualQuery" title="자료확인">💡 자료확인</button>
-            <button class="ctrl-btn primary" id="btnContext" title="맥락 분석">🔍 맥락 분석</button>
-            <button class="ctrl-btn" id="btnListen" title="듣기 시작/중지">▶ 듣기 시작</button>
+            <button class="ctrl-btn primary" id="btnUploadDoc" title="문서 자동 업로드">문서 업로드</button>
+            <button class="ctrl-btn primary" id="btnManualQuery" title="자료확인">자료확인</button>
+            <button class="ctrl-btn primary" id="btnContext" title="맥락 분석">맥락 분석</button>
+            <button class="ctrl-btn" id="btnListen" title="듣기 시작/중지">듣기 시작</button>
         </div>
     </div>
 
     <!-- SETTINGS MODAL -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal">
-            <h2>⚙️ 설정</h2>
+            <h2>설정</h2>
             <div class="form-group">
                 <label>Gemini API 키</label>
                 <input type="password" id="inputApiKey" placeholder="AIzaSy...">
@@ -818,7 +806,7 @@
                 <div class="hint">숫자가 클수록 더 많은 키워드가 일치해야 카드가 표시됩니다</div>
             </div>
             <div class="modal-actions">
-                <button class="ctrl-btn danger" id="btnUpdateApp" style="flex:1.5;">🔄 최신 버전 업데이트</button>
+                <button class="ctrl-btn danger" id="btnUpdateApp" style="flex:1.5;">최신 버전 업데이트</button>
                 <button class="ctrl-btn" id="btnSettingsClose">닫기</button>
                 <button class="ctrl-btn primary" id="btnSettingsSave">저장</button>
             </div>
@@ -828,63 +816,64 @@
     <!-- DOCUMENT UPLOAD MODAL -->
     <div class="modal-overlay" id="uploadModal">
         <div class="modal" style="max-width: 520px;">
-            <h2>📁 지식 DB 문서 자동 등록</h2>
+            <h2>지식 DB 문서 등록</h2>
             
             <!-- 모드 선택 탭 -->
             <div style="display: flex; background: var(--bg-card); padding: 4px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--border-color);">
                 <button id="tabMode1" style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: var(--accent-blue); color: #fff; cursor: pointer; transition: all 0.2s;">
-                    📄 1. 원본 문서 (Kordoc 파싱)
+                    1. 원본 문서 파싱 등록
                 </button>
                 <button id="tabMode2" style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">
-                    📝 2. 이미 파싱된 텍스트/MD
+                    2. 파싱 완료 텍스트 직접 등록
                 </button>
             </div>
 
             <!-- MODE 1: 원본 문서 파일 업로드 (Kordoc) -->
             <div id="uploadMode1Section">
                 <!-- 서버 상태 안내 상자 -->
-                <div id="serverStatusNotice" style="padding: 12px 16px; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 8px; font-size: 0.82rem; margin-bottom: 16px; line-height: 1.6; color: var(--text-primary);">
+                <div id="serverStatusNotice" style="padding: 10px 14px; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 8px; font-size: 0.82rem; margin-bottom: 14px; line-height: 1.5; color: var(--text-primary);">
                     <span id="serverStatusText">
-                        ⚠️ <strong>서버 미연결 안내:</strong> 업로드 전 프로젝트 폴더에서 로컬 서버를 1회 실행해 주세요.<br>
-                        • <strong>쉬운 방법:</strong> 프로젝트 폴더의 <code>run_kordoc_background.vbs</code> 파일 더블 클릭
+                        <strong>서버 안내:</strong> 업로드 전 프로젝트 폴더에서 <code>run_kordoc_background.vbs</code> 파일 더블 클릭으로 백그라운드 서버를 실행해 주세요.
                     </span>
                 </div>
 
-                <div id="dropZone" style="border: 2px dashed var(--accent-blue); border-radius: 12px; padding: 30px; text-align: center; background: rgba(74, 158, 255, 0.05); cursor: pointer; transition: all 0.3s;">
-                    <div style="font-size: 2.5rem; margin-bottom: 10px;">📄</div>
-                    <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
-                        여기에 원본 문서를 드래그 앤 드롭하세요
+                <div id="dropZone" style="border: 2px dashed var(--accent-blue); border-radius: 12px; padding: 24px; text-align: center; background: rgba(74, 158, 255, 0.05); cursor: pointer; transition: all 0.3s;">
+                    <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+                        원본 문서 드래그 앤 드롭 또는 클릭하여 선택
                     </div>
                     <div style="font-size: 0.8rem; color: var(--text-muted);">
-                        지원 형식: HWP, HWPX, PDF, XLSX, DOCX<br>(내 PC의 Kordoc 파서가 텍스트를 파싱 후 Gemini AI가 시트에 저장합니다)
+                        지원 형식: HWP, HWPX, PDF, XLSX, DOCX
                     </div>
                     <input type="file" id="fileInput" accept=".hwp,.hwpx,.pdf,.xlsx,.docx,.doc" style="display: none;">
                 </div>
+                <div id="selectedFileInfo1" style="display: none; margin-top: 10px; padding: 8px 12px; background: var(--bg-card); border-radius: 6px; font-size: 0.82rem; font-weight: bold; color: var(--accent-blue);">
+                    선택된 파일: <span id="fileNameDisplay1">없음</span>
+                </div>
             </div>
 
-            <!-- MODE 2: 이미 파싱된 텍스트/MD 파일 또는 붙여넣기 (로컬 파서 서버 불필요) -->
+            <!-- MODE 2: 이미 파싱된 텍스트/MD 파일 또는 붙여넣기 -->
             <div id="uploadMode2Section" style="display: none;">
                 <div style="padding: 10px 14px; background: rgba(74, 158, 255, 0.1); border-left: 4px solid var(--accent-blue); border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px; line-height: 1.5; color: var(--text-primary);">
-                    💡 <strong>직통 모드:</strong> 로컬 파서 서버 연결 없이 <strong>.md / .txt 파일 드래그</strong> 또는 <strong>텍스트 직접 붙여넣기</strong>로 Gemini AI 분석 ➔ 구글 시트에 즉시 등록합니다.
+                    <strong>안내:</strong> 로컬 파서 서버 연결 없이 파싱된 텍스트/마크다운을 AI 분석 후 구글 시트에 바로 등록합니다.
                 </div>
                 <div style="margin-bottom: 10px;">
                     <input type="text" id="inputParsedTitle" placeholder="문서 제목 입력 (예: 2026 사업계획서)" style="width: 100%; padding: 10px 12px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); margin-bottom: 8px;">
-                    <textarea id="inputParsedText" rows="7" placeholder="파싱된 마크다운(.md) 또는 텍스트 내용을 붙여넣거나, 위에 .md/.txt 파일을 드래그하세요..." style="width: 100%; padding: 10px 12px; font-size: 0.82rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); resize: vertical; font-family: monospace;"></textarea>
+                    <textarea id="inputParsedText" rows="6" placeholder="파싱된 마크다운(.md) 또는 텍스트 내용을 붙여넣거나 아래에 파일을 드래그하세요..." style="width: 100%; padding: 10px 12px; font-size: 0.82rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); resize: vertical; font-family: monospace;"></textarea>
                 </div>
-                <div id="dropZoneText" style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 10px; text-align: center; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; background: var(--bg-primary);">
-                    📁 .md 또는 .txt 파일 여기 드래그앤드롭
+                <div id="dropZoneText" style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 8px; text-align: center; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; background: var(--bg-primary);">
+                    .md 또는 .txt 파일 드래그 앤 드롭
                     <input type="file" id="fileInputText" accept=".md,.txt,.markdown" style="display: none;">
                 </div>
             </div>
 
-            <div id="uploadProgress" style="display: none; margin-top: 16px; padding: 12px; background: var(--bg-card); border-radius: 8px; font-size: 0.85rem; text-align: center;">
-                <div id="uploadStatusText" style="font-weight: bold; color: var(--accent-blue); margin-bottom: 4px;">🚀 분석 중...</div>
+            <div id="uploadProgress" style="display: none; margin-top: 14px; padding: 10px; background: var(--bg-card); border-radius: 8px; font-size: 0.85rem; text-align: center;">
+                <div id="uploadStatusText" style="font-weight: bold; color: var(--accent-blue); margin-bottom: 4px;">분석 처리 중...</div>
                 <div id="uploadDetailText" style="color: var(--text-secondary); font-size: 0.75rem;">잠시만 기다려 주세요</div>
             </div>
 
-            <div class="modal-actions" style="margin-top: 20px;">
+            <div class="modal-actions" style="margin-top: 18px;">
                 <button class="ctrl-btn" id="btnUploadClose">닫기</button>
-                <button class="ctrl-btn primary" id="btnSubmitMode2" style="display: none;">🤖 AI 분석 및 시트 저장</button>
+                <button class="ctrl-btn primary" id="btnSubmitUpload">분석 및 시트 저장</button>
             </div>
         </div>
     </div>
@@ -1899,28 +1888,33 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
             const tabMode2 = $('tabMode2');
             const uploadMode1Section = $('uploadMode1Section');
             const uploadMode2Section = $('uploadMode2Section');
-            const btnSubmitMode2 = $('btnSubmitMode2');
+            const btnSubmitUpload = $('btnSubmitUpload');
             const dropZoneText = $('dropZoneText');
             const fileInputText = $('fileInputText');
+            const selectedFileInfo1 = $('selectedFileInfo1');
+            const fileNameDisplay1 = $('fileNameDisplay1');
+
+            let currentMode = 1;
+            let selectedFile1 = null;
 
             tabMode1.addEventListener('click', () => {
+                currentMode = 1;
                 tabMode1.style.background = 'var(--accent-blue)';
                 tabMode1.style.color = '#fff';
                 tabMode2.style.background = 'transparent';
                 tabMode2.style.color = 'var(--text-muted)';
                 uploadMode1Section.style.display = 'block';
                 uploadMode2Section.style.display = 'none';
-                btnSubmitMode2.style.display = 'none';
             });
 
             tabMode2.addEventListener('click', () => {
+                currentMode = 2;
                 tabMode2.style.background = 'var(--accent-blue)';
                 tabMode2.style.color = '#fff';
                 tabMode1.style.background = 'transparent';
                 tabMode1.style.color = 'var(--text-muted)';
                 uploadMode1Section.style.display = 'none';
                 uploadMode2Section.style.display = 'block';
-                btnSubmitMode2.style.display = 'inline-block';
             });
 
             $('btnUploadClose').addEventListener('click', () => {
@@ -1931,34 +1925,37 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                 if (e.target === uploadModal) uploadModal.classList.remove('show');
             });
 
+            // Mode 1 파일 선택 처리
             dropZone.addEventListener('click', () => fileInput.click());
-
             dropZone.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 dropZone.style.background = 'rgba(74, 158, 255, 0.15)';
                 dropZone.style.borderColor = 'var(--accent-purple)';
             });
-
             dropZone.addEventListener('dragleave', () => {
                 dropZone.style.background = 'rgba(74, 158, 255, 0.05)';
                 dropZone.style.borderColor = 'var(--accent-blue)';
             });
-
             dropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dropZone.style.background = 'rgba(74, 158, 255, 0.05)';
                 dropZone.style.borderColor = 'var(--accent-blue)';
-
                 if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    handleFileUpload(e.dataTransfer.files[0]);
+                    setSelectedFile1(e.dataTransfer.files[0]);
                 }
             });
-
             fileInput.addEventListener('change', () => {
                 if (fileInput.files && fileInput.files.length > 0) {
-                    handleFileUpload(fileInput.files[0]);
+                    setSelectedFile1(fileInput.files[0]);
                 }
             });
+
+            function setSelectedFile1(file) {
+                selectedFile1 = file;
+                fileNameDisplay1.textContent = file.name;
+                selectedFileInfo1.style.display = 'block';
+                showToast(`선택됨: ${file.name}`);
+            }
 
             // Mode 2 .md / .txt 파일 드래그앤드롭 처리
             dropZoneText.addEventListener('click', () => fileInputText.click());
@@ -1984,13 +1981,27 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                     if (!$('inputParsedTitle').value.trim()) {
                         $('inputParsedTitle').value = file.name.replace(/\.[^/.]+$/, '');
                     }
-                    showToast(`📄 [${file.name}] 텍스트 불러오기 완료`);
+                    showToast(`불러오기 완료: ${file.name}`);
                 };
                 reader.readAsText(file);
             }
 
+            // 통일된 [분석 및 시트 저장] 실행 버튼 클릭 이벤트
+            btnSubmitUpload.addEventListener('click', () => {
+                if (currentMode === 1) {
+                    if (!selectedFile1) {
+                        showToast('⚠️ 먼저 파싱할 원본 문서 파일을 선택해 주세요.');
+                        return;
+                    }
+                    handleFileUpload(selectedFile1);
+                } else {
+                    handleMode2Submit();
+                }
+            });
+
+
             // Mode 2 제출 처리 (Gemini AI 직접 분석 + 구글 시트 저장)
-            btnSubmitMode2.addEventListener('click', async () => {
+            async function handleMode2Submit() {
                 const title = $('inputParsedTitle').value.trim() || '파싱 문서';
                 const text = $('inputParsedText').value.trim();
                 const settings = loadSettings();
@@ -2088,9 +2099,9 @@ ${text.slice(0, 30000)}`;
                         body: JSON.stringify(payloadItems)
                     });
 
-                    uploadStatusText.textContent = '✅ 지식 DB 직통 등록 완료!';
+                    uploadStatusText.textContent = '지식 DB 직통 등록 완료!';
                     uploadDetailText.textContent = `[${title}] ${chunks.length}개 세부 주제 항목이 구글 시트에 즉시 등록되었습니다.`;
-                    showToast(`✅ [${title}] ${chunks.length}개 항목 구글 시트 직통 저장 완료!`);
+                    showToast(`[${title}] ${chunks.length}개 항목 구글 시트 저장 완료!`);
 
                     setTimeout(() => {
                         if (settings.sheetUrl) loadSheetData(settings.sheetUrl);
@@ -2098,22 +2109,22 @@ ${text.slice(0, 30000)}`;
 
                 } catch (mode2Err) {
                     console.error('Mode 2 process error:', mode2Err);
-                    uploadStatusText.textContent = '❌ 직통 등록 실패';
+                    uploadStatusText.textContent = '직통 등록 실패';
                     uploadDetailText.textContent = mode2Err.message;
-                    showToast(`❌ 직통 등록 실패: ${mode2Err.message}`);
+                    showToast(`등록 실패: ${mode2Err.message}`);
                 }
-            });
+            }
 
             async function handleFileUpload(file) {
                 const settings = loadSettings();
                 if (!settings.webhookUrl) {
-                    showToast('⚠️ 먼저 설정에서 구글 앱스 스크립트 Webhook URL을 입력하세요');
+                    showToast('먼저 설정에서 구글 앱스 스크립트 Webhook URL을 입력하세요');
                     $('btnSettings').click();
                     return;
                 }
 
                 uploadProgress.style.display = 'block';
-                uploadStatusText.textContent = '🚀 내 PC의 Kordoc 문서 파싱 중...';
+                uploadStatusText.textContent = '내 PC의 Kordoc 문서 파싱 중...';
                 uploadDetailText.textContent = `${file.name} 텍스트 추출 중`;
 
                 const formData = new FormData();
@@ -2122,7 +2133,7 @@ ${text.slice(0, 30000)}`;
                 formData.append('webhookUrl', settings.webhookUrl);
 
                 try {
-                    uploadStatusText.textContent = '🤖 Gemini AI 분석 및 구글 시트 저장 중...';
+                    uploadStatusText.textContent = 'Gemini AI 분석 및 구글 시트 저장 중...';
                     const serverUrl = (settings.serverUrl || 'http://127.0.0.1:5000').replace(/\/+$/, '');
                     const localApiUrl = `${serverUrl}/upload`;
                     let res;
@@ -2139,8 +2150,6 @@ ${text.slice(0, 30000)}`;
                         });
                     }
 
-
-
                     let data;
                     const resText = await res.text();
                     try {
@@ -2153,26 +2162,25 @@ ${text.slice(0, 30000)}`;
                         }
                     }
 
-                    console.log('🚀 [Kordoc Server Upload Response]:', data);
+                    console.log('[Kordoc Server Upload Response]:', data);
                     if (!res.ok || data.error) {
                         throw new Error(data.error || `HTTP ${res.status}`);
                     }
 
-                    uploadStatusText.textContent = '✅ 지식 DB 등록 완료!';
+                    uploadStatusText.textContent = '지식 DB 등록 완료!';
                     const countMsg = data.chunkCount ? `${data.chunkCount}개 세부 주제 항목` : '지식 DB 항목';
                     uploadDetailText.textContent = `[${file.name}] ${countMsg}으로 자동 분할 등록되었습니다.`;
-                    showToast(`✅ [${file.name}] ${countMsg} 구글 시트 등록 완료!`);
+                    showToast(`[${file.name}] ${countMsg} 구글 시트 등록 완료!`);
 
-                    // 등록 후 2초 뒤 시트 자동 재로드
                     setTimeout(() => {
                         if (settings.sheetUrl) loadSheetData(settings.sheetUrl);
                     }, 1500);
 
                 } catch (err) {
                     console.error('Upload process error:', err);
-                    uploadStatusText.textContent = '❌ 등록 실패';
+                    uploadStatusText.textContent = '등록 실패';
                     uploadDetailText.textContent = err.message;
-                    showToast(`❌ 등록 실패: ${err.message}`);
+                    showToast(`등록 실패: ${err.message}`);
                 }
             }
 

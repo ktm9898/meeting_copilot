@@ -97,7 +97,7 @@ ${parsedText.slice(0, 8000)}
 반드시 다른 설명 없이 순수한 JSON 데이터만 응답하세요. 예시:
 {"title": "...", "category": "...", "summary": "...", "keywords": ["...", "..."]}`;
 
-        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

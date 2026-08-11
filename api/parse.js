@@ -53,24 +53,47 @@ module.exports = async function handler(req, res) {
     const filePath = fileObj.filepath || fileObj.path;
     const originalFilename = fileObj.originalFilename || 'document';
     
+    // 파일 확장자 보존 (Kordoc 파싱 정밀도 향상)
+    const ext = path.extname(originalFilename) || '.hwp';
+    const tempPathWithExt = `${filePath}${ext}`;
+    try {
+      fs.copyFileSync(filePath, tempPathWithExt);
+    } catch (e) {
+      console.warn('Copy temp file failed:', e);
+    }
+
+    const targetFile = fs.existsSync(tempPathWithExt) ? tempPathWithExt : filePath;
+
     // 1. Kordoc 파싱 수행 (npx kordoc)
     let parsedText = '';
     try {
-      // kordoc CLI 호출
-      const output = execSync(`npx -y kordoc "${filePath}" --silent`, { encoding: 'utf-8', timeout: 30000 });
+      // kordoc CLI 호출 (기본 + ocr fallback)
+      const output = execSync(`npx -y kordoc "${targetFile}" --silent`, { encoding: 'utf-8', timeout: 45000 });
       parsedText = output.trim();
     } catch (kordocErr) {
-      console.warn('Kordoc CLI parsing failed, falling back to raw read:', kordocErr.message);
-      // Fallback: 텍스트 파일인 경우 직접 읽기
+      console.warn('Kordoc CLI parsing failed:', kordocErr.message);
+      // Fallback: 텍스트 파일인 경우만 읽기 (바이너리 PDF/HWP 무작정 readFileSync 방지)
       try {
-        parsedText = fs.readFileSync(filePath, 'utf-8');
+        const rawContent = fs.readFileSync(targetFile, 'utf-8');
+        if (!rawContent.startsWith('%PDF') && !rawContent.includes('FlateDecode')) {
+          parsedText = rawContent;
+        }
       } catch (rErr) {
-        parsedText = `[파싱 실패] ${originalFilename}`;
+        parsedText = '';
+      }
+    } finally {
+      if (fs.existsSync(tempPathWithExt)) {
+        try { fs.unlinkSync(tempPathWithExt); } catch (e) {}
       }
     }
 
+    // 바이너리 데이터 스트림 들어온 경우 필터링
+    if (parsedText.includes('%PDF-') || parsedText.includes('FlateDecode') || parsedText.includes('stream')) {
+      parsedText = '';
+    }
+
     if (!parsedText || parsedText.trim().length === 0) {
-      return res.status(500).json({ error: '문서에서 텍스트를 추출할 수 없습니다.' });
+      return res.status(500).json({ error: '문서에서 텍스트를 추출할 수 없습니다. (스캔 PDF 또는 암호화 문서 여부를 확인해 주세요)' });
     }
 
     // 2. Gemini API로 메타데이터 (제목, 카테고리, 요약, 키워드) 추출

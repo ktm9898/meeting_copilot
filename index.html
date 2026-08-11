@@ -827,34 +827,64 @@
 
     <!-- DOCUMENT UPLOAD MODAL -->
     <div class="modal-overlay" id="uploadModal">
-        <div class="modal" style="max-width: 480px;">
-            <h2>📁 지식 DB 문서 자동 등록 (Kordoc)</h2>
+        <div class="modal" style="max-width: 520px;">
+            <h2>📁 지식 DB 문서 자동 등록</h2>
             
-            <!-- 서버 상태 안내 상자 -->
-            <div id="serverStatusNotice" style="padding: 12px 16px; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 8px; font-size: 0.82rem; margin-bottom: 16px; line-height: 1.6; color: var(--text-primary);">
-                <span id="serverStatusText">
-                    ⚠️ <strong>서버 미연결 안내:</strong> 업로드 전 프로젝트 폴더에서 로컬 서버를 1회 실행해 주세요.<br>
-                    • <strong>쉬운 방법:</strong> 프로젝트 폴더의 <code>run_kordoc_background.vbs</code> 파일 더블 클릭<br>
-                    • <strong>터미널 실행:</strong> 폴더 이동(<code>cd meeting_copilot</code>) 후 <code>python kordoc_server.py</code> 입력
-                </span>
+            <!-- 모드 선택 탭 -->
+            <div style="display: flex; background: var(--bg-card); padding: 4px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--border-color);">
+                <button id="tabMode1" style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: var(--accent-blue); color: #fff; cursor: pointer; transition: all 0.2s;">
+                    📄 1. 원본 문서 (Kordoc 파싱)
+                </button>
+                <button id="tabMode2" style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">
+                    📝 2. 이미 파싱된 텍스트/MD
+                </button>
             </div>
 
-            <div id="dropZone" style="border: 2px dashed var(--accent-blue); border-radius: 12px; padding: 30px; text-align: center; background: rgba(74, 158, 255, 0.05); cursor: pointer; transition: all 0.3s;">
-                <div style="font-size: 2.5rem; margin-bottom: 10px;">📄</div>
-                <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
-                    여기에 문서를 드래그 앤 드롭하세요
+            <!-- MODE 1: 원본 문서 파일 업로드 (Kordoc) -->
+            <div id="uploadMode1Section">
+                <!-- 서버 상태 안내 상자 -->
+                <div id="serverStatusNotice" style="padding: 12px 16px; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 8px; font-size: 0.82rem; margin-bottom: 16px; line-height: 1.6; color: var(--text-primary);">
+                    <span id="serverStatusText">
+                        ⚠️ <strong>서버 미연결 안내:</strong> 업로드 전 프로젝트 폴더에서 로컬 서버를 1회 실행해 주세요.<br>
+                        • <strong>쉬운 방법:</strong> 프로젝트 폴더의 <code>run_kordoc_background.vbs</code> 파일 더블 클릭
+                    </span>
                 </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);">
-                    지원 형식: HWP, HWPX, PDF, XLSX, DOCX<br>(내 PC의 Kordoc 파서가 텍스트를 추출하고 Gemini가 요약하여 구글 시트에 저장합니다)
+
+                <div id="dropZone" style="border: 2px dashed var(--accent-blue); border-radius: 12px; padding: 30px; text-align: center; background: rgba(74, 158, 255, 0.05); cursor: pointer; transition: all 0.3s;">
+                    <div style="font-size: 2.5rem; margin-bottom: 10px;">📄</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
+                        여기에 원본 문서를 드래그 앤 드롭하세요
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">
+                        지원 형식: HWP, HWPX, PDF, XLSX, DOCX<br>(내 PC의 Kordoc 파서가 텍스트를 파싱 후 Gemini AI가 시트에 저장합니다)
+                    </div>
+                    <input type="file" id="fileInput" accept=".hwp,.hwpx,.pdf,.xlsx,.docx,.doc" style="display: none;">
                 </div>
-                <input type="file" id="fileInput" accept=".hwp,.hwpx,.pdf,.xlsx,.docx,.doc" style="display: none;">
             </div>
+
+            <!-- MODE 2: 이미 파싱된 텍스트/MD 파일 또는 붙여넣기 (로컬 파서 서버 불필요) -->
+            <div id="uploadMode2Section" style="display: none;">
+                <div style="padding: 10px 14px; background: rgba(74, 158, 255, 0.1); border-left: 4px solid var(--accent-blue); border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px; line-height: 1.5; color: var(--text-primary);">
+                    💡 <strong>직통 모드:</strong> 로컬 파서 서버 연결 없이 <strong>.md / .txt 파일 드래그</strong> 또는 <strong>텍스트 직접 붙여넣기</strong>로 Gemini AI 분석 ➔ 구글 시트에 즉시 등록합니다.
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <input type="text" id="inputParsedTitle" placeholder="문서 제목 입력 (예: 2026 사업계획서)" style="width: 100%; padding: 10px 12px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); margin-bottom: 8px;">
+                    <textarea id="inputParsedText" rows="7" placeholder="파싱된 마크다운(.md) 또는 텍스트 내용을 붙여넣거나, 위에 .md/.txt 파일을 드래그하세요..." style="width: 100%; padding: 10px 12px; font-size: 0.82rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); resize: vertical; font-family: monospace;"></textarea>
+                </div>
+                <div id="dropZoneText" style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 10px; text-align: center; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; background: var(--bg-primary);">
+                    📁 .md 또는 .txt 파일 여기 드래그앤드롭
+                    <input type="file" id="fileInputText" accept=".md,.txt,.markdown" style="display: none;">
+                </div>
+            </div>
+
             <div id="uploadProgress" style="display: none; margin-top: 16px; padding: 12px; background: var(--bg-card); border-radius: 8px; font-size: 0.85rem; text-align: center;">
-                <div id="uploadStatusText" style="font-weight: bold; color: var(--accent-blue); margin-bottom: 4px;">🚀 파싱 중...</div>
+                <div id="uploadStatusText" style="font-weight: bold; color: var(--accent-blue); margin-bottom: 4px;">🚀 분석 중...</div>
                 <div id="uploadDetailText" style="color: var(--text-secondary); font-size: 0.75rem;">잠시만 기다려 주세요</div>
             </div>
+
             <div class="modal-actions" style="margin-top: 20px;">
                 <button class="ctrl-btn" id="btnUploadClose">닫기</button>
+                <button class="ctrl-btn primary" id="btnSubmitMode2" style="display: none;">🤖 AI 분석 및 시트 저장</button>
             </div>
         </div>
     </div>
@@ -1864,6 +1894,35 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                 }
             });
 
+            // 탭 및 모드 제어
+            const tabMode1 = $('tabMode1');
+            const tabMode2 = $('tabMode2');
+            const uploadMode1Section = $('uploadMode1Section');
+            const uploadMode2Section = $('uploadMode2Section');
+            const btnSubmitMode2 = $('btnSubmitMode2');
+            const dropZoneText = $('dropZoneText');
+            const fileInputText = $('fileInputText');
+
+            tabMode1.addEventListener('click', () => {
+                tabMode1.style.background = 'var(--accent-blue)';
+                tabMode1.style.color = '#fff';
+                tabMode2.style.background = 'transparent';
+                tabMode2.style.color = 'var(--text-muted)';
+                uploadMode1Section.style.display = 'block';
+                uploadMode2Section.style.display = 'none';
+                btnSubmitMode2.style.display = 'none';
+            });
+
+            tabMode2.addEventListener('click', () => {
+                tabMode2.style.background = 'var(--accent-blue)';
+                tabMode2.style.color = '#fff';
+                tabMode1.style.background = 'transparent';
+                tabMode1.style.color = 'var(--text-muted)';
+                uploadMode1Section.style.display = 'none';
+                uploadMode2Section.style.display = 'block';
+                btnSubmitMode2.style.display = 'inline-block';
+            });
+
             $('btnUploadClose').addEventListener('click', () => {
                 uploadModal.classList.remove('show');
             });
@@ -1898,6 +1957,150 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
             fileInput.addEventListener('change', () => {
                 if (fileInput.files && fileInput.files.length > 0) {
                     handleFileUpload(fileInput.files[0]);
+                }
+            });
+
+            // Mode 2 .md / .txt 파일 드래그앤드롭 처리
+            dropZoneText.addEventListener('click', () => fileInputText.click());
+            dropZoneText.addEventListener('dragover', (e) => { e.preventDefault(); dropZoneText.style.background = 'rgba(74, 158, 255, 0.1)'; });
+            dropZoneText.addEventListener('dragleave', () => { dropZoneText.style.background = 'var(--bg-primary)'; });
+            dropZoneText.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZoneText.style.background = 'var(--bg-primary)';
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    readTextFileToMode2(e.dataTransfer.files[0]);
+                }
+            });
+            fileInputText.addEventListener('change', () => {
+                if (fileInputText.files && fileInputText.files.length > 0) {
+                    readTextFileToMode2(fileInputText.files[0]);
+                }
+            });
+
+            function readTextFileToMode2(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    $('inputParsedText').value = e.target.result;
+                    if (!$('inputParsedTitle').value.trim()) {
+                        $('inputParsedTitle').value = file.name.replace(/\.[^/.]+$/, '');
+                    }
+                    showToast(`📄 [${file.name}] 텍스트 불러오기 완료`);
+                };
+                reader.readAsText(file);
+            }
+
+            // Mode 2 제출 처리 (Gemini AI 직접 분석 + 구글 시트 저장)
+            btnSubmitMode2.addEventListener('click', async () => {
+                const title = $('inputParsedTitle').value.trim() || '파싱 문서';
+                const text = $('inputParsedText').value.trim();
+                const settings = loadSettings();
+
+                if (!text) {
+                    showToast('⚠️ 파싱된 텍스트/MD 내용을 입력하거나 파일을 드래그해 주세요.');
+                    return;
+                }
+                if (!settings.apiKey) {
+                    showToast('⚠️ Gemini API 키가 필요합니다. 설정에서 먼저 입력해 주세요.');
+                    $('btnSettings').click();
+                    return;
+                }
+                if (!settings.webhookUrl) {
+                    showToast('⚠️ 구글 시트 Webhook URL이 필요합니다. 설정에서 먼저 입력해 주세요.');
+                    $('btnSettings').click();
+                    return;
+                }
+
+                uploadProgress.style.display = 'block';
+                uploadStatusText.textContent = '🤖 Gemini AI 스마트 문서 분석 중...';
+                uploadDetailText.textContent = `${title} 텍스트 세부 주제 분할 중`;
+
+                try {
+                    // Gemini 2.5 Flash API 구조화 호출
+                    const prompt = `다음은 이미 파싱된 문서 [${title}]의 전체 원문입니다.
+이 문서의 내용을 바탕으로 음성 대화 중 질문이 들어왔을 때 즉시 인덱싱하여 답변 카드로 보여줄 수 있도록 세부 주제 단위로 스마트하게 분할(Chunking)해 주세요.
+
+[요구사항]
+1. 문서 내용의 깊이에 따라 1개~10개 사이의 핵심 세부 주제(Chunk)로 나눌 것.
+2. 각 세부 주제별로:
+   - title: 문서 제목 (기본값: "${title}")
+   - category: 사업 구분 또는 문서 분류 (예: 사업기획, 운영성과, 일반현황, 정책협력 등)
+   - summary: 핵심 내용 요약 (2~4문장의 명확하고 정돈된 텍스트)
+   - keywords: 해당 주제와 관련된 핵심 단어 3~6개 배열 (예: ["용산구", "지역경제", "성과"])
+   - fullText: 해당 세부 주제에 해당하는 원문 텍스트 단락 (최대 3000자)
+
+[문서 원문]
+${text.slice(0, 30000)}`;
+
+                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${settings.apiKey}`;
+                    const schemaJson = {
+                        "type": "ARRAY",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "title": {"type": "STRING"},
+                                "category": {"type": "STRING"},
+                                "summary": {"type": "STRING"},
+                                "keywords": {"type": "ARRAY", "items": {"type": "STRING"}},
+                                "fullText": {"type": "STRING"}
+                            },
+                            "required": ["title", "category", "summary", "keywords", "fullText"]
+                        }
+                    };
+
+                    const gRes = await fetch(geminiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            "contents": [{"parts": [{"text": prompt}]}],
+                            "generationConfig": {
+                                "temperature": 0.2,
+                                "responseMimeType": "application/json",
+                                "responseSchema": schemaJson
+                            }
+                        })
+                    });
+
+                    if (!gRes.ok) {
+                        const errBody = await gRes.text();
+                        throw new Error(`Gemini API 오류 (HTTP ${gRes.status}): ${errBody.slice(0, 100)}`);
+                    }
+
+                    const gData = await gRes.json();
+                    const gText = gData.candidates[0].content.parts[0].text;
+                    let chunks = JSON.parse(gText);
+                    if (!Array.isArray(chunks)) chunks = [chunks];
+
+                    uploadStatusText.textContent = '📊 구글 시트로 저장 중...';
+                    uploadDetailText.textContent = `${chunks.length}개 세부 주제 행 구글 시트에 전송 중`;
+
+                    // 구글 앱스 스크립트 Webhook으로 저장
+                    const payloadItems = chunks.map(item => ({
+                        title: item.title || title,
+                        category: item.category || '일반',
+                        summary: item.summary || '',
+                        keywords: item.keywords || [],
+                        fullText: item.fullText || text.slice(0, 5000)
+                    }));
+
+                    const gasRes = await fetch(settings.webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payloadItems)
+                    });
+
+                    uploadStatusText.textContent = '✅ 지식 DB 직통 등록 완료!';
+                    uploadDetailText.textContent = `[${title}] ${chunks.length}개 세부 주제 항목이 구글 시트에 즉시 등록되었습니다.`;
+                    showToast(`✅ [${title}] ${chunks.length}개 항목 구글 시트 직통 저장 완료!`);
+
+                    setTimeout(() => {
+                        if (settings.sheetUrl) loadSheetData(settings.sheetUrl);
+                    }, 1500);
+
+                } catch (mode2Err) {
+                    console.error('Mode 2 process error:', mode2Err);
+                    uploadStatusText.textContent = '❌ 직통 등록 실패';
+                    uploadDetailText.textContent = mode2Err.message;
+                    showToast(`❌ 직통 등록 실패: ${mode2Err.message}`);
                 }
             });
 

@@ -1841,12 +1841,13 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                 try {
                     let res;
                     try {
-                        res = await fetch(`${serverUrl}/`, { method: 'GET', targetAddressSpace: 'loopback' });
+                        res = await fetch(`${serverUrl}/`, { method: 'GET' });
                     } catch(err1) {
                         // localhost 차단 시 127.0.0.1 우회 시도
                         const altUrl = serverUrl.includes('localhost') ? serverUrl.replace('localhost', '127.0.0.1') : serverUrl.replace('127.0.0.1', 'localhost');
-                        res = await fetch(`${altUrl}/`, { method: 'GET', targetAddressSpace: 'loopback' });
+                        res = await fetch(`${altUrl}/`, { method: 'GET' });
                     }
+
 
                     if (res.ok) {
                         statusBox.style.background = 'rgba(52, 211, 153, 0.1)';
@@ -1856,9 +1857,10 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                 } catch (e) {
                     statusBox.style.background = 'rgba(251, 191, 36, 0.15)';
                     statusBox.style.borderColor = 'var(--accent-amber)';
-                    statusText.innerHTML = '⚠️ <strong>서버 미연결:</strong> 업로드 전 프로젝트 폴더로 이동해 로컬 서버를 실행해 주세요.<br>' +
-                        '• <strong>추천 (1초):</strong> 해당 폴더의 <code>run_kordoc_background.vbs</code> 파일 더블 클릭<br>' +
-                        '• <strong>터미널:</strong> 명령창에서 <code>cd meeting_copilot</code> 이동 후 <code>python kordoc_server.py</code> 실행';
+                    statusText.innerHTML = '⚠️ <strong>서버 차단 또는 미연결:</strong> 보안 브라우저 정책(PNA)으로 연결이 거부되었습니다.<br>' +
+                        '1️⃣ <a href="http://127.0.0.1:5000/" target="_blank" style="color:var(--accent-blue);font-weight:bold;text-decoration:underline;">[여기 클릭하여 로컬 서버 주소 열기 (http://127.0.0.1:5000)]</a><br>' +
+                        '2️⃣ 창이 뜨면 <strong>서버가 실행 중임을 확인</strong> 후 창을 닫고 다시 시도해 주세요.<br>' +
+                        '3️⃣ 여전히 연결 안 될 경우 <code>run_kordoc_background.vbs</code> 파일을 더블 클릭하세요.';
                 }
             });
 
@@ -1924,17 +1926,16 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                     try {
                         res = await fetch(localApiUrl, {
                             method: 'POST',
-                            body: formData,
-                            targetAddressSpace: 'loopback'
+                            body: formData
                         });
                     } catch(errFetch) {
                         const altServerUrl = serverUrl.includes('localhost') ? serverUrl.replace('localhost', '127.0.0.1') : serverUrl.replace('127.0.0.1', 'localhost');
                         res = await fetch(`${altServerUrl}/upload`, {
                             method: 'POST',
-                            body: formData,
-                            targetAddressSpace: 'loopback'
+                            body: formData
                         });
                     }
+
 
 
                     let data;

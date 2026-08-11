@@ -1897,6 +1897,14 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                 }
             }
 
+            // 설정 모달
+            $('btnSettings').addEventListener('click', () => {
+                initSettingsUI();
+                $('settingsModal').classList.add('show');
+            });
+
+            $('btnSettingsClose').addEventListener('click', () => $('settingsModal').classList.remove('show'));
+
             $('btnSettingsSave').addEventListener('click', () => {
                 saveSettings({
                     apiKey: $('inputApiKey').value.trim(),

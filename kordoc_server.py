@@ -111,16 +111,14 @@ class KordocHandler(BaseHTTPRequestHandler):
             default_doc_title = os.path.splitext(filename)[0]
             chunks = []
 
-            # (1) 마크다운 헤딩(#, ##, ###), 목차 기호(| Ⅰ |, 1., □, [상권발굴]) 기반 파이썬 단락 쪼개기
+            # (1) 문서의 실제 목차/헤딩 기호(#, ##, ###, | Ⅰ |, 1., □, [상권발굴]) 기준 정밀 단락 분할
             import re
-            raw_sections = re.split(r'\n(?=(?:#+\s+|\|\s*[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]\s*\||□\s*|\d+\.\s+))', parsed_text)
-            clean_sections = [s.strip() for s in raw_sections if len(s.strip()) > 100]
+            # 마크다운 헤딩(#, ##), 로마자 목차(| Ⅰ |, Ⅰ.), 네모상자(□), 숫자목차(1.) 패턴 기준 분할
+            pattern = r'\n(?=(?:#+\s+|\|\s*[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]\s*\||[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]\.\s+|□\s*|\d+\.\s+))'
+            raw_sections = re.split(pattern, parsed_text)
+            clean_sections = [s.strip() for s in raw_sections if len(s.strip()) > 80]
 
-            # 헤더로 안 잘리는데 글자 수가 2500자 이상으로 길면, 2000자 단위로 강제 물리 분할
-            if len(clean_sections) <= 1 and len(parsed_text) > 2500:
-                clean_sections = [parsed_text[i:i+2000] for i in range(0, len(parsed_text), 2000)]
-
-            print(f"[Python Section Splitter] Split document into {len(clean_sections)} physical sections.")
+            print(f"[Semantic Section Splitter] Detected {len(clean_sections)} semantic topic sections in document.")
 
             if api_key and len(clean_sections) > 1:
                 # 분할된 각 섹션별로 Gemini AI에게 개별 세부 요약 및 키워드 생성 요청

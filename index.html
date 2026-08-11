@@ -730,7 +730,13 @@
     <div class="main-content">
         <!-- STT Stream -->
         <div class="stt-panel">
-            <div class="stt-header">실시간 음성 인식</div>
+            <div class="stt-header">
+                <span>실시간 음성 인식</span>
+                <span class="data-status" id="dataStatus">
+                    <span class="data-dot" id="dataDot"></span>
+                    <span id="dataStatusText">시트 미연결</span>
+                </span>
+            </div>
             <div class="stt-stream" id="sttStream">
                 <div class="flash-empty">음성을 듣는 중...</div>
             </div>
@@ -1029,7 +1035,10 @@
             url = normalizeSheetUrl(url);
             console.log('Normalized sheet URL:', url);
 
-            dataStatusText.textContent = '로드 중...';
+            const statusTextEl = $('dataStatusText');
+            const dotEl = $('dataDot');
+
+            if (statusTextEl) statusTextEl.textContent = '로드 중...';
             try {
                 let text = '';
                 try {
@@ -1046,13 +1055,13 @@
                 console.log('CSV raw length:', text.length, 'first 200 chars:', text.substring(0, 200));
                 parseCSV(text);
                 console.log('Parsed rows:', state.sheetData.length, 'Sample:', state.sheetData.slice(0, 2));
-                dataDot.classList.add('loaded');
-                dataStatusText.textContent = `${state.sheetData.length}건 로드됨`;
-                showToast(`✅ 시트 데이터 ${state.sheetData.length}건 로드 완료`);
+                if (dotEl) dotEl.classList.add('loaded');
+                if (statusTextEl) statusTextEl.textContent = `${state.sheetData.length}건 로드됨`;
+                showToast(`시트 데이터 ${state.sheetData.length}건 로드 완료`);
             } catch (e) {
-                dataDot.classList.remove('loaded');
-                dataStatusText.textContent = '로드 실패';
-                showToast(`❌ 시트 로드 실패: ${e.message}`);
+                if (dotEl) dotEl.classList.remove('loaded');
+                if (statusTextEl) statusTextEl.textContent = '로드 실패';
+                showToast(`시트 로드 실패: ${e.message}`);
                 console.error('Sheet load error:', e);
             }
         }

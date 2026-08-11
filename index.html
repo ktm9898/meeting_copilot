@@ -1859,6 +1859,16 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                     return;
                 }
 
+                // Vercel Serverless 요청 용량 제한 (4.5MB)
+                const MAX_FILE_SIZE = 4.5 * 1024 * 1024;
+                if (file.size > MAX_FILE_SIZE) {
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                    showToast(`⚠️ 파일 용량이 너무 큽니다 (${sizeMB}MB). Vercel 무료 플랜은 4.5MB 이하 파일만 지원합니다.`);
+                    uploadStatusText.textContent = '❌ 용량 초과';
+                    uploadDetailText.textContent = `현재 파일: ${sizeMB}MB (최대 4.5MB)`;
+                    return;
+                }
+
                 uploadProgress.style.display = 'block';
                 uploadStatusText.textContent = '🚀 Kordoc 문서 파싱 중...';
                 uploadDetailText.textContent = `${file.name} 텍스트 추출 중`;
@@ -1876,7 +1886,18 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                         body: formData
                     });
 
-                    const data = await res.json();
+                    let data;
+                    const resText = await res.text();
+                    try {
+                        data = JSON.parse(resText);
+                    } catch (jsonErr) {
+                        if (res.status === 413) {
+                            throw new Error('파일 용량이 Vercel 업로드 제한(4.5MB)을 초과했습니다.');
+                        } else {
+                            throw new Error(`서버 응답 오류 (HTTP ${res.status}): ${resText.slice(0, 100)}`);
+                        }
+                    }
+
                     if (!res.ok || data.error) {
                         throw new Error(data.error || `HTTP ${res.status}`);
                     }

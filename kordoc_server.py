@@ -115,31 +115,40 @@ class KordocHandler(BaseHTTPRequestHandler):
                 try:
                     print("[Gemini AI] Analyzing & Smart Chunking document into sub-topics...")
                     prompt = f"""다음은 문서 전체에서 추출한 마크다운/텍스트입니다.
-이 문서가 포함하는 세부 목차, 사업 분야, 주제 장별로 내용을 반드시 3~7개의 독립적인 챕터(JSON 항목)로 분할하여 작성해 주세요.
+이 문서가 포함하는 세부 목차, 사업 분야, 주요 주제별로 내용을 분석하여 최저 3개~최대 7개의 세부 챕터 항목 배열로 분할 작성해 주세요.
 
 [문서 원문 텍스트]
 {parsed_text[:15000]}
 
-[필수 분할 지침]
-1. 단일 개요 요약만 작성하지 말고, 문서에 등장하는 주요 장/주제/사업(예: 일반현황, 금융지원 성과, 경영지원 성과, 상권지원 성과, 자치구 협력 성과 등)을 반드시 각각 별개의 항목(JSON Array)으로 나누어 생성하세요.
-2. 각 세부 주제 항목 필수 필드:
-   - title: 문서 전체 제목 (문자열) 예: "{default_doc_title}"
-   - category: 해당 챕터의 세부 분야 (예: 경영기획, 금융지원, 경영지원, 상권지원, 데이터/AI, 정책협력 등 1 단어)
-   - summary: 해당 챕터/주제에 대한 구체적 핵심 요약 (수치, 성과 포함, 마침표로 명확히 끝나는 2~4문장)
-   - keywords: 회의 중 마이크 음성과 직접 자동 매칭될 해당 챕터의 주요 핵심 단어 4~7개 (문자열 배열)
-   - fullText: 해당 챕터/주제에 속하는 본문 구체적 내용 텍스트 (문자열)
-
-반드시 다른 설명 없이 순수한 JSON 배열만 응답하세요. 예시:
-[
-  {{"title": "{default_doc_title}", "category": "일반현황", "summary": "...", "keywords": ["...", "..."], "fullText": "..."}},
-  {{"title": "{default_doc_title}", "category": "금융지원", "summary": "...", "keywords": ["...", "..."], "fullText": "..."}},
-  {{"title": "{default_doc_title}", "category": "상권지원", "summary": "...", "keywords": ["...", "..."], "fullText": "..."}}
-]"""
+[필수 작성 지침]
+1. 문서 전체를 1개로 요약하지 마시고, 문서 안의 주요 세부 주제/사업별(예: 일반현황, 금융지원 성과, 경영지원 성과, 상권지원 성과, 자치구 협력 성과 등)로 분할하여 최소 3개 이상의 챕터 배열(Array)을 만들어 주세요.
+2. 각 항목의 title에는 문서 전체 제목("{default_doc_title}")을 작성하고, category에는 세부 주제 1단어(예: 금융지원, 상권지원 등)를 입력하세요.
+3. summary에는 해당 챕터의 구체적 성과 및 요약을 2~4문장으로 작성하세요.
+4. keywords에는 해당 챕터와 자동 매칭될 핵심 단어 4~7개를 배열로 입력하세요."""
 
                     gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+                    schema_json = {
+                        "type": "ARRAY",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "title": {"type": "STRING"},
+                                "category": {"type": "STRING"},
+                                "summary": {"type": "STRING"},
+                                "keywords": {"type": "ARRAY", "items": {"type": "STRING"}},
+                                "fullText": {"type": "STRING"}
+                            },
+                            "required": ["title", "category", "summary", "keywords"]
+                        }
+                    }
+
                     req_data = json.dumps({
                         "contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
+                        "generationConfig": {
+                            "temperature": 0.2,
+                            "responseMimeType": "application/json",
+                            "responseSchema": schema_json
+                        }
                     }).encode('utf-8')
 
                     req = urllib.request.Request(gemini_url, data=req_data, headers={'Content-Type': 'application/json'})

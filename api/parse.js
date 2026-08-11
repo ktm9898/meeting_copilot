@@ -67,23 +67,39 @@ module.exports = async function handler(req, res) {
     // 1. Kordoc 파싱 수행 (npx kordoc)
     let parsedText = '';
     try {
-      // kordoc CLI 호출 (기본 + ocr fallback)
+      // kordoc CLI 호출
       const output = execSync(`npx -y kordoc "${targetFile}" --silent`, { encoding: 'utf-8', timeout: 45000 });
       parsedText = output.trim();
     } catch (kordocErr) {
       console.warn('Kordoc CLI parsing failed:', kordocErr.message);
-      // Fallback: 텍스트 파일인 경우만 읽기 (바이너리 PDF/HWP 무작정 readFileSync 방지)
-      try {
-        const rawContent = fs.readFileSync(targetFile, 'utf-8');
-        if (!rawContent.startsWith('%PDF') && !rawContent.includes('FlateDecode')) {
-          parsedText = rawContent;
-        }
-      } catch (rErr) {
-        parsedText = '';
-      }
     } finally {
       if (fs.existsSync(tempPathWithExt)) {
         try { fs.unlinkSync(tempPathWithExt); } catch (e) {}
+      }
+    }
+
+    // PDF / 텍스트 추출 Fallback: Kordoc 결과가 비어있는 경우 pdf-parse 라이브러리로 직접 extraction
+    if (!parsedText || parsedText.trim().length === 0) {
+      const isPdf = originalFilename.toLowerCase().endsWith('.pdf');
+      if (isPdf) {
+        try {
+          const pdfParse = require('pdf-parse');
+          const dataBuffer = fs.readFileSync(filePath);
+          const pdfData = await pdfParse(dataBuffer);
+          if (pdfData && pdfData.text) {
+            parsedText = pdfData.text.trim();
+          }
+        } catch (pdfErr) {
+          console.warn('pdf-parse fallback failed:', pdfErr.message);
+        }
+      } else {
+        // 일반 텍스트 파일 Fallback
+        try {
+          const rawContent = fs.readFileSync(filePath, 'utf-8');
+          if (!rawContent.startsWith('%PDF') && !rawContent.includes('FlateDecode')) {
+            parsedText = rawContent;
+          }
+        } catch (e) {}
       }
     }
 

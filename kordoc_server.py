@@ -107,83 +107,90 @@ class KordocHandler(BaseHTTPRequestHandler):
 
             print(f"[Kordoc Parsing Complete] Extracted length: {len(parsed_text)}")
 
-            # 2. 하이브리드 파싱: 파이썬 기반 목차/단락 정밀 물리 분할 + Gemini AI 세부 요약
+            # 2. Gemini AI 고도화 프롬프트 기반 문서 구조 분석 및 주제별 자동 분할
             default_doc_title = os.path.splitext(filename)[0]
             chunks = []
 
-            # (1) 문서의 실제 목차/헤딩 기호(#, ##, ###, | Ⅰ |, 1., □, [상권발굴]) 기준 정밀 단락 분할
-            import re
-            # 마크다운 헤딩(#, ##), 로마자 목차(| Ⅰ |, Ⅰ.), 네모상자(□), 숫자목차(1.) 패턴 기준 분할
-            pattern = r'\n(?=(?:#+\s+|\|\s*[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]\s*\||[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]\.\s+|□\s*|\d+\.\s+))'
-            raw_sections = re.split(pattern, parsed_text)
-            clean_sections = [s.strip() for s in raw_sections if len(s.strip()) > 80]
-
-            print(f"[Semantic Section Splitter] Detected {len(clean_sections)} semantic topic sections in document.")
-
-            if api_key and len(clean_sections) > 1:
-                # 분할된 각 섹션별로 Gemini AI에게 개별 세부 요약 및 키워드 생성 요청
-                for idx, sec_text in enumerate(clean_sections):
-                    try:
-                        print(f"[Gemini AI] Processing section {idx+1}/{len(clean_sections)}...")
-                        prompt = f"""다음은 문서("{default_doc_title}")의 {idx+1}번째 세부 섹션 텍스트입니다.
-이 섹션을 분석하여 단일 JSON 객체로 작성해 주세요.
-
-[섹션 텍스트]
-{sec_text[:4000]}
-
-[작성 지침]
-1. title: "{default_doc_title}" (고정)
-2. category: 이 섹션이 다루는 세부 사업/분야명 (예: 일반현황, 주요성과, 금융지원, 경영지원, 상권지원 등 짧은 1단어)
-3. summary: 이 섹션의 핵심 내용을 수치 및 성과 중심으로 2~4문장 요약
-4. keywords: 회의 음성과 자동 매칭될 핵심 키워드 4~7개 (문자열 배열)
-
-반드시 다른 설명 없이 JSON 객체 하나만 응답하세요. 예시:
-{{"title": "{default_doc_title}", "category": "금융지원", "summary": "...", "keywords": ["...", "..."]}}"""
-
-                        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-                        req_data = json.dumps({
-                            "contents": [{"parts": [{"text": prompt}]}],
-                            "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
-                        }).encode('utf-8')
-
-                        req = urllib.request.Request(gemini_url, data=req_data, headers={'Content-Type': 'application/json'})
-                        with urllib.request.urlopen(req) as response:
-                            g_res = json.loads(response.read().decode('utf-8'))
-                            g_text = g_res['candidates'][0]['content']['parts'][0]['text']
-                            sec_json = json.loads(g_text)
-                            sec_json["fullText"] = sec_text
-                            chunks.append(sec_json)
-                    except Exception as sec_err:
-                        print(f"[Warning] Section {idx+1} AI summary failed: {sec_err}")
-
-            # 만약 파이썬 분할이 1개이거나 AI 처리가 안 된 경우 기본 처리
-            if not chunks:
+            if api_key:
                 try:
-                    print("[Gemini AI] Processing single document summary...")
-                    prompt = f"""다음 문서를 분석하여 JSON 객체로 응답하세요.
-{parsed_text[:8000]}
+                    print("[Gemini AI] Analyzing document structure & generating semantic sub-topic chunks...")
+                    prompt = f"""당신은 공문서, 사업계획서, 성과보고서 분석 전문 수석 데이터분석가입니다.
+아래에 제공되는 [문서 원문 텍스트]의 전체 구조와 목차(Chapter), 사업 분야를 정밀하게 분석하여, 회의 지원 지식 DB로 활용할 수 있도록 **논리적 주제 단위의 지식 DB 항목 배열(JSON Array)**로 분할해 주세요.
 
-{{"title": "{default_doc_title}", "category": "일반", "summary": "요약 2~4문장", "keywords": ["키워드1", "키워드2"]}}"""
+[문서 원문 텍스트]
+{parsed_text[:16000]}
+
+============================================================
+[분할 및 수집 핵심 지침]
+============================================================
+1. **문서 구조 판단 & 분할 기준**:
+   - **단일 안내문/짧은 공문 (1~2쪽)**: 억지로 나누지 말고 **1개 항목**으로 통합 작성하세요.
+   - **중대형 보고서/업무계획서/성과집**: 문서에 포함된 목차 구분(예: Ⅰ. 일반현황, Ⅱ. 주요성과, Ⅲ. 금융지원 성과, Ⅳ. 경영지원 성과, Ⅴ. 상권지원 성과 등)이나 사업 영역별로 **반드시 3개~7개의 별개 지식 DB 항목(JSON Array)**으로 분할하세요.
+
+2. **각 주제 항목 필수 필드 정의**:
+   - `title`: 문서 전체의 정확한 대표 제목 (예: "{default_doc_title}")
+   - `category`: 해당 세부 단락이 다루는 핵심 사업구분 (예: "경영기획", "금융지원", "부실관리", "경영지원", "상권지원", "데이터/AI", "정책협력" 등 단정한 1개 단어)
+   - `summary`: 해당 세부 주제의 구체적 핵심 내용 및 수치 성과 요약 (마침표로 명확히 끝나는 완성형 2~4문장)
+   - `keywords`: 회의 중 음성 인식(STT)과 직접 자동 매칭될 해당 주제의 핵심 단어 4~7개 (문자열 배열)
+   - `fullText`: 해당 세부 주제에 속하는 본문 텍스트 원문 내용 (문자열)
+
+============================================================
+[응답 형식 예시] (반드시 설명 없이 순수 JSON 배열만 응답)
+============================================================
+[
+  {{
+    "title": "{default_doc_title}",
+    "category": "일반현황",
+    "summary": "용산구 소상공인 및 지역상권 현황으로, 전체 사업체 수 27,854개 중 소상공인이 77.7%를 차지함. 도소매 및 숙박음식업 비중이 높으며 직장인구 기반 업무형 상권 특성을 보임.",
+    "keywords": ["용산구", "일반현황", "사업체수", "소상공인", "직장인구", "골목상권"],
+    "fullText": "..."
+  }},
+  {{
+    "title": "{default_doc_title}",
+    "category": "금융지원",
+    "summary": "이태원 참사 피해기업 긴급 보증 243억원, 티몬·위메프 피해기업 146억원 및 안심통장 특별보증 등 위기 소상공인 맞춤형 정책금융을 신속 공급함.",
+    "keywords": ["금융지원", "신용보증", "이태원참사", "티메프", "안심통장", "대환보증"],
+    "fullText": "..."
+  }}
+]"""
+
                     gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+                    schema_json = {
+                        "type": "ARRAY",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "title": {"type": "STRING"},
+                                "category": {"type": "STRING"},
+                                "summary": {"type": "STRING"},
+                                "keywords": {"type": "ARRAY", "items": {"type": "STRING"}},
+                                "fullText": {"type": "STRING"}
+                            },
+                            "required": ["title", "category", "summary", "keywords", "fullText"]
+                        }
+                    }
+
                     req_data = json.dumps({
                         "contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
+                        "generationConfig": {
+                            "temperature": 0.2,
+                            "responseMimeType": "application/json",
+                            "responseSchema": schema_json
+                        }
                     }).encode('utf-8')
+
                     req = urllib.request.Request(gemini_url, data=req_data, headers={'Content-Type': 'application/json'})
                     with urllib.request.urlopen(req) as response:
                         g_res = json.loads(response.read().decode('utf-8'))
                         g_text = g_res['candidates'][0]['content']['parts'][0]['text']
-                        sec_json = json.loads(g_text)
-                        sec_json["fullText"] = parsed_text[:10000]
-                        chunks.append(sec_json)
-                except:
-                    chunks = [{
-                        "title": default_doc_title,
-                        "category": "일반",
-                        "summary": parsed_text[:300],
-                        "keywords": ["문서", "자동업로드"],
-                        "fullText": parsed_text[:10000]
-                    }]
+                        parsed_json = json.loads(g_text)
+
+                        if isinstance(parsed_json, list) and len(parsed_json) > 0:
+                            chunks = parsed_json
+                        elif isinstance(parsed_json, dict):
+                            chunks = [parsed_json]
+                except Exception as ai_err:
+                    print(f"[Warning] Gemini Smart Chunking failed: {ai_err}")
 
             if not chunks:
                 chunks = [{

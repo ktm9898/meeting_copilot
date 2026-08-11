@@ -777,11 +777,7 @@
     <!-- SETTINGS MODAL -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal">
-            <div class="form-group">
-                <label>접속 비밀번호 설정 (선택)</label>
-                <input type="password" id="inputAppPassword" placeholder="비밀번호 미설정 시 즉시 접속">
-                <div class="hint">비밀번호 설정 시 접속할 때 암호 인증 모달이 표시됩니다</div>
-            </div>
+            <h2>설정</h2>
             <div class="form-group">
                 <label>Gemini API 키</label>
                 <input type="password" id="inputApiKey" placeholder="AIzaSy...">
@@ -987,7 +983,6 @@
         // ============================================================
         function loadSettings() {
             return {
-                appPassword: localStorage.getItem('mc_appPassword') || '',
                 apiKey: localStorage.getItem('mc_apiKey') || '',
                 groqKey: localStorage.getItem('mc_groqKey') || '',
                 sheetUrl: localStorage.getItem('mc_sheetUrl') || '',
@@ -998,7 +993,6 @@
         }
 
         function saveSettings(s) {
-            if (s.appPassword !== undefined) localStorage.setItem('mc_appPassword', s.appPassword);
             localStorage.setItem('mc_apiKey', s.apiKey);
             localStorage.setItem('mc_groqKey', s.groqKey);
             localStorage.setItem('mc_sheetUrl', s.sheetUrl);
@@ -1009,7 +1003,6 @@
 
         function initSettingsUI() {
             const s = loadSettings();
-            $('inputAppPassword').value = s.appPassword;
             $('inputApiKey').value = s.apiKey;
             $('inputGroqKey').value = s.groqKey;
             $('inputSheetUrl').value = s.sheetUrl;
@@ -1023,18 +1016,8 @@
             if (!inputVal) return;
 
             const s = loadSettings();
-            
-            // 1. 브라우저 설정에 비밀번호가 있는 경우 우선 비교
-            if (s.appPassword && inputVal === s.appPassword) {
-                $('pinModal').style.display = 'none';
-                $('pinError').style.display = 'none';
-                sessionStorage.setItem('mc_authenticated', 'true');
-                sessionStorage.setItem('mc_pin', inputVal);
-                if (s.sheetUrl) loadSheetData(s.sheetUrl);
-                return;
-            }
 
-            // 2. Webhook URL로 PIN 인증 검증
+            // Webhook URL로 PIN 인증 검증 (스톡시그널 인증 방식)
             if (s.webhookUrl) {
                 try {
                     const testUrl = `${s.webhookUrl}?pin=${encodeURIComponent(inputVal)}`;
@@ -1051,6 +1034,14 @@
                 } catch(e) {
                     console.warn('PIN auth fetch error:', e);
                 }
+            } else {
+                // Webhook 미설정 시 임시 통과
+                $('pinModal').style.display = 'none';
+                $('pinError').style.display = 'none';
+                sessionStorage.setItem('mc_authenticated', 'true');
+                sessionStorage.setItem('mc_pin', inputVal);
+                if (s.sheetUrl) loadSheetData(s.sheetUrl);
+                return;
             }
 
             $('pinError').style.display = 'block';

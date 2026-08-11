@@ -78,10 +78,10 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // PDF / 텍스트 추출 Fallback: Kordoc 결과가 비어있는 경우 pdf-parse 라이브러리로 직접 extraction
+    // PDF / 텍스트 추출 Fallback: Kordoc 결과가 비어있는 경우
     if (!parsedText || parsedText.trim().length === 0) {
-      const isPdf = originalFilename.toLowerCase().endsWith('.pdf');
-      if (isPdf) {
+      const lowerName = originalFilename.toLowerCase();
+      if (lowerName.endsWith('.pdf')) {
         try {
           const pdfParse = require('pdf-parse');
           const dataBuffer = fs.readFileSync(filePath);
@@ -92,24 +92,30 @@ module.exports = async function handler(req, res) {
         } catch (pdfErr) {
           console.warn('pdf-parse fallback failed:', pdfErr.message);
         }
-      } else {
-        // 일반 텍스트 파일 Fallback
+      } else if (lowerName.endsWith('.txt') || lowerName.endsWith('.csv') || lowerName.endsWith('.md')) {
+        // 순수 텍스트/CSV 파일만 직접 읽기
         try {
-          const rawContent = fs.readFileSync(filePath, 'utf-8');
-          if (!rawContent.startsWith('%PDF') && !rawContent.includes('FlateDecode')) {
-            parsedText = rawContent;
-          }
+          parsedText = fs.readFileSync(filePath, 'utf-8');
         } catch (e) {}
       }
     }
 
-    // 바이너리 데이터 스트림 들어온 경우 필터링
-    if (parsedText.includes('%PDF-') || parsedText.includes('FlateDecode') || parsedText.includes('stream')) {
+    // 바이너리 데이터(HWP 바이너리, PDF 바이너리 등) 가 텍스트로 오인된 경우 엄격 제거
+    const isBinaryText = (str) => {
+      if (!str) return true;
+      if (str.includes('%PDF-') || str.includes('FlateDecode') || str.includes('stream')) return true;
+      // 렌더링 불가 바이너리 특수문자(, \x00) 비율 검사
+      const replacementCharCount = (str.match(//g) || []).length;
+      if (replacementCharCount > 5) return true;
+      return false;
+    };
+
+    if (isBinaryText(parsedText)) {
       parsedText = '';
     }
 
     if (!parsedText || parsedText.trim().length === 0) {
-      return res.status(500).json({ error: '문서에서 텍스트를 추출할 수 없습니다. (스캔 PDF 또는 암호화 문서 여부를 확인해 주세요)' });
+      return res.status(500).json({ error: '문서 텍스트 파싱 실패: Vercel 서버리스 환경에서 HWP 바이너리 파싱이 차단되었습니다. 텍스트 추출 가능한 PDF/DOCX/TXT 문서이거나 HWPX 포맷을 권장합니다.' });
     }
 
     // 2. Gemini API로 메타데이터 (제목, 카테고리, 요약, 키워드) 추출

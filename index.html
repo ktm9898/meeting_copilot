@@ -681,7 +681,9 @@
             }
 
             .control-left {
-                display: none;
+                display: flex;
+                align-items: center;
+                gap: 8px;
             }
 
             .stt-stream,
@@ -755,14 +757,14 @@
 
     <!-- CONTROL BAR -->
     <div class="control-bar">
-        <div class="control-left">
+        <div class="control-left" style="display: flex; align-items: center; gap: 10px;">
+            <button class="ctrl-btn" id="btnListen" title="듣기 시작/중지">듣기 시작</button>
             <div class="mic-indicator">
                 <span class="mic-dot" id="micDot"></span>
                 <span id="micStatus">중지됨</span>
             </div>
         </div>
-        <div class="control-right">
-            <button class="ctrl-btn" id="btnListen" title="듣기 시작/중지">듣기 시작</button>
+        <div class="control-right" style="display: flex; align-items: center; gap: 8px;">
             <button class="ctrl-btn primary" id="btnContext" title="맥락 분석">맥락 분석</button>
             <button class="ctrl-btn primary" id="btnManualQuery" title="자료확인">자료확인</button>
         </div>

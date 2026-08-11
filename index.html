@@ -830,8 +830,12 @@
             <h2>📁 지식 DB 문서 자동 등록 (Kordoc)</h2>
             
             <!-- 서버 상태 안내 상자 -->
-            <div id="serverStatusNotice" style="padding: 10px 14px; background: rgba(251, 191, 36, 0.1); border-left: 3px solid var(--accent-amber); border-radius: 6px; font-size: 0.78rem; margin-bottom: 14px; line-height: 1.5; color: var(--text-primary);">
-                <span id="serverStatusText">💡 <strong>안내:</strong> 업로드 전 내 PC에서 <code>run_kordoc_background.vbs</code> 또는 <code>python kordoc_server.py</code>를 한번 실행해 주세요.</span>
+            <div id="serverStatusNotice" style="padding: 12px 16px; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 8px; font-size: 0.82rem; margin-bottom: 16px; line-height: 1.6; color: var(--text-primary);">
+                <span id="serverStatusText">
+                    ⚠️ <strong>서버 미연결 안내:</strong> 업로드 전 프로젝트 폴더에서 로컬 서버를 1회 실행해 주세요.<br>
+                    • <strong>쉬운 방법:</strong> 프로젝트 폴더의 <code>run_kordoc_background.vbs</code> 파일 더블 클릭<br>
+                    • <strong>터미널 실행:</strong> 폴더 이동(<code>cd meeting_copilot</code>) 후 <code>python kordoc_server.py</code> 입력
+                </span>
             </div>
 
             <div id="dropZone" style="border: 2px dashed var(--accent-blue); border-radius: 12px; padding: 30px; text-align: center; background: rgba(74, 158, 255, 0.05); cursor: pointer; transition: all 0.3s;">
@@ -1843,7 +1847,9 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                 } catch (e) {
                     statusBox.style.background = 'rgba(251, 191, 36, 0.15)';
                     statusBox.style.borderColor = 'var(--accent-amber)';
-                    statusText.innerHTML = '⚠️ <strong>안내:</strong> 업로드 전 내 PC에서 <code>run_kordoc_background.vbs</code> 또는 <code>python kordoc_server.py</code>를 1회 실행해 주세요.';
+                    statusText.innerHTML = '⚠️ <strong>서버 미연결:</strong> 업로드 전 프로젝트 폴더로 이동해 로컬 서버를 실행해 주세요.<br>' +
+                        '• <strong>추천 (1초):</strong> 해당 폴더의 <code>run_kordoc_background.vbs</code> 파일 더블 클릭<br>' +
+                        '• <strong>터미널:</strong> 명령창에서 <code>cd meeting_copilot</code> 이동 후 <code>python kordoc_server.py</code> 실행';
                 }
             });
 

@@ -64,17 +64,49 @@ module.exports = async function handler(req, res) {
 
     const targetFile = fs.existsSync(tempPathWithExt) ? tempPathWithExt : filePath;
 
-    // 1. Kordoc 파싱 수행 (npx kordoc)
+    // 1. 문서 파싱 수행
     let parsedText = '';
-    try {
-      // kordoc CLI 호출
-      const output = execSync(`npx -y kordoc "${targetFile}" --silent`, { encoding: 'utf-8', timeout: 45000 });
-      parsedText = output.trim();
-    } catch (kordocErr) {
-      console.warn('Kordoc CLI parsing failed:', kordocErr.message);
-    } finally {
-      if (fs.existsSync(tempPathWithExt)) {
-        try { fs.unlinkSync(tempPathWithExt); } catch (e) {}
+
+    // HWPX 파일인 경우 Node.js 자체 adm-zip으로 XML 텍스트 직접 추출 (npx CLI 딜레이/메모리 초과 회피)
+    const isHwpx = originalFilename.toLowerCase().endsWith('.hwpx');
+    if (isHwpx) {
+      try {
+        const AdmZip = require('adm-zip');
+        const zip = new AdmZip(filePath);
+        const zipEntries = zip.getEntries();
+        let extractedXmlText = '';
+
+        for (const entry of zipEntries) {
+          if (entry.entryName.startsWith('Contents/section') && entry.entryName.endsWith('.xml')) {
+            const xmlContent = entry.getData().toString('utf8');
+            // XML 태그제거하고 순수 텍스트만 렌더링
+            const cleanText = xmlContent
+              .replace(/<hp:t[^>]*>(.*?)<\/hp:t>/g, '$1 ')
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+            extractedXmlText += cleanText + '\n';
+          }
+        }
+        if (extractedXmlText.trim()) {
+          parsedText = extractedXmlText.trim();
+        }
+      } catch (hwpxErr) {
+        console.warn('Native HWPX parse failed:', hwpxErr.message);
+      }
+    }
+
+    // kordoc CLI 호출 (HWPX 이외 포맷 또는 HWPX fallback)
+    if (!parsedText) {
+      try {
+        const output = execSync(`npx -y kordoc "${targetFile}" --silent`, { encoding: 'utf-8', timeout: 30000 });
+        parsedText = output.trim();
+      } catch (kordocErr) {
+        console.warn('Kordoc CLI parsing failed:', kordocErr.message);
+      } finally {
+        if (fs.existsSync(tempPathWithExt)) {
+          try { fs.unlinkSync(tempPathWithExt); } catch (e) {}
+        }
       }
     }
 

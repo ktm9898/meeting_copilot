@@ -111,29 +111,34 @@ class KordocHandler(BaseHTTPRequestHandler):
             default_doc_title = os.path.splitext(filename)[0]
             chunks = []
 
+            # 1차 파싱: Kordoc 파싱 결과 마크다운의 헤딩(#, ##, ###)을 기반으로 물리적 단락 분할
+            import re
+            header_splits = re.split(r'\n(?=#+\s+)', parsed_text)
+            header_splits = [h.trim() if hasattr(h, 'trim') else h.strip() for h in header_splits if len(h.strip()) > 50]
+
             if api_key:
                 try:
                     print("[Gemini AI] Analyzing & Smart Chunking document into sub-topics...")
-                    prompt = f"""다음은 Kordoc 파서가 문서 전체에서 추출한 마크다운/텍스트입니다.
-이 문서의 구조와 목차, 주제 구분을 분석하여 가장 자연스러운 단위(1개~7개 항목)로 자동 분할해 주세요.
+                    prompt = f"""다음은 Kordoc 파서가 공문서/보고서 전체에서 추출한 마크다운/텍스트입니다.
+이 문서의 세부 목차와 주제 분야(예: 일반현황, 금융지원 성과, 경영지원 성과, 상권지원 성과, 자치구 협력 성과 등)를 분석하여 반드시 3개~6개의 독립된 세부 주제 항목 배열(JSON Array)로 분할하여 작성해 주세요.
 
 [문서 원문 텍스트]
 {parsed_text[:15000]}
 
-[스마트 자동 분할 가이드]
-- 단일 주제/짧은 문서(1~2페이지): 1개 항목으로 깔끔하게 요약하세요.
-- 목차나 세부 사업/분야가 구분되어 있는 중대형 보고서/계획서: 문서의 세부 챕터(예: 일반현황, 금융지원, 경영지원, 상권지원, 정책협력 등)별로 각각 별개의 독립된 항목으로 자연스럽게 분할하세요.
-
-각 항목 필수 필드:
-- title: 문서 전체 대표 제목 (문자열) 예: "{default_doc_title}"
-- category: 해당 단락/챕터의 세부 분야 (예: 경영기획, 금융지원, 상권지원 등 짧은 1단어)
-- summary: 해당 챕터의 핵심 성과/내용 요약 (마침표로 명확히 끝나는 2~4문장)
-- keywords: 회의 음성과 자동 매칭될 해당 챕터의 주요 핵심 단어 4~7개 (문자열 배열)
-- fullText: 해당 챕터에 해당하는 본문 텍스트 (문자열)"""
+[필수 분할 지침]
+1. 절대로 문서 전체를 1개의 항목으로 통째로 요약하지 마십시오!
+2. 문서 안에 등장하는 세부 영역/사업/주제별로 내용과 본문(fullText)을 쪼개어 최저 3개 이상의 챕터 배열 항목으로 만드세요.
+3. 각 챕터 항목 필드:
+   - title: 문서 대표 제목 (문자열) 예: "{default_doc_title}"
+   - category: 해당 챕터의 세부 분야 (예: 경영기획, 금융지원, 경영지원, 상권지원, 정책협력 등 1단어)
+   - summary: 해당 챕터의 구체적인 핵심 요약 (수치, 성과 포함, 마침표로 끝나는 2~4문장)
+   - keywords: 회의 음성과 자동 매칭될 해당 챕터의 핵심 키워드 4~7개 (문자열 배열)
+   - fullText: 해당 챕터에 속하는 본문 텍스트 (문자열)"""
 
                     gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
                     schema_json = {
                         "type": "ARRAY",
+                        "minItems": 3,
                         "items": {
                             "type": "OBJECT",
                             "properties": {
@@ -143,14 +148,14 @@ class KordocHandler(BaseHTTPRequestHandler):
                                 "keywords": {"type": "ARRAY", "items": {"type": "STRING"}},
                                 "fullText": {"type": "STRING"}
                             },
-                            "required": ["title", "category", "summary", "keywords"]
+                            "required": ["title", "category", "summary", "keywords", "fullText"]
                         }
                     }
 
                     req_data = json.dumps({
                         "contents": [{"parts": [{"text": prompt}]}],
                         "generationConfig": {
-                            "temperature": 0.2,
+                            "temperature": 0.3,
                             "responseMimeType": "application/json",
                             "responseSchema": schema_json
                         }

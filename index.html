@@ -1839,7 +1839,7 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                 const statusBox = $('serverStatusNotice');
                 const statusText = $('serverStatusText');
                 try {
-                    const res = await fetch(`${serverUrl}/`, { method: 'GET' });
+                    const res = await fetch(`${serverUrl}/`, { method: 'GET', targetAddressSpace: 'loopback' });
                     if (res.ok) {
                         statusBox.style.background = 'rgba(52, 211, 153, 0.1)';
                         statusBox.style.borderColor = 'var(--accent-green)';
@@ -1914,7 +1914,8 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                     const localApiUrl = `${serverUrl}/upload`;
                     const res = await fetch(localApiUrl, {
                         method: 'POST',
-                        body: formData
+                        body: formData,
+                        targetAddressSpace: 'loopback'
                     });
 
                     let data;

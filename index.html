@@ -1835,11 +1835,19 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
 
                 // 로컬 Kordoc 서버 작동 상태 자동 점검 (Health-Check)
                 const settings = loadSettings();
-                const serverUrl = (settings.serverUrl || 'http://localhost:5000').replace(/\/+$/, '');
+                const serverUrl = (settings.serverUrl || 'http://127.0.0.1:5000').replace(/\/+$/, '');
                 const statusBox = $('serverStatusNotice');
                 const statusText = $('serverStatusText');
                 try {
-                    const res = await fetch(`${serverUrl}/`, { method: 'GET', targetAddressSpace: 'loopback' });
+                    let res;
+                    try {
+                        res = await fetch(`${serverUrl}/`, { method: 'GET', targetAddressSpace: 'loopback' });
+                    } catch(err1) {
+                        // localhost 차단 시 127.0.0.1 우회 시도
+                        const altUrl = serverUrl.includes('localhost') ? serverUrl.replace('localhost', '127.0.0.1') : serverUrl.replace('127.0.0.1', 'localhost');
+                        res = await fetch(`${altUrl}/`, { method: 'GET', targetAddressSpace: 'loopback' });
+                    }
+
                     if (res.ok) {
                         statusBox.style.background = 'rgba(52, 211, 153, 0.1)';
                         statusBox.style.borderColor = 'var(--accent-green)';
@@ -1910,13 +1918,24 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
 
                 try {
                     uploadStatusText.textContent = '🤖 Gemini AI 분석 및 구글 시트 저장 중...';
-                    const serverUrl = (settings.serverUrl || 'http://localhost:5000').replace(/\/+$/, '');
+                    const serverUrl = (settings.serverUrl || 'http://127.0.0.1:5000').replace(/\/+$/, '');
                     const localApiUrl = `${serverUrl}/upload`;
-                    const res = await fetch(localApiUrl, {
-                        method: 'POST',
-                        body: formData,
-                        targetAddressSpace: 'loopback'
-                    });
+                    let res;
+                    try {
+                        res = await fetch(localApiUrl, {
+                            method: 'POST',
+                            body: formData,
+                            targetAddressSpace: 'loopback'
+                        });
+                    } catch(errFetch) {
+                        const altServerUrl = serverUrl.includes('localhost') ? serverUrl.replace('localhost', '127.0.0.1') : serverUrl.replace('127.0.0.1', 'localhost');
+                        res = await fetch(`${altServerUrl}/upload`, {
+                            method: 'POST',
+                            body: formData,
+                            targetAddressSpace: 'loopback'
+                        });
+                    }
+
 
                     let data;
                     const resText = await res.text();

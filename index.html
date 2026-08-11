@@ -718,7 +718,8 @@
             <span class="header-logo">Meeting Copilot</span>
             <span class="header-status" id="headerStatus">대기 중</span>
         </div>
-        <div class="header-right">
+        <div class="header-right" style="display: flex; gap: 8px; align-items: center;">
+            <button class="ctrl-btn primary" id="btnUploadDoc" title="문서 자동 업로드" style="padding: 6px 14px; font-size: 0.8rem;">문서 업로드</button>
             <button class="icon-btn" id="btnSettings" title="설정">⚙</button>
         </div>
     </div>
@@ -737,8 +738,8 @@
         <div class="flash-panel">
             <div class="flash-header">
                 <span>답변 카드</span>
-                <button class="icon-btn" id="btnClearCards" title="카드 모두 지우기"
-                    style="width:28px;height:28px;font-size:0.75rem;">지우기</button>
+                <button id="btnClearCards" title="카드 모두 지우기"
+                    style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">지우기</button>
             </div>
             <div class="flash-area" id="flashArea">
                 <div class="flash-empty" id="flashEmpty">
@@ -761,10 +762,9 @@
             </div>
         </div>
         <div class="control-right">
-            <button class="ctrl-btn primary" id="btnUploadDoc" title="문서 자동 업로드">문서 업로드</button>
-            <button class="ctrl-btn primary" id="btnManualQuery" title="자료확인">자료확인</button>
-            <button class="ctrl-btn primary" id="btnContext" title="맥락 분석">맥락 분석</button>
             <button class="ctrl-btn" id="btnListen" title="듣기 시작/중지">듣기 시작</button>
+            <button class="ctrl-btn primary" id="btnContext" title="맥락 분석">맥락 분석</button>
+            <button class="ctrl-btn primary" id="btnManualQuery" title="자료확인">자료확인</button>
         </div>
     </div>
 

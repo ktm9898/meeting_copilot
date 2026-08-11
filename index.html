@@ -1017,7 +1017,10 @@
 
             const s = loadSettings();
             const pinBtn = document.querySelector('#pinModal button');
-            if (pinBtn) { pinBtn.disabled = true; pinBtn.textContent = '인증 확인 중...'; }
+            if (pinBtn) {
+                pinBtn.disabled = true;
+                pinBtn.innerHTML = '<span class="spin-loader" style="display:inline-block; animation: spin 1s linear infinite; margin-right: 6px;">↻</span> 인증 확인 중...';
+            }
 
             try {
                 // Webhook URL로 PIN 인증 검증 (스톡시그널 인증 방식)

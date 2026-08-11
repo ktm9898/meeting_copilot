@@ -77,7 +77,7 @@ class KordocHandler(BaseHTTPRequestHandler):
                 self._send_json(400, {"error": "업로드된 파일이 없습니다."})
                 return
 
-            print(f"📄 [Kordoc 파싱 시작] 파일명: {filename} ({len(file_bytes)} bytes)")
+            print(f"[Kordoc Parsing] Filename: {filename} ({len(file_bytes)} bytes)")
 
             # 임시 파일 저장 (확장자 유지)
             ext = os.path.splitext(filename)[1] or ".hwp"
@@ -92,7 +92,7 @@ class KordocHandler(BaseHTTPRequestHandler):
                 res = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding='utf-8', errors='ignore', timeout=60)
                 parsed_text = res.stdout.strip()
             except Exception as e:
-                print(f"⚠️ Kordoc 파싱 경고: {e}")
+                print(f"[Warning] Kordoc parse warning: {e}")
 
             finally:
                 if os.path.exists(tmp_path):
@@ -105,7 +105,7 @@ class KordocHandler(BaseHTTPRequestHandler):
                 self._send_json(500, {"error": "Kordoc 문서 텍스트 파싱 실패 (암호화 문서 또는 스캔 전용 이미지 문서 여부를 확인해 주세요)"})
                 return
 
-            print(f"✅ [Kordoc 파싱 완료] 추출된 텍스트 길이: {len(parsed_text)}자")
+            print(f"[Kordoc Parsing Complete] Extracted length: {len(parsed_text)}")
 
             # 2. Gemini API로 제목, 카테고리, 요약, 키워드 추출
             metadata = {
@@ -117,7 +117,7 @@ class KordocHandler(BaseHTTPRequestHandler):
 
             if api_key:
                 try:
-                    print("🤖 [Gemini AI 분석] 요약 및 핵심 키워드 생성 중...")
+                    print("[Gemini AI] Analyzing summary & keywords...")
                     prompt = f"""다음 문서 텍스트를 분석하여 JSON 형식으로 작성해 주세요.
 
 [문서 원문 텍스트]
@@ -150,13 +150,13 @@ class KordocHandler(BaseHTTPRequestHandler):
                             "keywords": parsed_meta.get("keywords", metadata["keywords"])
                         }
                 except Exception as ai_err:
-                    print(f"⚠️ Gemini 분석 실패, 기본값 사용: {ai_err}")
+                    print(f"[Warning] Gemini failed, using defaults: {ai_err}")
 
             # 3. 구글 앱스 스크립트 Webhook으로 구글 시트 저장
             sheet_appended = False
             if webhook_url:
                 try:
-                    print("📊 [구글 시트 저장] 행 추가 중...")
+                    print("[Google Sheets] Appending row...")
                     payload = json.dumps({
                         "title": metadata["title"],
                         "category": metadata["category"],
@@ -168,9 +168,9 @@ class KordocHandler(BaseHTTPRequestHandler):
                     gas_req = urllib.request.Request(webhook_url, data=payload, headers={'Content-Type': 'application/json'})
                     with urllib.request.urlopen(gas_req) as gas_res:
                         sheet_appended = True
-                        print("✅ [구글 시트 저장 완료]")
+                        print("[Google Sheets] Append complete")
                 except Exception as gas_err:
-                    print(f"❌ 구글 시트 저장 실패: {gas_err}")
+                    print(f"[Error] Google Sheets append failed: {gas_err}")
 
             self._send_json(200, {
                 "success": True,
@@ -181,7 +181,7 @@ class KordocHandler(BaseHTTPRequestHandler):
             })
 
         except Exception as err:
-            print(f"❌ 서버 처리 에러: {err}")
+            print(f"[Error] Server error: {err}")
             self._send_json(500, {"error": str(err)})
 
     def _send_json(self, status_code, obj):
@@ -194,12 +194,12 @@ class KordocHandler(BaseHTTPRequestHandler):
 def run_server():
     server_address = ('', PORT)
     httpd = HTTPServer(server_address, KordocHandler)
-    print(f"🚀 Meeting Copilot 로컬 Kordoc 서버가 실행되었습니다! (http://localhost:{PORT})")
-    print("📌 파일 업로드 요청을 대기 중입니다. (서버를 종료하려면 Ctrl+C를 누르세요)")
+    print(f"[OK] Meeting Copilot Local Kordoc Server Started! (http://localhost:{PORT})")
+    print("[Info] Ready for document upload requests. (Press Ctrl+C to stop)")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\n서버가 종료되었습니다.")
+        print("\nServer stopped.")
 
 if __name__ == '__main__':
     run_server()

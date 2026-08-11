@@ -23,14 +23,14 @@ class KordocHandler(BaseHTTPRequestHandler):
     def _set_cors_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Access-Control-Allow-Private-Network')
         self.send_header('Access-Control-Allow-Private-Network', 'true')
 
-
     def do_OPTIONS(self):
-        self.send_response(200)
+        self.send_response(204)
         self._set_cors_headers()
         self.end_headers()
+
 
     def do_GET(self):
         self.send_response(200)

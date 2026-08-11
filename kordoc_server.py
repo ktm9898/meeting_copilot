@@ -107,58 +107,31 @@ class KordocHandler(BaseHTTPRequestHandler):
 
             print(f"[Kordoc Parsing Complete] Extracted length: {len(parsed_text)}")
 
-            # 2. Gemini AI 스마트 주제별 2단계(Two-Pass) 자동 분할
+            # 2. Gemini AI 스마트 주제별 자동 분할 (Smart Chunking - Single Pass)
             default_doc_title = os.path.splitext(filename)[0]
             chunks = []
 
             if api_key:
                 try:
-                    # [1단계 질의] 이 문서의 목차/주제가 몇 개로 나뉘는지 주제 목록 분석
-                    print("[Gemini AI Step 1] Analyzing document outline & sub-topic topics...")
-                    step1_prompt = f"""다음 문서 텍스트의 목차, 장(Chapter), 세부 사업/주제를 분석하여 이 문서가 포함하고 있는 주제 목록(JSON 배열)을 작성하세요.
+                    print("[Gemini AI] Analyzing & Smart Chunking document into sub-topics...")
+                    prompt = f"""다음은 Kordoc 파서가 공문서/보고서 전체에서 추출한 마크다운/텍스트입니다.
+이 문서의 구조와 목차, 주제 구분을 분석하여 가장 자연스러운 단위(1개~7개 항목)로 자동 분할해 주세요.
 
 [문서 원문 텍스트]
 {parsed_text[:15000]}
 
-작성 형식 (JSON Array of strings):
-["1. 일반현황", "2. 주요성과", "3. 금융지원 성과", "4. 경영지원 성과", "5. 상권지원 성과"]"""
+[스마트 자동 분할 가이드]
+- 단일 주제/짧은 문서(1~2페이지): 1개 항목으로 깔끔하게 요약하세요.
+- 목차나 세부 사업/분야가 구분되어 있는 중대형 보고서/계획서: 문서의 세부 챕터(예: 일반현황, 금융지원, 경영지원, 상권지원, 정책협력 등)별로 각각 별개의 독립된 항목으로 자연스럽게 분할하세요.
+
+각 항목 필수 필드:
+- title: 문서 전체 대표 제목 (문자열) 예: "{default_doc_title}"
+- category: 해당 단락/챕터의 세부 분야 (예: 경영기획, 금융지원, 상권지원 등 짧은 1단어)
+- summary: 해당 챕터의 핵심 성과/내용 요약 (마침표로 명확히 끝나는 2~4문장)
+- keywords: 회의 음성과 자동 매칭될 해당 챕터의 주요 핵심 단어 4~7개 (문자열 배열)
+- fullText: 해당 챕터에 해당하는 본문 텍스트 (문자열)"""
 
                     gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-                    req_data1 = json.dumps({
-                        "contents": [{"parts": [{"text": step1_prompt}]}],
-                        "generationConfig": {
-                            "temperature": 0.1,
-                            "responseMimeType": "application/json",
-                            "responseSchema": {
-                                "type": "ARRAY",
-                                "items": {"type": "STRING"}
-                            }
-                        }
-                    }).encode('utf-8')
-
-                    req1 = urllib.request.Request(gemini_url, data=req_data1, headers={'Content-Type': 'application/json'})
-                    topic_list = ["전체 개요"]
-                    with urllib.request.urlopen(req1) as resp1:
-                        g_res1 = json.loads(resp1.read().decode('utf-8'))
-                        g_text1 = g_res1['candidates'][0]['content']['parts'][0]['text']
-                        topic_list = json.loads(g_text1)
-
-                    print(f"[Gemini AI Step 1 Result] Detected {len(topic_list)} topics: {topic_list}")
-
-                    # [2단계 질의] 감지된 주제 목록에 맞춰 각 주제별로 요약, 키워드, 본문을 분할 작성
-                    print(f"[Gemini AI Step 2] Generating structured rows for identified {len(topic_list)} topics...")
-                    step2_prompt = f"""다음 문서 원문 텍스트를 위에서 분석한 {len(topic_list)}개의 주제({json.dumps(topic_list, ensure_ascii=False)})별로 각각 구분하여, 주제별 지식 DB 항목 객체들의 배열(JSON Array)을 작성하세요.
-
-[문서 원문 텍스트]
-{parsed_text[:15000]}
-
-[각 주제별 생성 지침]
-- title: 문서 전체 대표 제목 (예: "{default_doc_title}")
-- category: 감지된 세부 주제명 (예: 금융지원, 상권지원 등 1단어)
-- summary: 해당 세부 주제 내용에 대한 핵심 요약 (2~4문장)
-- keywords: 해당 세부 주제와 매칭될 주요 핵심 단어 4~7개 (문자열 배열)
-- fullText: 해당 세부 주제에 속하는 본문 텍스트 (문자열)"""
-
                     schema_json = {
                         "type": "ARRAY",
                         "items": {
@@ -174,8 +147,8 @@ class KordocHandler(BaseHTTPRequestHandler):
                         }
                     }
 
-                    req_data2 = json.dumps({
-                        "contents": [{"parts": [{"text": step2_prompt}]}],
+                    req_data = json.dumps({
+                        "contents": [{"parts": [{"text": prompt}]}],
                         "generationConfig": {
                             "temperature": 0.2,
                             "responseMimeType": "application/json",
@@ -183,18 +156,18 @@ class KordocHandler(BaseHTTPRequestHandler):
                         }
                     }).encode('utf-8')
 
-                    req2 = urllib.request.Request(gemini_url, data=req_data2, headers={'Content-Type': 'application/json'})
-                    with urllib.request.urlopen(req2) as resp2:
-                        g_res2 = json.loads(resp2.read().decode('utf-8'))
-                        g_text2 = g_res2['candidates'][0]['content']['parts'][0]['text']
-                        parsed_json = json.loads(g_text2)
+                    req = urllib.request.Request(gemini_url, data=req_data, headers={'Content-Type': 'application/json'})
+                    with urllib.request.urlopen(req) as response:
+                        g_res = json.loads(response.read().decode('utf-8'))
+                        g_text = g_res['candidates'][0]['content']['parts'][0]['text']
+                        parsed_json = json.loads(g_text)
 
                         if isinstance(parsed_json, list) and len(parsed_json) > 0:
                             chunks = parsed_json
                         elif isinstance(parsed_json, dict):
                             chunks = [parsed_json]
                 except Exception as ai_err:
-                    print(f"[Warning] Gemini Two-Pass Smart Chunking failed: {ai_err}")
+                    print(f"[Warning] Gemini Smart Chunking failed: {ai_err}")
 
             if not chunks:
                 chunks = [{

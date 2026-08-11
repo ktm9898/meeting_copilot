@@ -777,7 +777,11 @@
     <!-- SETTINGS MODAL -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal">
-            <h2>설정</h2>
+            <div class="form-group">
+                <label>접속 비밀번호 설정 (선택)</label>
+                <input type="password" id="inputAppPassword" placeholder="비밀번호 미설정 시 즉시 접속">
+                <div class="hint">비밀번호 설정 시 접속할 때 암호 인증 모달이 표시됩니다</div>
+            </div>
             <div class="form-group">
                 <label>Gemini API 키</label>
                 <input type="password" id="inputApiKey" placeholder="AIzaSy...">
@@ -816,6 +820,21 @@
                 <button class="ctrl-btn" id="btnSettingsClose">닫기</button>
                 <button class="ctrl-btn primary" id="btnSettingsSave">저장</button>
             </div>
+        </div>
+    </div>
+
+    <!-- PIN SECURITY MODAL -->
+    <div class="modal-overlay" id="pinModal" style="display: none; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
+        <div class="modal" style="text-align: center; max-width: 380px; padding: 28px 24px;">
+            <div style="font-size: 2rem; margin-bottom: 12px;">🔒</div>
+            <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 6px;">보안 비밀번호 입력</h3>
+            <p style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 18px;">Meeting Copilot에 접근하려면 비밀번호를 입력하세요.</p>
+            
+            <div class="form-group" style="margin-bottom: 12px;">
+                <input type="password" id="inputPin" placeholder="••••••••" style="text-align: center; font-size: 1.3rem; letter-spacing: 4px; font-weight: 700; padding: 12px; border-radius: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
+            </div>
+            <div id="pinError" style="color: var(--accent-red); font-size: 0.82rem; margin-bottom: 14px; display: none; font-weight: bold;">비밀번호가 올바르지 않습니다.</div>
+            <button class="ctrl-btn primary" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 800;" onclick="verifyPin()">접속하기</button>
         </div>
     </div>
 
@@ -968,6 +987,7 @@
         // ============================================================
         function loadSettings() {
             return {
+                appPassword: localStorage.getItem('mc_appPassword') || '',
                 apiKey: localStorage.getItem('mc_apiKey') || '',
                 groqKey: localStorage.getItem('mc_groqKey') || '',
                 sheetUrl: localStorage.getItem('mc_sheetUrl') || '',
@@ -978,6 +998,7 @@
         }
 
         function saveSettings(s) {
+            if (s.appPassword !== undefined) localStorage.setItem('mc_appPassword', s.appPassword);
             localStorage.setItem('mc_apiKey', s.apiKey);
             localStorage.setItem('mc_groqKey', s.groqKey);
             localStorage.setItem('mc_sheetUrl', s.sheetUrl);
@@ -988,12 +1009,25 @@
 
         function initSettingsUI() {
             const s = loadSettings();
+            $('inputAppPassword').value = s.appPassword;
             $('inputApiKey').value = s.apiKey;
             $('inputGroqKey').value = s.groqKey;
             $('inputSheetUrl').value = s.sheetUrl;
             $('inputWebhookUrl').value = s.webhookUrl || '';
             $('inputServerUrl').value = s.serverUrl || 'http://localhost:5000';
             $('inputSensitivity').value = s.sensitivity;
+        }
+
+        function verifyPin() {
+            const s = loadSettings();
+            const inputVal = $('inputPin').value.trim();
+            if (!s.appPassword || inputVal === s.appPassword) {
+                $('pinModal').style.display = 'none';
+                $('pinError').style.display = 'none';
+                sessionStorage.setItem('mc_authenticated', 'true');
+            } else {
+                $('pinError').style.display = 'block';
+            }
         }
 
         // ============================================================
@@ -1730,8 +1764,15 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
             initSettingsUI();
             state.recognition = initSTT();
 
-            // 시트 자동 로드
             const settings = loadSettings();
+
+            // 보안 비밀번호 설정되어 있으면 인증 검사
+            if (settings.appPassword && sessionStorage.getItem('mc_authenticated') !== 'true') {
+                $('pinModal').style.display = 'flex';
+                setTimeout(() => $('inputPin').focus(), 100);
+            }
+
+            // 시트 자동 로드
             if (settings.sheetUrl) {
                 loadSheetData(settings.sheetUrl);
             }
@@ -2203,13 +2244,15 @@ ${text.slice(0, 30000)}`;
 
             $('btnSettingsSave').addEventListener('click', () => {
                 saveSettings({
+                    appPassword: $('inputAppPassword').value.trim(),
                     apiKey: $('inputApiKey').value.trim(),
                     groqKey: $('inputGroqKey').value.trim(),
                     sheetUrl: $('inputSheetUrl').value.trim(),
                     webhookUrl: $('inputWebhookUrl').value.trim(),
+                    serverUrl: $('inputServerUrl').value.trim(),
                     sensitivity: parseInt($('inputSensitivity').value) || 1,
                 });
-                showToast('✅ 설정 저장됨');
+                showToast('설정 저장됨');
                 $('settingsModal').classList.remove('show');
 
                 // 시트 URL이 변경되었으면 재로드

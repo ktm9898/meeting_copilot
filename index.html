@@ -806,6 +806,12 @@
                 <div class="hint">GAS_Uploader.gs 스크립트 웹앱 배포 URL을 입력하세요</div>
             </div>
             <div class="form-group">
+                <label>내 PC Kordoc 서버 주소 (태블릿 연결용)</label>
+                <input type="text" id="inputServerUrl"
+                    placeholder="http://localhost:5000">
+                <div class="hint">동일 Wi-Fi 접속 태블릿에서 사용 시 노트북 IP(예: http://10.140.78.1:5000)를 입력하세요</div>
+            </div>
+            <div class="form-group">
                 <label>자동 매칭 민감도 (키워드 최소 일치 수)</label>
                 <input type="number" id="inputSensitivity" value="1" min="1" max="5">
                 <div class="hint">숫자가 클수록 더 많은 키워드가 일치해야 카드가 표시됩니다</div>
@@ -936,6 +942,7 @@
                 groqKey: localStorage.getItem('mc_groqKey') || '',
                 sheetUrl: localStorage.getItem('mc_sheetUrl') || '',
                 webhookUrl: localStorage.getItem('mc_webhookUrl') || '',
+                serverUrl: localStorage.getItem('mc_serverUrl') || 'http://localhost:5000',
                 sensitivity: parseInt(localStorage.getItem('mc_sensitivity') || '1'),
             };
         }
@@ -945,6 +952,7 @@
             localStorage.setItem('mc_groqKey', s.groqKey);
             localStorage.setItem('mc_sheetUrl', s.sheetUrl);
             localStorage.setItem('mc_webhookUrl', s.webhookUrl || '');
+            localStorage.setItem('mc_serverUrl', s.serverUrl || 'http://localhost:5000');
             localStorage.setItem('mc_sensitivity', String(s.sensitivity));
         }
 
@@ -954,6 +962,7 @@
             $('inputGroqKey').value = s.groqKey;
             $('inputSheetUrl').value = s.sheetUrl;
             $('inputWebhookUrl').value = s.webhookUrl || '';
+            $('inputServerUrl').value = s.serverUrl || 'http://localhost:5000';
             $('inputSensitivity').value = s.sensitivity;
         }
 
@@ -1820,10 +1829,12 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                 uploadModal.classList.add('show');
 
                 // 로컬 Kordoc 서버 작동 상태 자동 점검 (Health-Check)
+                const settings = loadSettings();
+                const serverUrl = (settings.serverUrl || 'http://localhost:5000').replace(/\/+$/, '');
                 const statusBox = $('serverStatusNotice');
                 const statusText = $('serverStatusText');
                 try {
-                    const res = await fetch('http://localhost:5000/', { method: 'GET' });
+                    const res = await fetch(`${serverUrl}/`, { method: 'GET' });
                     if (res.ok) {
                         statusBox.style.background = 'rgba(52, 211, 153, 0.1)';
                         statusBox.style.borderColor = 'var(--accent-green)';
@@ -1892,7 +1903,8 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
 
                 try {
                     uploadStatusText.textContent = '🤖 Gemini AI 분석 및 구글 시트 저장 중...';
-                    const localApiUrl = 'http://localhost:5000/upload';
+                    const serverUrl = (settings.serverUrl || 'http://localhost:5000').replace(/\/+$/, '');
+                    const localApiUrl = `${serverUrl}/upload`;
                     const res = await fetch(localApiUrl, {
                         method: 'POST',
                         body: formData

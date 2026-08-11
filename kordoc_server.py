@@ -107,67 +107,85 @@ class KordocHandler(BaseHTTPRequestHandler):
 
             print(f"[Kordoc Parsing Complete] Extracted length: {len(parsed_text)}")
 
-            # 2. Gemini AI 스마트 주제별 자동 분할 (Smart Chunking - Single Pass)
+            # 2. 하이브리드 파싱: 파이썬 기반 목차/단락 정밀 물리 분할 + Gemini AI 세부 요약
             default_doc_title = os.path.splitext(filename)[0]
             chunks = []
 
-            if api_key:
+            # (1) 마크다운 헤딩(#, ##, ###), 목차 기호(| Ⅰ |, 1., □, [상권발굴]) 기반 파이썬 단락 쪼개기
+            import re
+            raw_sections = re.split(r'\n(?=(?:#+\s+|\|\s*[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]\s*\||□\s*|\d+\.\s+))', parsed_text)
+            clean_sections = [s.strip() for s in raw_sections if len(s.strip()) > 100]
+
+            # 헤더로 안 잘리는데 글자 수가 2500자 이상으로 길면, 2000자 단위로 강제 물리 분할
+            if len(clean_sections) <= 1 and len(parsed_text) > 2500:
+                clean_sections = [parsed_text[i:i+2000] for i in range(0, len(parsed_text), 2000)]
+
+            print(f"[Python Section Splitter] Split document into {len(clean_sections)} physical sections.")
+
+            if api_key and len(clean_sections) > 1:
+                # 분할된 각 섹션별로 Gemini AI에게 개별 세부 요약 및 키워드 생성 요청
+                for idx, sec_text in enumerate(clean_sections):
+                    try:
+                        print(f"[Gemini AI] Processing section {idx+1}/{len(clean_sections)}...")
+                        prompt = f"""다음은 문서("{default_doc_title}")의 {idx+1}번째 세부 섹션 텍스트입니다.
+이 섹션을 분석하여 단일 JSON 객체로 작성해 주세요.
+
+[섹션 텍스트]
+{sec_text[:4000]}
+
+[작성 지침]
+1. title: "{default_doc_title}" (고정)
+2. category: 이 섹션이 다루는 세부 사업/분야명 (예: 일반현황, 주요성과, 금융지원, 경영지원, 상권지원 등 짧은 1단어)
+3. summary: 이 섹션의 핵심 내용을 수치 및 성과 중심으로 2~4문장 요약
+4. keywords: 회의 음성과 자동 매칭될 핵심 키워드 4~7개 (문자열 배열)
+
+반드시 다른 설명 없이 JSON 객체 하나만 응답하세요. 예시:
+{{"title": "{default_doc_title}", "category": "금융지원", "summary": "...", "keywords": ["...", "..."]}}"""
+
+                        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+                        req_data = json.dumps({
+                            "contents": [{"parts": [{"text": prompt}]}],
+                            "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
+                        }).encode('utf-8')
+
+                        req = urllib.request.Request(gemini_url, data=req_data, headers={'Content-Type': 'application/json'})
+                        with urllib.request.urlopen(req) as response:
+                            g_res = json.loads(response.read().decode('utf-8'))
+                            g_text = g_res['candidates'][0]['content']['parts'][0]['text']
+                            sec_json = json.loads(g_text)
+                            sec_json["fullText"] = sec_text
+                            chunks.append(sec_json)
+                    except Exception as sec_err:
+                        print(f"[Warning] Section {idx+1} AI summary failed: {sec_err}")
+
+            # 만약 파이썬 분할이 1개이거나 AI 처리가 안 된 경우 기본 처리
+            if not chunks:
                 try:
-                    print("[Gemini AI] Analyzing & Smart Chunking document into sub-topics...")
-                    prompt = f"""다음은 Kordoc 파서가 공문서/보고서 전체에서 추출한 마크다운/텍스트입니다.
-이 문서의 구조와 목차, 주제 구분을 분석하여 가장 자연스러운 단위(1개~7개 항목)로 자동 분할해 주세요.
+                    print("[Gemini AI] Processing single document summary...")
+                    prompt = f"""다음 문서를 분석하여 JSON 객체로 응답하세요.
+{parsed_text[:8000]}
 
-[문서 원문 텍스트]
-{parsed_text[:15000]}
-
-[스마트 자동 분할 가이드]
-- 단일 주제/짧은 문서(1~2페이지): 1개 항목으로 깔끔하게 요약하세요.
-- 목차나 세부 사업/분야가 구분되어 있는 중대형 보고서/계획서: 문서의 세부 챕터(예: 일반현황, 금융지원, 경영지원, 상권지원, 정책협력 등)별로 각각 별개의 독립된 항목으로 자연스럽게 분할하세요.
-
-각 항목 필수 필드:
-- title: 문서 전체 대표 제목 (문자열) 예: "{default_doc_title}"
-- category: 해당 단락/챕터의 세부 분야 (예: 경영기획, 금융지원, 상권지원 등 짧은 1단어)
-- summary: 해당 챕터의 핵심 성과/내용 요약 (마침표로 명확히 끝나는 2~4문장)
-- keywords: 회의 음성과 자동 매칭될 해당 챕터의 주요 핵심 단어 4~7개 (문자열 배열)
-- fullText: 해당 챕터에 해당하는 본문 텍스트 (문자열)"""
-
+{{"title": "{default_doc_title}", "category": "일반", "summary": "요약 2~4문장", "keywords": ["키워드1", "키워드2"]}}"""
                     gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-                    schema_json = {
-                        "type": "ARRAY",
-                        "items": {
-                            "type": "OBJECT",
-                            "properties": {
-                                "title": {"type": "STRING"},
-                                "category": {"type": "STRING"},
-                                "summary": {"type": "STRING"},
-                                "keywords": {"type": "ARRAY", "items": {"type": "STRING"}},
-                                "fullText": {"type": "STRING"}
-                            },
-                            "required": ["title", "category", "summary", "keywords", "fullText"]
-                        }
-                    }
-
                     req_data = json.dumps({
                         "contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {
-                            "temperature": 0.2,
-                            "responseMimeType": "application/json",
-                            "responseSchema": schema_json
-                        }
+                        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
                     }).encode('utf-8')
-
                     req = urllib.request.Request(gemini_url, data=req_data, headers={'Content-Type': 'application/json'})
                     with urllib.request.urlopen(req) as response:
                         g_res = json.loads(response.read().decode('utf-8'))
                         g_text = g_res['candidates'][0]['content']['parts'][0]['text']
-                        parsed_json = json.loads(g_text)
-
-                        if isinstance(parsed_json, list) and len(parsed_json) > 0:
-                            chunks = parsed_json
-                        elif isinstance(parsed_json, dict):
-                            chunks = [parsed_json]
-                except Exception as ai_err:
-                    print(f"[Warning] Gemini Smart Chunking failed: {ai_err}")
+                        sec_json = json.loads(g_text)
+                        sec_json["fullText"] = parsed_text[:10000]
+                        chunks.append(sec_json)
+                except:
+                    chunks = [{
+                        "title": default_doc_title,
+                        "category": "일반",
+                        "summary": parsed_text[:300],
+                        "keywords": ["문서", "자동업로드"],
+                        "fullText": parsed_text[:10000]
+                    }]
 
             if not chunks:
                 chunks = [{

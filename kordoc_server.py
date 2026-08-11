@@ -195,16 +195,13 @@ class KordocHandler(BaseHTTPRequestHandler):
                         elif isinstance(parsed_json, dict):
                             chunks = [parsed_json]
                 except Exception as ai_err:
+                    import traceback
                     print(f"[Warning] Gemini Smart Chunking failed: {ai_err}")
+                    traceback.print_exc()
 
             if not chunks:
-                chunks = [{
-                    "title": default_doc_title,
-                    "category": "일반",
-                    "summary": parsed_text[:300],
-                    "keywords": ["문서", "자동업로드"],
-                    "fullText": parsed_text[:10000]
-                }]
+                self._send_json(500, {"error": f"Gemini AI 스마트 분할 실패: API 키(Gemini 2.5 Flash)를 확인해 주시거나 잠시 후 다시 시도해 주세요."})
+                return
 
             print(f"[Smart Chunking Result] Total {len(chunks)} sub-topic rows generated")
 

@@ -50,7 +50,8 @@ class KordocHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length)
 
             # Multipart form-data 파싱
-            boundary = content_type.split("boundary=")[1].encode()
+            boundary_str = content_type.split("boundary=")[1].split(";")[0].strip('"')
+            boundary = boundary_str.encode()
             parts = body.split(b"--" + boundary)
 
             file_bytes = None
@@ -60,24 +61,28 @@ class KordocHandler(BaseHTTPRequestHandler):
 
             for part in parts:
                 if b'Content-Disposition' in part:
-                    headers_part, content = part.split(b"\r\n\r\n", 1)
-                    content = content.rsplit(b"\r\n", 1)[0]
-                    headers_str = headers_part.decode('utf-8', errors='ignore')
+                    try:
+                        headers_part, content = part.split(b"\r\n\r\n", 1)
+                        content = content.rsplit(b"\r\n", 1)[0]
+                        headers_str = headers_part.decode('utf-8', errors='ignore')
 
-                    if 'name="file"' in headers_str:
-                        file_bytes = content
-                        if 'filename="' in headers_str:
-                            filename = headers_str.split('filename="')[1].split('"')[0]
-                    elif 'name="apiKey"' in headers_str:
-                        api_key = content.decode('utf-8').strip()
-                    elif 'name="webhookUrl"' in headers_str:
-                        webhook_url = content.decode('utf-8').strip()
+                        if 'name="file"' in headers_str:
+                            file_bytes = content
+                            if 'filename="' in headers_str:
+                                filename = headers_str.split('filename="')[1].split('"')[0]
+                        elif 'name="apiKey"' in headers_str:
+                            api_key = content.decode('utf-8', errors='ignore').strip()
+                        elif 'name="webhookUrl"' in headers_str:
+                            webhook_url = content.decode('utf-8', errors='ignore').strip()
+                    except Exception as p_err:
+                        pass
 
             if not file_bytes:
                 self._send_json(400, {"error": "업로드된 파일이 없습니다."})
                 return
 
             print(f"[Kordoc Parsing] Filename: {filename} ({len(file_bytes)} bytes)")
+            print(f"[Debug Info] API Key Present: {bool(api_key)}, Webhook URL Present: {bool(webhook_url)}")
 
             # 임시 파일 저장 (확장자 유지)
             ext = os.path.splitext(filename)[1] or ".hwp"
@@ -124,16 +129,7 @@ class KordocHandler(BaseHTTPRequestHandler):
 [분할 및 수집 핵심 지침]
 ============================================================
 1. **문서 구조 판단 & 분할 기준**:
-   - **단일 안내문/짧은 공문 (1~2쪽)**: 억지로 나누지 말고 **1개 항목**으로 통합 작성하세요.
-   - **중대형 보고서/업무계획서/성과집**: 문서에 포함된 목차 구분(예: Ⅰ. 일반현황, Ⅱ. 주요성과, Ⅲ. 금융지원 성과, Ⅳ. 경영지원 성과, Ⅴ. 상권지원 성과 등)이나 사업 영역별로 **반드시 3개~7개의 별개 지식 DB 항목(JSON Array)**으로 분할하세요.
-
-2. **각 주제 항목 필수 필드 정의**:
-   - `title`: 문서 전체의 정확한 대표 제목 (예: "{default_doc_title}")
-   - `category`: 해당 세부 단락이 다루는 핵심 사업구분 (예: "경영기획", "금융지원", "부실관리", "경영지원", "상권지원", "데이터/AI", "정책협력" 등 단정한 1개 단어)
-   - `summary`: 해당 세부 주제의 구체적 핵심 내용 및 수치 성과 요약 (마침표로 명확히 끝나는 완성형 2~4문장)
-   - `keywords`: 회의 중 음성 인식(STT)과 직접 자동 매칭될 해당 주제의 핵심 단어 4~7개 (문자열 배열)
-   - `fullText`: 해당 세부 주제에 속하는 본문 텍스트 원문 내용 (문자열)
-
+   - **단일 안내문/짧은 공문 (1~2쪽)**: 억지로
 ============================================================
 [응답 형식 예시] (반드시 설명 없이 순수 JSON 배열만 응답)
 ============================================================
@@ -149,7 +145,16 @@ class KordocHandler(BaseHTTPRequestHandler):
     "title": "{default_doc_title}",
     "category": "금융지원",
     "summary": "이태원 참사 피해기업 긴급 보증 243억원, 티몬·위메프 피해기업 146억원 및 안심통장 특별보증 등 위기 소상공인 맞춤형 정책금융을 신속 공급함.",
-    "keywords": ["금융지원", "신용보증", "이태원참사", "티메프", "안심통장", "대환보증"],
+    "keywords": ["금융지원", "신용보증", "이태원참사", "티메프", "안심통장", "대 나누지 말고 **1개 항목**으로 통합 작성하세요.
+   - **중대형 보고서/업무계획서/성과집**: 문서에 포함된 목차 구분(예: Ⅰ. 일반현황, Ⅱ. 주요성과, Ⅲ. 금융지원 성과, Ⅳ. 경영지원 성과, Ⅴ. 상권지원 성과 등)이나 사업 영역별로 **반드시 3개~7개의 별개 지식 DB 항목(JSON Array)**으로 분할하세요.
+
+2. **각 주제 항목 필수 필드 정의**:
+   - `title`: 문서 전체의 정확한 대표 제목 (예: "{default_doc_title}")
+   - `category`: 해당 세부 단락이 다루는 핵심 사업구분 (예: "경영기획", "금융지원", "부실관리", "경영지원", "상권지원", "데이터/AI", "정책협력" 등 단정한 1개 단어)
+   - `summary`: 해당 세부 주제의 구체적 핵심 내용 및 수치 성과 요약 (마침표로 명확히 끝나는 완성형 2~4문장)
+   - `keywords`: 회의 중 음성 인식(STT)과 직접 자동 매칭될 해당 주제의 핵심 단어 4~7개 (문자열 배열)
+   - `fullText`: 해당 세부 주제에 속하는 본문 텍스트 원문 내용 (문자열)
+환보증"],
     "fullText": "..."
   }}
 ]"""

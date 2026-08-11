@@ -772,6 +772,7 @@
             </div>
         </div>
         <div class="control-right">
+            <button class="ctrl-btn primary" id="btnUploadDoc" title="문서 자동 업로드">📁 문서 업로드</button>
             <button class="ctrl-btn primary" id="btnManualQuery" title="자료확인">💡 자료확인</button>
             <button class="ctrl-btn primary" id="btnContext" title="맥락 분석">🔍 맥락 분석</button>
             <button class="ctrl-btn" id="btnListen" title="듣기 시작/중지">▶ 듣기 시작</button>
@@ -793,10 +794,16 @@
                 <div class="hint">Whisper 기반 고품질 음성 인식에 사용됩니다</div>
             </div>
             <div class="form-group">
-                <label>구글 시트 CSV 공개 URL</label>
+                <label>구글 시트 CSV 공개 URL (읽기용)</label>
                 <input type="url" id="inputSheetUrl"
                     placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv">
                 <div class="hint">시트 열 순서: 문서제목 | 사업구분 | 핵심내용 요약 | 주요 키워드 | 문서원문</div>
+            </div>
+            <div class="form-group">
+                <label>구글 앱스 스크립트 Webhook URL (자동 업로드 쓰기용)</label>
+                <input type="url" id="inputWebhookUrl"
+                    placeholder="https://script.google.com/macros/s/.../exec">
+                <div class="hint">GAS_Uploader.gs 스크립트 웹앱 배포 URL을 입력하세요</div>
             </div>
             <div class="form-group">
                 <label>자동 매칭 민감도 (키워드 최소 일치 수)</label>
@@ -807,6 +814,30 @@
                 <button class="ctrl-btn danger" id="btnUpdateApp" style="flex:1.5;">🔄 최신 버전 업데이트</button>
                 <button class="ctrl-btn" id="btnSettingsClose">닫기</button>
                 <button class="ctrl-btn primary" id="btnSettingsSave">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DOCUMENT UPLOAD MODAL -->
+    <div class="modal-overlay" id="uploadModal">
+        <div class="modal" style="max-width: 480px;">
+            <h2>📁 지식 DB 문서 자동 등록 (Kordoc)</h2>
+            <div id="dropZone" style="border: 2px dashed var(--accent-blue); border-radius: 12px; padding: 30px; text-align: center; background: rgba(74, 158, 255, 0.05); cursor: pointer; transition: all 0.3s;">
+                <div style="font-size: 2.5rem; margin-bottom: 10px;">📄</div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
+                    여기에 문서를 드래그 앤 드롭하세요
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">
+                    지원 형식: HWP, HWPX, PDF, XLSX, DOCX<br>(Kordoc 파서가 텍스트를 추출하고 Gemini가 요약하여 구글 시트에 자동 저장합니다)
+                </div>
+                <input type="file" id="fileInput" accept=".hwp,.hwpx,.pdf,.xlsx,.docx,.doc" style="display: none;">
+            </div>
+            <div id="uploadProgress" style="display: none; margin-top: 16px; padding: 12px; background: var(--bg-card); border-radius: 8px; font-size: 0.85rem; text-align: center;">
+                <div id="uploadStatusText" style="font-weight: bold; color: var(--accent-blue); margin-bottom: 4px;">🚀 파싱 중...</div>
+                <div id="uploadDetailText" style="color: var(--text-secondary); font-size: 0.75rem;">잠시만 기다려 주세요</div>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="ctrl-btn" id="btnUploadClose">닫기</button>
             </div>
         </div>
     </div>
@@ -898,6 +929,7 @@
                 apiKey: localStorage.getItem('mc_apiKey') || '',
                 groqKey: localStorage.getItem('mc_groqKey') || '',
                 sheetUrl: localStorage.getItem('mc_sheetUrl') || '',
+                webhookUrl: localStorage.getItem('mc_webhookUrl') || '',
                 sensitivity: parseInt(localStorage.getItem('mc_sensitivity') || '1'),
             };
         }
@@ -906,6 +938,7 @@
             localStorage.setItem('mc_apiKey', s.apiKey);
             localStorage.setItem('mc_groqKey', s.groqKey);
             localStorage.setItem('mc_sheetUrl', s.sheetUrl);
+            localStorage.setItem('mc_webhookUrl', s.webhookUrl || '');
             localStorage.setItem('mc_sensitivity', String(s.sensitivity));
         }
 
@@ -914,6 +947,7 @@
             $('inputApiKey').value = s.apiKey;
             $('inputGroqKey').value = s.groqKey;
             $('inputSheetUrl').value = s.sheetUrl;
+            $('inputWebhookUrl').value = s.webhookUrl || '';
             $('inputSensitivity').value = s.sensitivity;
         }
 
@@ -1767,32 +1801,108 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                 }
             });
 
-            queryModal.addEventListener('click', (e) => {
-                if (e.target === queryModal) queryModal.classList.remove('show');
+            // 문서 업로드 모달 이벤트
+            const uploadModal = $('uploadModal');
+            const dropZone = $('dropZone');
+            const fileInput = $('fileInput');
+            const uploadProgress = $('uploadProgress');
+            const uploadStatusText = $('uploadStatusText');
+            const uploadDetailText = $('uploadDetailText');
+
+            $('btnUploadDoc').addEventListener('click', () => {
+                uploadProgress.style.display = 'none';
+                uploadModal.classList.add('show');
             });
 
-            // 답변 지우기
-            $('btnClearCards').addEventListener('click', () => {
-                flashArea.querySelectorAll('.answer-line, .ai-answer').forEach(c => c.remove());
-                flashEmpty.style.display = '';
-                state.lastMatchedIndices.clear();
-                state.displayedAnswers.clear(); // 중복 방지 이력 초기화
-                showToast('🗑️ 답변 모두 삭제됨');
-            });
-            // 설정 모달
-            $('btnSettings').addEventListener('click', () => {
-                initSettingsUI();
-                $('settingsModal').classList.add('show');
+            $('btnUploadClose').addEventListener('click', () => {
+                uploadModal.classList.remove('show');
             });
 
-            $('settingsClose')?.addEventListener('click', () => $('settingsModal').classList.remove('show'));
-            $('btnSettingsClose').addEventListener('click', () => $('settingsModal').classList.remove('show'));
+            uploadModal.addEventListener('click', (e) => {
+                if (e.target === uploadModal) uploadModal.classList.remove('show');
+            });
+
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.background = 'rgba(74, 158, 255, 0.15)';
+                dropZone.style.borderColor = 'var(--accent-purple)';
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.background = 'rgba(74, 158, 255, 0.05)';
+                dropZone.style.borderColor = 'var(--accent-blue)';
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.background = 'rgba(74, 158, 255, 0.05)';
+                dropZone.style.borderColor = 'var(--accent-blue)';
+
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files && fileInput.files.length > 0) {
+                    handleFileUpload(fileInput.files[0]);
+                }
+            });
+
+            async function handleFileUpload(file) {
+                const settings = loadSettings();
+                if (!settings.webhookUrl) {
+                    showToast('⚠️ 먼저 설정에서 구글 앱스 스크립트 Webhook URL을 입력하세요');
+                    $('btnSettings').click();
+                    return;
+                }
+
+                uploadProgress.style.display = 'block';
+                uploadStatusText.textContent = '🚀 Kordoc 문서 파싱 중...';
+                uploadDetailText.textContent = `${file.name} 텍스트 추출 중`;
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('apiKey', settings.apiKey || '');
+                formData.append('webhookUrl', settings.webhookUrl);
+
+                try {
+                    uploadStatusText.textContent = '🤖 Gemini AI 분석 및 구글 시트 저장 중...';
+                    const res = await fetch('/api/parse', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok || data.error) {
+                        throw new Error(data.error || `HTTP ${res.status}`);
+                    }
+
+                    uploadStatusText.textContent = '✅ 지식 DB 등록 완료!';
+                    uploadDetailText.textContent = `제목: ${data.metadata.title} (키워드: ${data.metadata.keywords.join(', ')})`;
+                    showToast(`✅ [${data.metadata.title}] 구글 시트 등록 완료!`);
+
+                    // 등록 후 2초 뒤 시트 자동 재로드
+                    setTimeout(() => {
+                        if (settings.sheetUrl) loadSheetData(settings.sheetUrl);
+                    }, 1500);
+
+                } catch (err) {
+                    console.error('Upload process error:', err);
+                    uploadStatusText.textContent = '❌ 등록 실패';
+                    uploadDetailText.textContent = err.message;
+                    showToast(`❌ 등록 실패: ${err.message}`);
+                }
+            }
 
             $('btnSettingsSave').addEventListener('click', () => {
                 saveSettings({
                     apiKey: $('inputApiKey').value.trim(),
                     groqKey: $('inputGroqKey').value.trim(),
                     sheetUrl: $('inputSheetUrl').value.trim(),
+                    webhookUrl: $('inputWebhookUrl').value.trim(),
                     sensitivity: parseInt($('inputSensitivity').value) || 1,
                 });
                 showToast('✅ 설정 저장됨');

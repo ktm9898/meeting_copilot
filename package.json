@@ -1,0 +1,13 @@
+{
+  "name": "meeting-copilot",
+  "version": "1.0.0",
+  "description": "Meeting Copilot with Vercel Kordoc Auto Document Parser",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx vercel dev"
+  },
+  "dependencies": {
+    "kordoc": "^0.1.0",
+    "formidable": "^3.5.1"
+  }
+}

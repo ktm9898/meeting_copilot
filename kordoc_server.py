@@ -228,7 +228,7 @@ class KordocHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(obj, ensure_ascii=False).encode('utf-8'))
 
 def run_server():
-    server_address = ('', PORT)
+    server_address = ('0.0.0.0', PORT)
     httpd = HTTPServer(server_address, KordocHandler)
     print(f"[OK] Meeting Copilot Local Kordoc Server Started! (http://localhost:{PORT})")
     print("[Info] Ready for document upload requests. (Press Ctrl+C to stop)")

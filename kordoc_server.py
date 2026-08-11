@@ -107,30 +107,34 @@ class KordocHandler(BaseHTTPRequestHandler):
 
             print(f"[Kordoc Parsing Complete] Extracted length: {len(parsed_text)}")
 
-            # 2. Gemini API로 제목, 카테고리, 요약, 키워드 추출
-            metadata = {
-                "title": os.path.splitext(filename)[0],
-                "category": "일반",
-                "summary": parsed_text[:300],
-                "keywords": ["문서", "자동업로드"]
-            }
+            # 2. Gemini AI 스마트 주제별 자동 분할 (Smart Chunking)
+            default_doc_title = os.path.splitext(filename)[0]
+            chunks = []
 
             if api_key:
                 try:
-                    print("[Gemini AI] Analyzing summary & keywords...")
-                    prompt = f"""다음 문서 텍스트를 분석하여 JSON 형식으로 작성해 주세요.
+                    print("[Gemini AI] Analyzing & Smart Chunking document into sub-topics...")
+                    prompt = f"""다음은 문서 전체에서 추출한 텍스트입니다.
+이 문서가 다루는 주요 주제/사업/장별로 텍스트를 논리적인 단락(1~6개 챕터)으로 분할하여, 각 주제별로 개별 지식 DB 항목 배열(JSON Array)을 작성해 주세요.
 
 [문서 원문 텍스트]
-{parsed_text[:8000]}
+{parsed_text[:12000]}
 
-[작성 지침]
-1. title: 문서의 정확한 공식 제목 또는 대표 제목 (문자열)
-2. category: 사업구분 또는 문서 주제 분야 (예: 경영기획, 상권지원, 데이터/AI, 경영인프라, 기술, 일반 등 짧은 단어 1개)
-3. summary: 문서 전체 핵심 내용 요약 (마침표로 명확히 끝나는 2~4문장)
-4. keywords: 회의 시 자동 매칭에 사용할 주요 핵심 단어 4~7개 (문자열 배열)
+[분할 및 작성 지침]
+1. 문서 내용이 짧거나 하나의 주제라면 배열 항목 1개만 생성하세요.
+2. 문서가 여러 사업/분야/장(예: 경영기획, 금융지원, 부실관리, 경영지원, 상권지원 등)을 다룬다면 주제별로 항목을 쪼개어 여러 개(JSON Array)로 생성하세요.
+3. 각 항목 필수 필드:
+   - title: 문서 전체 제목 (문자열) 예: "{default_doc_title}"
+   - category: 해당 단락의 세부 사업구분/분야 (예: 경영기획, 금융지원, 부실관리, 경영지원, 상권지원, 데이터/AI 등 짧은 단어 1개)
+   - summary: 해당 세부 주제/단락의 핵심 내용을 요약 (마침표로 명확히 끝나는 2~4문장)
+   - keywords: 회의 중 마이크 음성과 자동 매칭할 해당 단락의 주요 핵심 단어 4~7개 (문자열 배열)
+   - fullText: 해당 단락에 해당하는 본문 텍스트 (문자열)
 
-반드시 다른 설명 없이 순수한 JSON 데이터만 응답하세요. 예시:
-{{"title": "...", "category": "...", "summary": "...", "keywords": ["...", "..."]}}"""
+반드시 다른 설명 없이 순수한 JSON 배열만 응답하세요. 예시:
+[
+  {{"title": "{default_doc_title}", "category": "금융지원", "summary": "...", "keywords": ["...", "..."], "fullText": "..."}},
+  {{"title": "{default_doc_title}", "category": "상권지원", "summary": "...", "keywords": ["...", "..."], "fullText": "..."}}
+]"""
 
                     gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
                     req_data = json.dumps({
@@ -142,33 +146,46 @@ class KordocHandler(BaseHTTPRequestHandler):
                     with urllib.request.urlopen(req) as response:
                         g_res = json.loads(response.read().decode('utf-8'))
                         g_text = g_res['candidates'][0]['content']['parts'][0]['text']
-                        parsed_meta = json.loads(g_text)
-                        metadata = {
-                            "title": parsed_meta.get("title", metadata["title"]),
-                            "category": parsed_meta.get("category", metadata["category"]),
-                            "summary": parsed_meta.get("summary", metadata["summary"]),
-                            "keywords": parsed_meta.get("keywords", metadata["keywords"])
-                        }
-                except Exception as ai_err:
-                    print(f"[Warning] Gemini failed, using defaults: {ai_err}")
+                        parsed_json = json.loads(g_text)
 
-            # 3. 구글 앱스 스크립트 Webhook으로 구글 시트 저장
+                        if isinstance(parsed_json, list) and len(parsed_json) > 0:
+                            chunks = parsed_json
+                        elif isinstance(parsed_json, dict):
+                            chunks = [parsed_json]
+                except Exception as ai_err:
+                    print(f"[Warning] Gemini Smart Chunking failed, fallback to single item: {ai_err}")
+
+            if not chunks:
+                chunks = [{
+                    "title": default_doc_title,
+                    "category": "일반",
+                    "summary": parsed_text[:300],
+                    "keywords": ["문서", "자동업로드"],
+                    "fullText": parsed_text[:10000]
+                }]
+
+            print(f"[Smart Chunking Result] Total {len(chunks)} sub-topic rows generated")
+
+            # 3. 구글 앱스 스크립트 Webhook으로 구글 시트에 N개 행 일괄 저장
             sheet_appended = False
             if webhook_url:
                 try:
-                    print("[Google Sheets] Appending row...")
-                    payload = json.dumps({
-                        "title": metadata["title"],
-                        "category": metadata["category"],
-                        "summary": metadata["summary"],
-                        "keywords": metadata["keywords"],
-                        "fullText": parsed_text[:10000]
-                    }).encode('utf-8')
+                    print(f"[Google Sheets] Appending {len(chunks)} rows to sheet...")
+                    payload_items = []
+                    for item in chunks:
+                        payload_items.append({
+                            "title": item.get("title", default_doc_title),
+                            "category": item.get("category", "일반"),
+                            "summary": item.get("summary", ""),
+                            "keywords": item.get("keywords", []),
+                            "fullText": item.get("fullText", parsed_text[:10000])
+                        })
 
+                    payload = json.dumps(payload_items).encode('utf-8')
                     gas_req = urllib.request.Request(webhook_url, data=payload, headers={'Content-Type': 'application/json'})
                     with urllib.request.urlopen(gas_req) as gas_res:
                         sheet_appended = True
-                        print("[Google Sheets] Append complete")
+                        print(f"[Google Sheets] {len(chunks)} rows appended successfully")
                 except Exception as gas_err:
                     print(f"[Error] Google Sheets append failed: {gas_err}")
 
@@ -176,7 +193,7 @@ class KordocHandler(BaseHTTPRequestHandler):
                 "success": True,
                 "filename": filename,
                 "parsedLength": len(parsed_text),
-                "metadata": metadata,
+                "chunkCount": len(chunks),
                 "sheetAppended": sheet_appended
             })
 

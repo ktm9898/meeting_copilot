@@ -34,19 +34,27 @@ function doPost(e) {
       headerRange.setFontWeight("bold");
     }
 
-    var title = data.title || "제목 없음";
-    var category = data.category || "일반";
-    var summary = data.summary || "";
-    var keywords = Array.isArray(data.keywords) ? data.keywords.join(", ") : (data.keywords || "");
-    var fullText = data.fullText || "";
+    var items = Array.isArray(data) ? data : [data];
+    var insertedCount = 0;
 
-    // 새로운 행 추가
-    sheet.appendRow([title, category, summary, keywords, fullText]);
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      var title = item.title || "제목 없음";
+      var category = item.category || "일반";
+      var summary = item.summary || "";
+      var keywords = Array.isArray(item.keywords) ? item.keywords.join(", ") : (item.keywords || "");
+      var fullText = item.fullText || "";
+
+      // 새로운 행 추가
+      sheet.appendRow([title, category, summary, keywords, fullText]);
+      insertedCount++;
+    }
 
     return responseJSON({ 
       success: true, 
-      message: "성공적으로 구글 시트에 추가되었습니다.",
-      insertedRow: sheet.getLastRow()
+      message: insertedCount + "건의 지식 DB 항목이 성공적으로 구글 시트에 추가되었습니다.",
+      insertedCount: insertedCount,
+      lastInsertedRow: sheet.getLastRow()
     });
 
   } catch (err) {

@@ -1915,8 +1915,9 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                     }
 
                     uploadStatusText.textContent = '✅ 지식 DB 등록 완료!';
-                    uploadDetailText.textContent = `제목: ${data.metadata.title} (키워드: ${data.metadata.keywords.join(', ')})`;
-                    showToast(`✅ [${data.metadata.title}] 구글 시트 등록 완료!`);
+                    const countMsg = data.chunkCount ? `${data.chunkCount}개 세부 주제 항목` : '지식 DB 항목';
+                    uploadDetailText.textContent = `[${file.name}] ${countMsg}으로 자동 분할 등록되었습니다.`;
+                    showToast(`✅ [${file.name}] ${countMsg} 구글 시트 등록 완료!`);
 
                     // 등록 후 2초 뒤 시트 자동 재로드
                     setTimeout(() => {

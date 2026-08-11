@@ -824,7 +824,7 @@
     </div>
 
     <!-- PIN SECURITY MODAL -->
-    <div class="modal-overlay" id="pinModal" style="display: none; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
+    <div class="modal-overlay" id="pinModal" style="display: flex; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
         <div class="modal" style="text-align: center; max-width: 380px; padding: 28px 24px;">
             <div style="font-size: 2rem; margin-bottom: 12px;">🔒</div>
             <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 6px;">보안 비밀번호 입력</h3>
@@ -1018,17 +1018,42 @@
             $('inputSensitivity').value = s.sensitivity;
         }
 
-        function verifyPin() {
-            const s = loadSettings();
+        async function verifyPin() {
             const inputVal = $('inputPin').value.trim();
-            if (!s.appPassword || inputVal === s.appPassword) {
+            if (!inputVal) return;
+
+            const s = loadSettings();
+            
+            // 1. 브라우저 설정에 비밀번호가 있는 경우 우선 비교
+            if (s.appPassword && inputVal === s.appPassword) {
                 $('pinModal').style.display = 'none';
                 $('pinError').style.display = 'none';
                 sessionStorage.setItem('mc_authenticated', 'true');
                 sessionStorage.setItem('mc_pin', inputVal);
-            } else {
-                $('pinError').style.display = 'block';
+                if (s.sheetUrl) loadSheetData(s.sheetUrl);
+                return;
             }
+
+            // 2. Webhook URL로 PIN 인증 검증
+            if (s.webhookUrl) {
+                try {
+                    const testUrl = `${s.webhookUrl}?pin=${encodeURIComponent(inputVal)}`;
+                    const res = await fetch(testUrl);
+                    const data = await res.json();
+                    if (data.success !== false && data.error !== "Unauthorized: Invalid PIN") {
+                        $('pinModal').style.display = 'none';
+                        $('pinError').style.display = 'none';
+                        sessionStorage.setItem('mc_authenticated', 'true');
+                        sessionStorage.setItem('mc_pin', inputVal);
+                        if (s.sheetUrl) loadSheetData(s.sheetUrl);
+                        return;
+                    }
+                } catch(e) {
+                    console.warn('PIN auth fetch error:', e);
+                }
+            }
+
+            $('pinError').style.display = 'block';
         }
 
         // ============================================================
@@ -1767,15 +1792,13 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
 
             const settings = loadSettings();
 
-            // 보안 비밀번호 설정되어 있으면 인증 검사
-            if (settings.appPassword && sessionStorage.getItem('mc_authenticated') !== 'true') {
+            // 스톡시그널 인증 제어: 비밀번호 인증이 완료되지 않은 경우 pinModal 표시
+            if (sessionStorage.getItem('mc_authenticated') === 'true') {
+                $('pinModal').style.display = 'none';
+                if (settings.sheetUrl) loadSheetData(settings.sheetUrl);
+            } else {
                 $('pinModal').style.display = 'flex';
                 setTimeout(() => $('inputPin').focus(), 100);
-            }
-
-            // 시트 자동 로드
-            if (settings.sheetUrl) {
-                loadSheetData(settings.sheetUrl);
             }
 
             // 듣기 시작/중지

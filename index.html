@@ -1951,23 +1951,31 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                 const serverUrl = (settings.serverUrl || 'http://127.0.0.1:5000').replace(/\/+$/, '');
                 const statusBox = $('serverStatusNotice');
                 const statusText = $('serverStatusText');
-                try {
-                    let res;
+                
+                const checkServer = async (url) => {
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), 500);
                     try {
-                        res = await fetch(`${serverUrl}/`, { method: 'GET' });
-                    } catch(err1) {
-                        // localhost 차단 시 127.0.0.1 우회 시도
-                        const altUrl = serverUrl.includes('localhost') ? serverUrl.replace('localhost', '127.0.0.1') : serverUrl.replace('127.0.0.1', 'localhost');
-                        res = await fetch(`${altUrl}/`, { method: 'GET' });
+                        const res = await fetch(`${url}/`, { method: 'GET', signal: controller.signal });
+                        clearTimeout(timer);
+                        return res.ok;
+                    } catch(e) {
+                        clearTimeout(timer);
+                        return false;
                     }
+                };
 
+                let isConnected = await checkServer(serverUrl);
+                if (!isConnected) {
+                    const altUrl = serverUrl.includes('localhost') ? serverUrl.replace('localhost', '127.0.0.1') : serverUrl.replace('127.0.0.1', 'localhost');
+                    isConnected = await checkServer(altUrl);
+                }
 
-                    if (res.ok) {
-                        statusBox.style.background = 'rgba(52, 211, 153, 0.1)';
-                        statusBox.style.borderColor = 'var(--accent-green)';
-                        statusText.innerHTML = '🟢 <strong>연결 완료:</strong> 내 PC의 Kordoc 서버가 정상 작동 중입니다. 바로 문서를 드래그하세요!';
-                    }
-                } catch (e) {
+                if (isConnected) {
+                    statusBox.style.background = 'rgba(52, 211, 153, 0.1)';
+                    statusBox.style.borderColor = 'var(--accent-green)';
+                    statusText.innerHTML = '🟢 <strong>연결 완료:</strong> 내 PC의 Kordoc 서버가 정상 작동 중입니다. 바로 문서를 드래그하세요!';
+                } else {
                     statusBox.style.background = 'rgba(251, 191, 36, 0.15)';
                     statusBox.style.borderColor = 'var(--accent-amber)';
                     statusText.innerHTML = '⚠️ <strong>서버 차단 또는 미연결:</strong> 보안 브라우저 정책(PNA)으로 연결이 거부되었습니다.<br>' +

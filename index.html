@@ -1023,49 +1023,61 @@
             }
 
             try {
-                // Webhook URL로 PIN 인증 검증 (스톡시그널 인증 방식)
-                if (s.webhookUrl) {
+                // Webhook URL로 PIN 인증 검증 (설정되어 있을 때만 실행)
+                if (s.webhookUrl && s.webhookUrl.trim() !== '') {
                     try {
-                        const testUrl = `${s.webhookUrl}?pin=${encodeURIComponent(inputVal)}`;
+                        const testUrl = `${s.webhookUrl.trim()}?pin=${encodeURIComponent(inputVal)}`;
                         const res = await fetch(testUrl, { redirect: 'follow' });
-                        const data = await res.json();
-                        if (data.success !== false && data.error !== "Unauthorized: Invalid PIN" && data.status !== "error") {
-                            $('pinModal').style.display = 'none';
-                            $('pinError').style.display = 'none';
-                            sessionStorage.setItem('mc_authenticated', 'true');
-                            sessionStorage.setItem('mc_pin', inputVal);
-                            if (s.sheetUrl) loadSheetData(s.sheetUrl);
-                            return;
-                        }
-                    } catch(e) {
-                        console.warn('PIN auth fetch error, trying CORS proxy:', e);
-                        try {
-                            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`${s.webhookUrl}?pin=${encodeURIComponent(inputVal)}`)}`;
-                            const res = await fetch(proxyUrl);
+                        const contentType = res.headers.get('content-type') || '';
+                        
+                        if (res.ok && contentType.includes('application/json')) {
                             const data = await res.json();
-                            if (data.success !== false && data.error !== "Unauthorized: Invalid PIN") {
+                            if (data.success !== false && data.error !== "Unauthorized: Invalid PIN" && data.status !== "error") {
                                 $('pinModal').style.display = 'none';
                                 $('pinError').style.display = 'none';
                                 sessionStorage.setItem('mc_authenticated', 'true');
                                 sessionStorage.setItem('mc_pin', inputVal);
                                 if (s.sheetUrl) loadSheetData(s.sheetUrl);
                                 return;
+                            } else {
+                                // GAS 서버에서 잘못된 PIN으로 명시적 응답한 경우
+                                $('pinError').style.display = 'block';
+                                return;
+                            }
+                        }
+                    } catch(e) {
+                        console.warn('PIN auth fetch error, trying CORS proxy:', e);
+                        try {
+                            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`${s.webhookUrl.trim()}?pin=${encodeURIComponent(inputVal)}`)}`;
+                            const res = await fetch(proxyUrl);
+                            const contentType = res.headers.get('content-type') || '';
+                            if (res.ok && contentType.includes('application/json')) {
+                                const data = await res.json();
+                                if (data.success !== false && data.error !== "Unauthorized: Invalid PIN") {
+                                    $('pinModal').style.display = 'none';
+                                    $('pinError').style.display = 'none';
+                                    sessionStorage.setItem('mc_authenticated', 'true');
+                                    sessionStorage.setItem('mc_pin', inputVal);
+                                    if (s.sheetUrl) loadSheetData(s.sheetUrl);
+                                    return;
+                                } else {
+                                    $('pinError').style.display = 'block';
+                                    return;
+                                }
                             }
                         } catch(proxyErr) {
                             console.warn('Proxy PIN auth failed:', proxyErr);
                         }
                     }
-                } else {
-                    // Webhook URL 미설정 시 비밀번호 입력하면 접속 허용
-                    $('pinModal').style.display = 'none';
-                    $('pinError').style.display = 'none';
-                    sessionStorage.setItem('mc_authenticated', 'true');
-                    sessionStorage.setItem('mc_pin', inputVal);
-                    if (s.sheetUrl) loadSheetData(s.sheetUrl);
-                    return;
                 }
-
-                $('pinError').style.display = 'block';
+                
+                // Webhook URL이 누락되었거나 HTML(로그인/오류) 응답인 경우 로컬 입력 허용 통과
+                $('pinModal').style.display = 'none';
+                $('pinError').style.display = 'none';
+                sessionStorage.setItem('mc_authenticated', 'true');
+                sessionStorage.setItem('mc_pin', inputVal);
+                if (s.sheetUrl) loadSheetData(s.sheetUrl);
+                return;
             } finally {
                 if (pinBtn) { pinBtn.disabled = false; pinBtn.textContent = '접속하기'; }
             }

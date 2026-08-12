@@ -1946,29 +1946,26 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
                 uploadProgress.style.display = 'none';
                 uploadModal.classList.add('show');
 
-                // 로컬 Kordoc 서버 작동 상태 자동 점검 (Health-Check)
+                // 로컬 Kordoc 서버 작동 상태 자동 점검 (Image onload 방식을 이용한 PNA CORS 에러 없는 헬스체크)
                 const settings = loadSettings();
                 const serverUrl = (settings.serverUrl || 'http://127.0.0.1:5000').replace(/\/+$/, '');
                 const statusBox = $('serverStatusNotice');
                 const statusText = $('serverStatusText');
                 
-                const checkServer = async (url) => {
-                    const controller = new AbortController();
-                    const timer = setTimeout(() => controller.abort(), 500);
-                    try {
-                        const res = await fetch(`${url}/`, { method: 'GET', signal: controller.signal });
-                        clearTimeout(timer);
-                        return res.ok;
-                    } catch(e) {
-                        clearTimeout(timer);
-                        return false;
-                    }
+                const checkServerSilent = (url) => {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        const timer = setTimeout(() => { img.src = ''; resolve(false); }, 600);
+                        img.onload = () => { clearTimeout(timer); resolve(true); };
+                        img.onerror = () => { clearTimeout(timer); resolve(true); }; // HTTP 200/404 등 응답 응답 도달 시 성공 간주
+                        img.src = `${url}/favicon.ico?_t=${Date.now()}`;
+                    });
                 };
 
-                let isConnected = await checkServer(serverUrl);
+                let isConnected = await checkServerSilent(serverUrl);
                 if (!isConnected) {
                     const altUrl = serverUrl.includes('localhost') ? serverUrl.replace('localhost', '127.0.0.1') : serverUrl.replace('127.0.0.1', 'localhost');
-                    isConnected = await checkServer(altUrl);
+                    isConnected = await checkServerSilent(altUrl);
                 }
 
                 if (isConnected) {

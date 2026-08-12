@@ -1942,44 +1942,16 @@ ${manualQuery ? `[사용자 질문/요청]\n${manualQuery}\n\n위 [참고 자료
             const uploadStatusText = $('uploadStatusText');
             const uploadDetailText = $('uploadDetailText');
 
-            $('btnUploadDoc').addEventListener('click', async () => {
+            $('btnUploadDoc').addEventListener('click', () => {
                 uploadProgress.style.display = 'none';
                 uploadModal.classList.add('show');
 
-                // 로컬 Kordoc 서버 작동 상태 자동 점검 (Image onload 방식을 이용한 PNA CORS 에러 없는 헬스체크)
-                const settings = loadSettings();
-                const serverUrl = (settings.serverUrl || 'http://127.0.0.1:5000').replace(/\/+$/, '');
+                // 기본 서버 안내 표시
                 const statusBox = $('serverStatusNotice');
                 const statusText = $('serverStatusText');
-                
-                const checkServerSilent = (url) => {
-                    return new Promise((resolve) => {
-                        const img = new Image();
-                        const timer = setTimeout(() => { img.src = ''; resolve(false); }, 600);
-                        img.onload = () => { clearTimeout(timer); resolve(true); };
-                        img.onerror = () => { clearTimeout(timer); resolve(true); }; // HTTP 200/404 등 응답 응답 도달 시 성공 간주
-                        img.src = `${url}/favicon.ico?_t=${Date.now()}`;
-                    });
-                };
-
-                let isConnected = await checkServerSilent(serverUrl);
-                if (!isConnected) {
-                    const altUrl = serverUrl.includes('localhost') ? serverUrl.replace('localhost', '127.0.0.1') : serverUrl.replace('127.0.0.1', 'localhost');
-                    isConnected = await checkServerSilent(altUrl);
-                }
-
-                if (isConnected) {
-                    statusBox.style.background = 'rgba(52, 211, 153, 0.1)';
-                    statusBox.style.borderColor = 'var(--accent-green)';
-                    statusText.innerHTML = '🟢 <strong>연결 완료:</strong> 내 PC의 Kordoc 서버가 정상 작동 중입니다. 바로 문서를 드래그하세요!';
-                } else {
-                    statusBox.style.background = 'rgba(251, 191, 36, 0.15)';
-                    statusBox.style.borderColor = 'var(--accent-amber)';
-                    statusText.innerHTML = '⚠️ <strong>서버 차단 또는 미연결:</strong> 보안 브라우저 정책(PNA)으로 연결이 거부되었습니다.<br>' +
-                        '1️⃣ <a href="http://127.0.0.1:5000/" target="_blank" style="color:var(--accent-blue);font-weight:bold;text-decoration:underline;">[여기 클릭하여 로컬 서버 주소 열기 (http://127.0.0.1:5000)]</a><br>' +
-                        '2️⃣ 창이 뜨면 <strong>서버가 실행 중임을 확인</strong> 후 창을 닫고 다시 시도해 주세요.<br>' +
-                        '3️⃣ 여전히 연결 안 될 경우 <code>run_kordoc_background.vbs</code> 파일을 더블 클릭하세요.';
-                }
+                statusBox.style.background = 'rgba(251, 191, 36, 0.1)';
+                statusBox.style.borderColor = 'var(--accent-amber)';
+                statusText.innerHTML = '<strong>서버 안내:</strong> 원본 문서(.hwp, .pdf 등) 파싱 등록 전, 백그라운드 서버(<code>run_kordoc_background.vbs</code>)가 실행 중인지 확인해 주세요. (파싱 완료 텍스트는 [2번 탭]에서 바로 등록 가능)';
             });
 
             // 탭 및 모드 제어

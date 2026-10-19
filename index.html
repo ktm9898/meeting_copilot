@@ -783,10 +783,11 @@
                 <input type="password" id="inputApiKey" placeholder="AIzaSy...">
                 <div class="hint">Gemini 2.5 Flash 모델을 사용합니다</div>
             </div>
-            <div class="form-group">
-                <label>Groq API 키</label>
-                <input type="password" id="inputGroqKey" placeholder="gsk_...">
-                <div class="hint">Whisper 기반 고품질 음성 인식에 사용됩니다</div>
+            <div class="form-group" style="background: rgba(74, 158, 255, 0.06); padding: 10px 12px; border-radius: 8px; border: 1px dashed var(--accent-blue);">
+                <label style="color: var(--accent-blue); margin-bottom: 2px;">🎙️ Whisper 고품질 음성인식 (자동 보호)</label>
+                <div class="hint" style="margin: 0; color: var(--text-secondary); font-size: 0.82em;">
+                    구글 시트(GAS)의 <b>GROQ_API_KEY</b> 스크립트 속성과 연동되어 PIN 인증 시 메모리에만 안전하게 자동 로드됩니다.
+                </div>
             </div>
             <div class="form-group">
                 <label>구글 시트 CSV 공개 URL (읽기용)</label>
@@ -938,6 +939,8 @@
             mediaRecorder: null,
             audioChunks: [],
             lastTranscript: "",
+            groqKey: sessionStorage.getItem('mc_groqKey') || "",
+            lastChunkText: "",
         };
 
         // ============================================================
@@ -984,7 +987,7 @@
         function loadSettings() {
             return {
                 apiKey: localStorage.getItem('mc_apiKey') || '',
-                groqKey: localStorage.getItem('mc_groqKey') || '',
+                groqKey: state.groqKey || sessionStorage.getItem('mc_groqKey') || localStorage.getItem('mc_groqKey') || '',
                 sheetUrl: localStorage.getItem('mc_sheetUrl') || '',
                 webhookUrl: localStorage.getItem('mc_webhookUrl') || '',
                 serverUrl: localStorage.getItem('mc_serverUrl') || 'http://localhost:5000',
@@ -994,7 +997,8 @@
 
         function saveSettings(s) {
             localStorage.setItem('mc_apiKey', s.apiKey);
-            localStorage.setItem('mc_groqKey', s.groqKey);
+            // Groq 키는 보안을 위해 로컬 스토리지에 영구 저장하지 않고 GAS 스크립트 속성을 통해 메모리에서만 관리
+            localStorage.removeItem('mc_groqKey');
             localStorage.setItem('mc_sheetUrl', s.sheetUrl);
             localStorage.setItem('mc_webhookUrl', s.webhookUrl || '');
             localStorage.setItem('mc_serverUrl', s.serverUrl || 'http://localhost:5000');
@@ -1004,7 +1008,6 @@
         function initSettingsUI() {
             const s = loadSettings();
             $('inputApiKey').value = s.apiKey;
-            $('inputGroqKey').value = s.groqKey;
             $('inputSheetUrl').value = s.sheetUrl;
             $('inputWebhookUrl').value = s.webhookUrl || '';
             $('inputServerUrl').value = s.serverUrl || 'http://localhost:5000';
@@ -1013,7 +1016,14 @@
 
         async function verifyPin() {
             const inputVal = $('inputPin').value.trim();
-            if (!inputVal) return;
+            const pinErrorEl = $('pinError');
+            if (!inputVal) {
+                if (pinErrorEl) {
+                    pinErrorEl.textContent = '비밀번호를 입력해 주세요.';
+                    pinErrorEl.style.display = 'block';
+                }
+                return;
+            }
 
             const s = loadSettings();
             const pinBtn = document.querySelector('#pinModal button');
@@ -1021,63 +1031,91 @@
                 pinBtn.disabled = true;
                 pinBtn.innerHTML = '<span class="spin-loader" style="display:inline-block; animation: spin 1s linear infinite; margin-right: 6px;">↻</span> 확인 중...';
             }
+            if (pinErrorEl) pinErrorEl.style.display = 'none';
+
+            // Webhook URL이 설정되지 않은 경우
+            if (!s.webhookUrl || s.webhookUrl.trim() === '') {
+                if (pinBtn) { pinBtn.disabled = false; pinBtn.textContent = '접속하기'; }
+                if (pinErrorEl) {
+                    pinErrorEl.innerHTML = '설정에서 구글 앱스 스크립트(GAS) Webhook URL을 먼저 등록해 주세요.<br><span style="font-size:0.75rem; color:var(--text-muted);">(설정: 우측 상단 ⚙️)</span>';
+                    pinErrorEl.style.display = 'block';
+                }
+                return;
+            }
 
             try {
-                // Webhook URL로 PIN 인증 검증 (설정되어 있을 때만 실행)
-                if (s.webhookUrl && s.webhookUrl.trim() !== '') {
+                let data = null;
+                const testUrl = `${s.webhookUrl.trim()}?pin=${encodeURIComponent(inputVal)}`;
+
+                // 1차 시도: 직접 호출
+                try {
+                    const res = await fetch(testUrl, { redirect: 'follow' });
+                    const contentType = res.headers.get('content-type') || '';
+                    if (res.ok && contentType.includes('application/json')) {
+                        data = await res.json();
+                    }
+                } catch (directErr) {
+                    console.warn('Direct PIN auth failed, trying CORS proxy:', directErr);
+                }
+
+                // 2차 시도: 프록시 호출
+                if (!data) {
                     try {
-                        const testUrl = `${s.webhookUrl.trim()}?pin=${encodeURIComponent(inputVal)}`;
-                        const res = await fetch(testUrl, { redirect: 'follow' });
+                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(testUrl)}`;
+                        const res = await fetch(proxyUrl);
                         const contentType = res.headers.get('content-type') || '';
-                        
                         if (res.ok && contentType.includes('application/json')) {
-                            const data = await res.json();
-                            if (data.success !== false && data.error !== "Unauthorized: Invalid PIN" && data.status !== "error") {
-                                $('pinModal').style.display = 'none';
-                                $('pinError').style.display = 'none';
-                                sessionStorage.setItem('mc_authenticated', 'true');
-                                sessionStorage.setItem('mc_pin', inputVal);
-                                if (s.sheetUrl) loadSheetData(s.sheetUrl);
-                                return;
-                            } else {
-                                // GAS 서버에서 잘못된 PIN으로 명시적 응답한 경우
-                                $('pinError').style.display = 'block';
-                                return;
-                            }
+                            data = await res.json();
                         }
-                    } catch(e) {
-                        console.warn('PIN auth fetch error, trying CORS proxy:', e);
-                        try {
-                            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`${s.webhookUrl.trim()}?pin=${encodeURIComponent(inputVal)}`)}`;
-                            const res = await fetch(proxyUrl);
-                            const contentType = res.headers.get('content-type') || '';
-                            if (res.ok && contentType.includes('application/json')) {
-                                const data = await res.json();
-                                if (data.success !== false && data.error !== "Unauthorized: Invalid PIN") {
-                                    $('pinModal').style.display = 'none';
-                                    $('pinError').style.display = 'none';
-                                    sessionStorage.setItem('mc_authenticated', 'true');
-                                    sessionStorage.setItem('mc_pin', inputVal);
-                                    if (s.sheetUrl) loadSheetData(s.sheetUrl);
-                                    return;
-                                } else {
-                                    $('pinError').style.display = 'block';
-                                    return;
-                                }
-                            }
-                        } catch(proxyErr) {
-                            console.warn('Proxy PIN auth failed:', proxyErr);
-                        }
+                    } catch (proxyErr) {
+                        console.warn('Proxy PIN auth failed:', proxyErr);
                     }
                 }
-                
-                // Webhook URL이 누락되었거나 HTML(로그인/오류) 응답인 경우 로컬 입력 허용 통과
-                $('pinModal').style.display = 'none';
-                $('pinError').style.display = 'none';
-                sessionStorage.setItem('mc_authenticated', 'true');
-                sessionStorage.setItem('mc_pin', inputVal);
-                if (s.sheetUrl) loadSheetData(s.sheetUrl);
-                return;
+
+                // 응답 분석 및 엄격 차단
+                if (data) {
+                    if (data.success === true && data.status === "ok") {
+                        // ✅ 올바른 비밀번호 인증 성공
+                        if (data.groqApiKey) {
+                            state.groqKey = data.groqApiKey.trim();
+                            sessionStorage.setItem('mc_groqKey', state.groqKey);
+                            console.log('✅ Groq Whisper STT securely loaded from GAS');
+                        }
+                        $('pinModal').style.display = 'none';
+                        if (pinErrorEl) pinErrorEl.style.display = 'none';
+                        sessionStorage.setItem('mc_authenticated', 'true');
+                        sessionStorage.setItem('mc_pin', inputVal);
+                        if (s.sheetUrl) loadSheetData(s.sheetUrl);
+                        return;
+                    } else if (data.error === "AUTH_PIN_NOT_SET") {
+                        if (pinErrorEl) {
+                            pinErrorEl.textContent = '구글 시트의 [스크립트 속성]에 AUTH_PIN(비밀번호)을 추가해 주세요.';
+                            pinErrorEl.style.display = 'block';
+                        }
+                        return;
+                    } else {
+                        // ❌ 비밀번호 불일치 (절대 통과 금지)
+                        if (pinErrorEl) {
+                            pinErrorEl.textContent = data.message || '비밀번호가 올바르지 않습니다.';
+                            pinErrorEl.style.display = 'block';
+                        }
+                        $('inputPin').value = '';
+                        $('inputPin').focus();
+                        return;
+                    }
+                }
+
+                // 서버 통신 불가 시 (프리패스 폴백 완전 제거)
+                if (pinErrorEl) {
+                    pinErrorEl.innerHTML = '구글 서버 응답 없음 (Webhook URL 및 새 배포 상태 확인 필요)';
+                    pinErrorEl.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('PIN verification error:', err);
+                if (pinErrorEl) {
+                    pinErrorEl.textContent = '인증 처리 중 오류가 발생했습니다. 다시 시도해 주세요.';
+                    pinErrorEl.style.display = 'block';
+                }
             } finally {
                 if (pinBtn) { pinBtn.disabled = false; pinBtn.textContent = '접속하기'; }
             }
@@ -1494,12 +1532,20 @@
 
         async function startAudioRecording(useWhisperChunks = false) {
             try {
-                state.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                state.audioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        channelCount: 1
+                    }
+                });
                 const types = ['audio/webm', 'audio/mp4', 'audio/ogg'];
                 recorderMimeType = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
 
                 state.audioChunks = [];
                 state.lastTranscript = "";
+                state.lastChunkText = "";
 
                 function createRecorder() {
                     const rec = recorderMimeType
@@ -1516,17 +1562,48 @@
                             const cutoff = Date.now() - state.maxBufferSec * 1000;
                             state.audioChunks = state.audioChunks.filter(c => c.time > cutoff);
 
-                            // 실시간 5초 간격 위스퍼 변환
+                            // 실시간 위스퍼 변환 (직전 청크와 오버랩 전송으로 단어 잘림 방지)
                             const settings = loadSettings();
                             if (settings.groqKey && state.listening && useWhisperChunks) {
-                                transcribeAudioWithGroq(settings.groqKey, [chunkObj], recorderMimeType)
+                                // 최근 2개 청크를 묶어서 전송 (문맥 유지 및 음절 단절 방지)
+                                const chunksToSend = state.audioChunks.slice(-2);
+                                transcribeAudioWithGroq(settings.groqKey, chunksToSend, recorderMimeType)
                                     .then(whisperText => {
                                         if (whisperText && whisperText.trim().length > 0) {
-                                            const text = whisperText.trim();
-                                            addSTTLine(text, true);
-                                            state.speechBuffer.push({ time: Date.now(), text: text, final: true });
-                                            cleanBuffer();
-                                            checkKeywordMatch(text);
+                                            const rawText = whisperText.trim();
+                                            let newDelta = rawText;
+
+                                            // 직전 청크 텍스트와의 중복 어구 스마트 제거
+                                            if (state.lastChunkText) {
+                                                if (rawText.startsWith(state.lastChunkText)) {
+                                                    newDelta = rawText.substring(state.lastChunkText.length).trim();
+                                                } else {
+                                                    const prevWords = state.lastChunkText.trim().split(/\s+/);
+                                                    const currWords = rawText.trim().split(/\s+/);
+                                                    let matchLen = 0;
+                                                    for (let k = Math.min(prevWords.length, currWords.length, 6); k >= 1; k--) {
+                                                        const tail = prevWords.slice(-k).join(' ');
+                                                        const head = currWords.slice(0, k).join(' ');
+                                                        if (tail === head) {
+                                                            matchLen = k;
+                                                            break;
+                                                        }
+                                                    }
+                                                    if (matchLen > 0) {
+                                                        newDelta = currWords.slice(matchLen).join(' ');
+                                                    }
+                                                }
+                                            }
+
+                                            state.lastChunkText = rawText;
+
+                                            if (newDelta && newDelta.trim().length > 0) {
+                                                const text = newDelta.trim();
+                                                addSTTLine(text, true);
+                                                state.speechBuffer.push({ time: Date.now(), text: text, final: true });
+                                                cleanBuffer();
+                                                checkKeywordMatch(text);
+                                            }
                                         }
                                     }).catch(err => console.error('Realtime Whisper error:', err));
                             }
@@ -1572,12 +1649,36 @@
             const file = new File([finalBlob], `audio.${extension}`, { type: blobType });
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('model', 'whisper-large-v3-turbo');
+            // 정밀 원본 모델 사용 (터보 대비 한국어 어휘 정확도 대폭 향상)
+            formData.append('model', 'whisper-large-v3');
             formData.append('response_format', 'text');
             formData.append('language', 'ko');
 
+            // 힌트 프롬프트 구성 (시트 등록 회의 키워드 + 직전 발화 맥락)
+            let kwHints = [];
+            if (state.sheetData && state.sheetData.length > 0) {
+                const kwSet = new Set();
+                state.sheetData.forEach(r => {
+                    if (Array.isArray(r.keywords)) {
+                        r.keywords.forEach(k => {
+                            if (k && typeof k === 'string' && k.trim().length > 1) {
+                                kwSet.add(k.trim());
+                            }
+                        });
+                    }
+                });
+                kwHints = Array.from(kwSet).slice(0, 35);
+            }
+
+            let promptParts = [];
+            if (kwHints.length > 0) {
+                promptParts.push("회의 주요 키워드: " + kwHints.join(", "));
+            }
             if (state.lastTranscript) {
-                formData.append('prompt', state.lastTranscript);
+                promptParts.push(state.lastTranscript);
+            }
+            if (promptParts.length > 0) {
+                formData.append('prompt', promptParts.join(". ").slice(-350));
             }
 
             try {
@@ -1592,14 +1693,20 @@
                 }
                 const resultText = await res.text();
 
-                // ✨ Whisper 환각(Hallucination) 필터링
-                const cleanText = resultText.replace(/[.,!?'"\s]/g, '');
-                if (['감사합니다', '시청해주셔서감사합니다', '이번영상은여기까지입니다'].includes(cleanText)) {
+                // ✨ Whisper 한국어 환각(Hallucination) 필터링 강화
+                const cleanText = resultText.replace(/[.,!?'"~`\s]/g, '');
+                const hallucinations = [
+                    '감사합니다', '시청해주셔서감사합니다', '이번영상은여기까지입니다',
+                    '구독과좋아요', '구독좋아요', 'MBC뉴스', 'KBS뉴스', 'SBS뉴스',
+                    '안녕히계세요', '다음영상에서만나요', '끝까지시청해주셔서감사합니다',
+                    '좋은하루되세요', '수고하셨습니다'
+                ];
+                if (hallucinations.some(h => cleanText === h || (cleanText.startsWith(h) && cleanText.length < h.length + 5))) {
                     console.log('Filtered Whisper hallucination:', resultText);
                     return null;
                 }
 
-                state.lastTranscript = (resultText || "").slice(-50);
+                state.lastTranscript = (resultText || "").slice(-60);
                 return resultText;
             } catch (e) {
                 console.error('Groq API Error:', e);
@@ -2270,10 +2377,10 @@ ${text.slice(0, 30000)}`;
             $('btnSettingsClose').addEventListener('click', () => $('settingsModal').classList.remove('show'));
 
             $('btnSettingsSave').addEventListener('click', () => {
+                const currentSettings = loadSettings();
                 saveSettings({
-                    appPassword: $('inputAppPassword').value.trim(),
                     apiKey: $('inputApiKey').value.trim(),
-                    groqKey: $('inputGroqKey').value.trim(),
+                    groqKey: currentSettings.groqKey,
                     sheetUrl: $('inputSheetUrl').value.trim(),
                     webhookUrl: $('inputWebhookUrl').value.trim(),
                     serverUrl: $('inputServerUrl').value.trim(),

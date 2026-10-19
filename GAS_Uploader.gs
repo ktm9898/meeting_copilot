@@ -10,12 +10,20 @@
  *    - 설명: Meeting Copilot Uploader
  *    - 다음 사용자 권한으로 실행: [나]
  *    - 액세스 권한 있는 사용자: [모든 사용자]
- * 6. [배포] 버튼 클릭 후 생성된 '웹 앱 URL'을 복사하여 Meeting Copilot 설정창에 입력합니다.
+ * 7. (선택/권장) 최고 성능 음성인식(Groq Whisper) 활성화:
+ *    - 좌측 톱니바퀴 [프로젝트 설정] -> 하단 [스크립트 속성] -> [스크립트 속성 추가]
+ *    - 속성: GROQ_API_KEY / 값: gsk_... (Groq API 키)
+ *    - 속성: AUTH_PIN / 값: 1234 (접속 보안 PIN)
  */
 
 function getAuthPin() {
   var pin = PropertiesService.getScriptProperties().getProperty("AUTH_PIN");
   return pin ? String(pin).trim() : "";
+}
+
+function getGroqApiKey() {
+  var key = PropertiesService.getScriptProperties().getProperty("GROQ_API_KEY");
+  return key ? String(key).trim() : "";
 }
 
 function doPost(e) {
@@ -80,12 +88,32 @@ function doGet(e) {
   var authPin = getAuthPin();
   var inputPin = e.parameter ? String(e.parameter.pin || "").trim() : "";
   
-  if (authPin) {
-    if (inputPin !== authPin) {
-      return responseJSON({ success: false, error: "Unauthorized: Invalid PIN" });
-    }
+  // 1. 구글 시트 스크립트 속성에 AUTH_PIN이 등록되지 않은 경우
+  if (!authPin) {
+    return responseJSON({ 
+      success: false, 
+      error: "AUTH_PIN_NOT_SET", 
+      message: "구글 시트의 [프로젝트 설정 -> 스크립트 속성]에 AUTH_PIN(비밀번호)을 추가해 주세요." 
+    });
   }
-  return responseJSON({ success: true, status: "ok", message: "Meeting Copilot GAS Uploader is running." });
+
+  // 2. 비밀번호 불일치 엄격 차단
+  if (inputPin !== authPin) {
+    return responseJSON({ 
+      success: false, 
+      error: "Unauthorized: Invalid PIN", 
+      message: "비밀번호가 올바르지 않습니다." 
+    });
+  }
+
+  // 3. 올바른 비밀번호일 때만 Groq API 키와 성공 응답 반환
+  var groqApiKey = getGroqApiKey();
+  return responseJSON({ 
+    success: true, 
+    status: "ok", 
+    groqApiKey: groqApiKey,
+    message: "Meeting Copilot GAS Uploader is running." 
+  });
 }
 
 function responseJSON(obj) {

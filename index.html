@@ -783,23 +783,12 @@
                 <input type="password" id="inputApiKey" placeholder="AIzaSy...">
                 <div class="hint">Gemini 2.5 Flash 모델을 사용합니다</div>
             </div>
-            <div class="form-group" style="background: rgba(74, 158, 255, 0.06); padding: 10px 12px; border-radius: 8px; border: 1px dashed var(--accent-blue);">
-                <label style="color: var(--accent-blue); margin-bottom: 2px;">🎙️ Whisper 고품질 음성인식 (자동 보호)</label>
-                <div class="hint" style="margin: 0; color: var(--text-secondary); font-size: 0.82em;">
-                    구글 시트(GAS)의 <b>GROQ_API_KEY</b> 스크립트 속성과 연동되어 PIN 인증 시 메모리에만 안전하게 자동 로드됩니다.
+            <div class="form-group" style="background: rgba(74, 158, 255, 0.06); padding: 12px 14px; border-radius: 10px; border: 1px dashed var(--accent-blue);">
+                <label style="color: var(--accent-blue); margin-bottom: 4px; font-weight: 700;">🔗 구글 시트 & Whisper AI 보안 연동 완료</label>
+                <div class="hint" style="margin: 0; color: var(--text-secondary); font-size: 0.82em; line-height: 1.4;">
+                    구글 시트(GAS) Webhook 및 시트 CSV 주소가 보안 내장되어 있습니다.<br>
+                    접속 시 <b>보안 PIN 번호</b>로 즉시 암호화 인증 및 자동 연동됩니다.
                 </div>
-            </div>
-            <div class="form-group">
-                <label>구글 시트 CSV 공개 URL (읽기용)</label>
-                <input type="url" id="inputSheetUrl"
-                    placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv">
-                <div class="hint">시트 열 순서: 문서제목 | 사업구분 | 핵심내용 요약 | 주요 키워드 | 문서원문</div>
-            </div>
-            <div class="form-group">
-                <label>구글 앱스 스크립트 Webhook URL (자동 업로드 쓰기용)</label>
-                <input type="url" id="inputWebhookUrl"
-                    placeholder="https://script.google.com/macros/s/.../exec">
-                <div class="hint">GAS_Uploader.gs 스크립트 웹앱 배포 URL을 입력하세요</div>
             </div>
             <div class="form-group">
                 <label>내 PC Kordoc 서버 주소 (태블릿 연결용)</label>
@@ -940,8 +929,12 @@
             audioChunks: [],
             lastTranscript: "",
             groqKey: sessionStorage.getItem('mc_groqKey') || "",
+            sheetUrl: sessionStorage.getItem('mc_sheetUrl') || "",
             lastChunkText: "",
         };
+
+        // 기본 구글 앱스 스크립트(GAS) Webhook URL (stock-signal, asset-signal과 동일한 표준 내장)
+        const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycby8RFA7VPYW2K3GMt76VYfQ89KEunBgyB3xMRNL2cx39YeP4RJzJFoC1E6O0DcEdbZLkA/exec";
 
         // ============================================================
         //  WAKE LOCK (화면 꺼짐 방지)
@@ -987,9 +980,9 @@
         function loadSettings() {
             return {
                 apiKey: localStorage.getItem('mc_apiKey') || '',
-                groqKey: state.groqKey || sessionStorage.getItem('mc_groqKey') || localStorage.getItem('mc_groqKey') || '',
-                sheetUrl: localStorage.getItem('mc_sheetUrl') || '',
-                webhookUrl: localStorage.getItem('mc_webhookUrl') || '',
+                groqKey: state.groqKey || sessionStorage.getItem('mc_groqKey') || '',
+                sheetUrl: state.sheetUrl || sessionStorage.getItem('mc_sheetUrl') || localStorage.getItem('mc_sheetUrl') || '',
+                webhookUrl: localStorage.getItem('mc_webhookUrl') || GAS_WEBAPP_URL,
                 serverUrl: localStorage.getItem('mc_serverUrl') || 'http://localhost:5000',
                 sensitivity: parseInt(localStorage.getItem('mc_sensitivity') || '1'),
             };
@@ -997,10 +990,10 @@
 
         function saveSettings(s) {
             localStorage.setItem('mc_apiKey', s.apiKey);
-            // Groq 키는 보안을 위해 로컬 스토리지에 영구 저장하지 않고 GAS 스크립트 속성을 통해 메모리에서만 관리
+            // Groq 키, 시트 URL, Webhook URL은 GAS 및 PIN 보안 인증을 통해 메모리/세션에서 안전하게 자동 관리
             localStorage.removeItem('mc_groqKey');
-            localStorage.setItem('mc_sheetUrl', s.sheetUrl);
-            localStorage.setItem('mc_webhookUrl', s.webhookUrl || '');
+            localStorage.removeItem('mc_sheetUrl');
+            localStorage.removeItem('mc_webhookUrl');
             localStorage.setItem('mc_serverUrl', s.serverUrl || 'http://localhost:5000');
             localStorage.setItem('mc_sensitivity', String(s.sensitivity));
         }
@@ -1008,8 +1001,6 @@
         function initSettingsUI() {
             const s = loadSettings();
             $('inputApiKey').value = s.apiKey;
-            $('inputSheetUrl').value = s.sheetUrl;
-            $('inputWebhookUrl').value = s.webhookUrl || '';
             $('inputServerUrl').value = s.serverUrl || 'http://localhost:5000';
             $('inputSensitivity').value = s.sensitivity;
         }
@@ -1033,19 +1024,11 @@
             }
             if (pinErrorEl) pinErrorEl.style.display = 'none';
 
-            // Webhook URL이 설정되지 않은 경우
-            if (!s.webhookUrl || s.webhookUrl.trim() === '') {
-                if (pinBtn) { pinBtn.disabled = false; pinBtn.textContent = '접속하기'; }
-                if (pinErrorEl) {
-                    pinErrorEl.innerHTML = '설정에서 구글 앱스 스크립트(GAS) Webhook URL을 먼저 등록해 주세요.<br><span style="font-size:0.75rem; color:var(--text-muted);">(설정: 우측 상단 ⚙️)</span>';
-                    pinErrorEl.style.display = 'block';
-                }
-                return;
-            }
+            const activeWebhookUrl = s.webhookUrl || GAS_WEBAPP_URL;
 
             try {
                 let data = null;
-                const testUrl = `${s.webhookUrl.trim()}?pin=${encodeURIComponent(inputVal)}`;
+                const testUrl = `${activeWebhookUrl.trim()}?pin=${encodeURIComponent(inputVal)}`;
 
                 // 1차 시도: 직접 호출
                 try {
@@ -1081,11 +1064,18 @@
                             sessionStorage.setItem('mc_groqKey', state.groqKey);
                             console.log('✅ Groq Whisper STT securely loaded from GAS');
                         }
+                        if (data.sheetUrl) {
+                            state.sheetUrl = data.sheetUrl.trim();
+                            sessionStorage.setItem('mc_sheetUrl', state.sheetUrl);
+                            console.log('✅ Google Sheet CSV URL automatically retrieved from GAS');
+                        }
                         $('pinModal').style.display = 'none';
                         if (pinErrorEl) pinErrorEl.style.display = 'none';
                         sessionStorage.setItem('mc_authenticated', 'true');
                         sessionStorage.setItem('mc_pin', inputVal);
-                        if (s.sheetUrl) loadSheetData(s.sheetUrl);
+
+                        const targetSheetUrl = state.sheetUrl || s.sheetUrl;
+                        if (targetSheetUrl) loadSheetData(targetSheetUrl);
                         return;
                     } else if (data.error === "AUTH_PIN_NOT_SET") {
                         if (pinErrorEl) {
@@ -2381,17 +2371,13 @@ ${text.slice(0, 30000)}`;
                 saveSettings({
                     apiKey: $('inputApiKey').value.trim(),
                     groqKey: currentSettings.groqKey,
-                    sheetUrl: $('inputSheetUrl').value.trim(),
-                    webhookUrl: $('inputWebhookUrl').value.trim(),
+                    sheetUrl: currentSettings.sheetUrl,
+                    webhookUrl: currentSettings.webhookUrl,
                     serverUrl: $('inputServerUrl').value.trim(),
                     sensitivity: parseInt($('inputSensitivity').value) || 1,
                 });
                 showToast('설정 저장됨');
                 $('settingsModal').classList.remove('show');
-
-                // 시트 URL이 변경되었으면 재로드
-                const s = loadSettings();
-                if (s.sheetUrl) loadSheetData(s.sheetUrl);
             });
 
             $('btnUpdateApp').addEventListener('click', forceUpdateApp);

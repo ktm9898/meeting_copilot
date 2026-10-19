@@ -106,12 +106,16 @@ function doGet(e) {
     });
   }
 
-  // 3. 올바른 비밀번호일 때만 Groq API 키와 성공 응답 반환
+  // 3. 올바른 비밀번호일 때 Groq API 키 및 시트 CSV 읽기 주소 자동 반환
   var groqApiKey = getGroqApiKey();
+  var sheetId = SpreadsheetApp.getActiveSpreadsheet().getId();
+  var sheetCsvUrl = "https://docs.google.com/spreadsheets/d/" + sheetId + "/export?format=csv";
+
   return responseJSON({ 
     success: true, 
     status: "ok", 
     groqApiKey: groqApiKey,
+    sheetUrl: sheetCsvUrl,
     message: "Meeting Copilot GAS Uploader is running." 
   });
 }

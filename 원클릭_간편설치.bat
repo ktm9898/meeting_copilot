@@ -41,7 +41,7 @@ if %errorlevel% neq 0 (
 
 :: 3. 바탕화면에 [Meeting Copilot] 바로가기 생성
 echo [*] 바탕화면에 [Meeting Copilot] 바로가기 아이콘을 생성합니다...
-powershell -Command "$ws = New-Object -ComObject WScript.Shell; $d = [Environment]::GetFolderPath('Desktop'); $sc = $ws.CreateShortcut(\"$d\Meeting Copilot.lnk\"); $sc.TargetPath = '%~dp0run_kordoc_background.vbs'; $sc.WorkingDirectory = '%~dp0'; $sc.Description = 'Meeting Copilot AI 회의 보조 시스템'; $sc.Save()" >nul 2>&1
+wscript.exe "%~dp0create_shortcut.vbs"
 echo [V] 바탕화면 바로가기 생성 완료!
 
 echo.

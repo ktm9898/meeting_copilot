@@ -1154,14 +1154,15 @@
             if (statusTextEl) statusTextEl.textContent = '로드 중...';
             try {
                 let text = '';
+                const fetchUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
                 try {
-                    const res = await fetch(url, { redirect: 'follow' });
+                    const res = await fetch(fetchUrl, { redirect: 'follow', cache: 'no-store' });
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     text = await res.text();
                 } catch (directErr) {
                     console.warn('Direct fetch failed, trying CORS proxy:', directErr);
-                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-                    const res = await fetch(proxyUrl);
+                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fetchUrl)}`;
+                    const res = await fetch(proxyUrl, { cache: 'no-store' });
                     if (!res.ok) throw new Error(`프록시 실패 HTTP ${res.status}`);
                     text = await res.text();
                 }

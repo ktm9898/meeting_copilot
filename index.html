@@ -2408,26 +2408,8 @@ ${text.slice(0, 30000)}`;
                         throw new Error(data.error || `HTTP ${res.status}`);
                     }
 
-                    // 브라우저에서 직접 PIN과 함께 구글 시트로 직통 저장 (가장 확실한 100% 저장)
-                    if (Array.isArray(data.chunks) && data.chunks.length > 0) {
-                        uploadStatusText.textContent = `구글 시트에 ${data.chunks.length}개 항목 저장 중...`;
-                        const currentPin = sessionStorage.getItem('mc_pin') || settings.appPassword || '';
-                        const payloadData = {
-                            pin: currentPin,
-                            items: data.chunks
-                        };
-
-                        const gasRes = await fetch(settings.webhookUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payloadData)
-                        });
-
-                        const gasJson = await gasRes.json().catch(() => null);
-                        console.log('[Google Sheets Direct Append Response]:', gasJson);
-                        if (gasJson && gasJson.success === false) {
-                            throw new Error(`구글 시트 저장 실패: ${gasJson.error || '권한(PIN) 오류'}`);
-                        }
+                    if (!data.sheetAppended) {
+                        throw new Error('서버에서 구글 시트 저장에 실패했습니다. Webhook URL 및 PIN 상태를 확인해 주세요.');
                     }
 
                     uploadStatusText.textContent = '지식 DB 등록 완료!';

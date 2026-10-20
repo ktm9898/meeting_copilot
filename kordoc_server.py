@@ -17,9 +17,28 @@ import urllib.request
 import urllib.parse
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
+# pythonw.exe(GUI 모드) 실행 시 sys.stdout / sys.stderr가 None이 되어 충돌하는 문제 원천 방지
+if sys.stdout is None:
+    try:
+        sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+    except:
+        pass
+if sys.stderr is None:
+    try:
+        sys.stderr = open(os.devnull, 'w', encoding='utf-8')
+    except:
+        pass
+
 PORT = 5000
 
 class KordocHandler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        try:
+            if sys.stderr and not sys.stderr.closed:
+                sys.stderr.write("%s - - [%s] %s\n" % (self.address_string(), self.log_date_time_string(), format%args))
+        except:
+            pass
+
     def _set_cors_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')

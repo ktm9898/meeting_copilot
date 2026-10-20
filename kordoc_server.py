@@ -124,6 +124,7 @@ class KordocHandler(BaseHTTPRequestHandler):
             filename = "document.hwp"
             api_key = ""
             webhook_url = ""
+            pin = ""
 
             for part in parts:
                 if b'Content-Disposition' in part:
@@ -140,6 +141,8 @@ class KordocHandler(BaseHTTPRequestHandler):
                             api_key = content.decode('utf-8', errors='ignore').strip()
                         elif 'name="webhookUrl"' in headers_str:
                             webhook_url = content.decode('utf-8', errors='ignore').strip()
+                        elif 'name="pin"' in headers_str:
+                            pin = content.decode('utf-8', errors='ignore').strip()
                     except Exception as p_err:
                         pass
 
@@ -274,11 +277,24 @@ class KordocHandler(BaseHTTPRequestHandler):
                             "fullText": item.get("fullText", parsed_text[:10000])
                         })
 
-                    payload = json.dumps(payload_items).encode('utf-8')
+                    payload_obj = {
+                        "pin": pin,
+                        "items": payload_items
+                    }
+                    payload = json.dumps(payload_obj).encode('utf-8')
                     gas_req = urllib.request.Request(webhook_url, data=payload, headers={'Content-Type': 'application/json'})
                     with urllib.request.urlopen(gas_req) as gas_res:
-                        sheet_appended = True
-                        print(f"[Google Sheets] {len(chunks)} rows appended successfully")
+                        gas_res_text = gas_res.read().decode('utf-8')
+                        try:
+                            gas_json = json.loads(gas_res_text)
+                            if gas_json.get("success") == True or gas_json.get("status") == "ok":
+                                sheet_appended = True
+                                print(f"[Google Sheets] {len(chunks)} rows appended successfully!")
+                            else:
+                                print(f"[Warning] Google Sheets rejected append: {gas_res_text}")
+                        except:
+                            if "success" in gas_res_text and "false" not in gas_res_text:
+                                sheet_appended = True
                 except Exception as gas_err:
                     print(f"[Error] Google Sheets append failed: {gas_err}")
 

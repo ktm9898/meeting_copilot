@@ -3,3 +3,5 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 WshShell.CurrentDirectory = scriptDir
 WshShell.Run "cmd /c start pythonw kordoc_server.py", 0, False
+WScript.Sleep 600
+WshShell.Run "cmd /c start http://localhost:5000", 0, False

@@ -33,12 +33,57 @@ class KordocHandler(BaseHTTPRequestHandler):
 
 
     def do_GET(self):
-        self.send_response(200)
-        self._set_cors_headers()
-        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        # 1. API 상태 확인 경로
+        if self.path in ['/api/status', '/status']:
+            self.send_response(200)
+            self._set_cors_headers()
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            response = {"status": "ok", "message": "Meeting Copilot Local Kordoc Server is running"}
+            self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+            return
+
+        # 2. 웹앱 정적 파일 (HTML, JS, SVG, JSON 등) 서빙
+        req_path = urllib.parse.urlparse(self.path).path
+        if req_path in ['/', '', '/index.html']:
+            filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
+        else:
+            clean_path = req_path.lstrip('/')
+            filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), clean_path)
+
+        if os.path.exists(filepath) and os.path.isfile(filepath):
+            mime_types = {
+                '.html': 'text/html; charset=utf-8',
+                '.js': 'application/javascript; charset=utf-8',
+                '.json': 'application/json; charset=utf-8',
+                '.css': 'text/css; charset=utf-8',
+                '.svg': 'image/svg+xml',
+                '.png': 'image/png',
+                '.ico': 'image/x-icon'
+            }
+            ext = os.path.splitext(filepath)[1].lower()
+            content_type = mime_types.get(ext, 'application/octet-stream')
+
+            try:
+                with open(filepath, 'rb') as f:
+                    content = f.read()
+                self.send_response(200)
+                self._set_cors_headers()
+                self.send_header('Content-Type', content_type)
+                self.send_header('Content-Length', str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+            except Exception as read_err:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(f"File read error: {read_err}".encode('utf-8'))
+                return
+
+        # 파일이 없으면 404
+        self.send_response(404)
         self.end_headers()
-        response = {"status": "ok", "message": "Meeting Copilot Local Kordoc Server is running"}
-        self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+        self.wfile.write(b"404 Not Found")
 
     def do_POST(self):
         if self.path != '/upload':

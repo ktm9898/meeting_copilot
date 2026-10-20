@@ -2355,20 +2355,31 @@ ${text.slice(0, 30000)}`;
 
                 try {
                     uploadStatusText.textContent = 'Gemini AI 분석 및 구글 시트 저장 중...';
-                    const serverUrl = (settings.serverUrl || 'http://127.0.0.1:5000').replace(/\/+$/, '');
-                    const localApiUrl = `${serverUrl}/upload`;
+                    const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                     let res;
-                    try {
-                        res = await fetch(localApiUrl, {
+
+                    if (isLocalHost) {
+                        // 로컬 서버로 웹앱 접속 시: 동일 오리진 다이렉트 통신 (CORS 0% 안전)
+                        res = await fetch('/upload', {
                             method: 'POST',
                             body: formData
                         });
-                    } catch(errFetch) {
-                        const altServerUrl = serverUrl.includes('localhost') ? serverUrl.replace('localhost', '127.0.0.1') : serverUrl.replace('127.0.0.1', 'localhost');
-                        res = await fetch(`${altServerUrl}/upload`, {
-                            method: 'POST',
-                            body: formData
-                        });
+                    } else {
+                        // 인터넷(GitHub Pages) 접속 시: 설정된 로컬 서버 URL 호출
+                        const serverUrl = (settings.serverUrl || 'http://127.0.0.1:5000').replace(/\/+$/, '');
+                        const localApiUrl = `${serverUrl}/upload`;
+                        try {
+                            res = await fetch(localApiUrl, {
+                                method: 'POST',
+                                body: formData
+                            });
+                        } catch(errFetch) {
+                            const altServerUrl = serverUrl.includes('localhost') ? serverUrl.replace('localhost', '127.0.0.1') : serverUrl.replace('127.0.0.1', 'localhost');
+                            res = await fetch(`${altServerUrl}/upload`, {
+                                method: 'POST',
+                                body: formData
+                            });
+                        }
                     }
 
                     let data;

@@ -163,6 +163,11 @@ class KordocHandler(BaseHTTPRequestHandler):
             default_doc_title = os.path.splitext(filename)[0]
             chunks = []
 
+            if not api_key:
+                self._send_json(400, {"error": "Gemini API 키가 설정되지 않았습니다. 우측 상단 [설정(⚙️)]을 눌러 Gemini API 키를 입력하고 저장해 주세요."})
+                return
+
+            last_ai_error = ""
             if api_key:
                 try:
                     print("[Gemini AI] Analyzing document structure & generating semantic sub-topic chunks...")
@@ -219,13 +224,18 @@ class KordocHandler(BaseHTTPRequestHandler):
                             chunks = parsed_json
                         elif isinstance(parsed_json, dict):
                             chunks = [parsed_json]
+                except urllib.error.HTTPError as http_err:
+                    err_body = http_err.read().decode('utf-8', errors='ignore')
+                    last_ai_error = f"HTTP {http_err.code}: {err_body[:200]}"
+                    print(f"[Warning] Gemini API HTTP Error: {last_ai_error}")
                 except Exception as ai_err:
                     import traceback
+                    last_ai_error = str(ai_err)
                     print(f"[Warning] Gemini Smart Chunking failed: {ai_err}")
                     traceback.print_exc()
 
             if not chunks:
-                self._send_json(500, {"error": f"Gemini AI 스마트 분할 실패: API 키(Gemini 2.5 Flash)를 확인해 주시거나 잠시 후 다시 시도해 주세요."})
+                self._send_json(500, {"error": f"Gemini AI 스마트 분할 실패 ({last_ai_error}): 설정(⚙️)의 Gemini API 키가 올바른지 확인해 주세요."})
                 return
 
             print(f"[Smart Chunking Result] Total {len(chunks)} sub-topic rows generated")
@@ -272,14 +282,24 @@ class KordocHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(obj, ensure_ascii=False).encode('utf-8'))
 
+def is_port_in_use(port):
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex(('127.0.0.1', port)) == 0
+
 def run_server():
+    if is_port_in_use(PORT):
+        print(f"[Notice] Kordoc server is ALREADY active on port {PORT}. (Skipping duplicate startup)")
+        return
+
     server_address = ('0.0.0.0', PORT)
-    ThreadingHTTPServer.allow_reuse_address = True
+    ThreadingHTTPServer.allow_reuse_address = False
     try:
         httpd = ThreadingHTTPServer(server_address, KordocHandler)
     except OSError as err:
         if err.errno == 10048 or "Address already in use" in str(err):
-            print(f"[Notice] Kordoc server is ALREADY running on port {PORT}. (No duplicate needed)")
+            print(f"[Notice] Port {PORT} is already in use.")
             return
         raise err
 

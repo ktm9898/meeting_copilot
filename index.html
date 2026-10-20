@@ -2399,10 +2399,31 @@ ${text.slice(0, 30000)}`;
                         throw new Error(data.error || `HTTP ${res.status}`);
                     }
 
+                    // 서버에서 시트 저장이 안 된 경우, 브라우저에서 직접 PIN과 함께 구글 시트로 직통 전송!
+                    if (!data.sheetAppended && Array.isArray(data.chunks) && data.chunks.length > 0) {
+                        uploadStatusText.textContent = '구글 시트에 6개 항목 저장 중...';
+                        const currentPin = sessionStorage.getItem('mc_pin') || settings.appPassword || '';
+                        const payloadData = {
+                            pin: currentPin,
+                            items: data.chunks
+                        };
+
+                        const gasRes = await fetch(settings.webhookUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payloadData)
+                        });
+
+                        const gasJson = await gasRes.json().catch(() => null);
+                        if (gasJson && gasJson.success === false) {
+                            throw new Error(`구글 시트 저장 실패: ${gasJson.error || '권한(PIN) 오류'}`);
+                        }
+                    }
+
                     uploadStatusText.textContent = '지식 DB 등록 완료!';
                     const countMsg = data.chunkCount ? `${data.chunkCount}개 세부 주제 항목` : '지식 DB 항목';
                     uploadDetailText.textContent = `[${file.name}] ${countMsg}으로 자동 분할 등록되었습니다.`;
-                    showToast(`[${file.name}] ${countMsg} 구글 시트 등록 완료!`);
+                    showToast(`[${file.name}] ${countMsg} 구글 시트 저장 완료!`);
 
                     setTimeout(() => {
                         if (settings.sheetUrl) loadSheetData(settings.sheetUrl);

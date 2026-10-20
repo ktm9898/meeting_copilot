@@ -286,6 +286,7 @@ class KordocHandler(BaseHTTPRequestHandler):
                 "success": True,
                 "filename": filename,
                 "parsedLength": len(parsed_text),
+                "chunks": chunks,
                 "chunkCount": len(chunks),
                 "sheetAppended": sheet_appended
             })

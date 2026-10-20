@@ -15,7 +15,7 @@ import subprocess
 import tempfile
 import urllib.request
 import urllib.parse
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 PORT = 5000
 
@@ -23,7 +23,7 @@ class KordocHandler(BaseHTTPRequestHandler):
     def _set_cors_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Access-Control-Allow-Private-Network')
+        self.send_header('Access-Control-Allow-Headers', '*')
         self.send_header('Access-Control-Allow-Private-Network', 'true')
 
     def do_OPTIONS(self):
@@ -229,7 +229,15 @@ class KordocHandler(BaseHTTPRequestHandler):
 
 def run_server():
     server_address = ('0.0.0.0', PORT)
-    httpd = HTTPServer(server_address, KordocHandler)
+    ThreadingHTTPServer.allow_reuse_address = True
+    try:
+        httpd = ThreadingHTTPServer(server_address, KordocHandler)
+    except OSError as err:
+        if err.errno == 10048 or "Address already in use" in str(err):
+            print(f"[Notice] Kordoc server is ALREADY running on port {PORT}. (No duplicate needed)")
+            return
+        raise err
+
     print(f"[OK] Meeting Copilot Local Kordoc Server Started! (http://localhost:{PORT})")
     print("[Info] Ready for document upload requests. (Press Ctrl+C to stop)")
     try:

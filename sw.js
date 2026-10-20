@@ -1,5 +1,5 @@
 // Meeting Copilot Service Worker
-const CACHE_NAME = 'meeting-copilot-v19';
+const CACHE_NAME = 'meeting-copilot-v20';
 const ASSETS = [
   './',
   './index.html',
@@ -31,9 +31,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-// API and Local Server calls: always direct network
+  // API and Local Server calls: DO NOT call event.respondWith, let the browser handle network natively!
   if (url.hostname.includes('googleapis.com') || url.hostname.includes('google.com') || url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-    event.respondWith(fetch(event.request));
     return;
   }
 
@@ -41,5 +40,4 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then(cached => cached || fetch(event.request))
   );
-
 });

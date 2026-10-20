@@ -2408,9 +2408,9 @@ ${text.slice(0, 30000)}`;
                         throw new Error(data.error || `HTTP ${res.status}`);
                     }
 
-                    // 서버에서 시트 저장이 안 된 경우, 브라우저에서 직접 PIN과 함께 구글 시트로 직통 전송!
-                    if (!data.sheetAppended && Array.isArray(data.chunks) && data.chunks.length > 0) {
-                        uploadStatusText.textContent = '구글 시트에 6개 항목 저장 중...';
+                    // 브라우저에서 직접 PIN과 함께 구글 시트로 직통 저장 (가장 확실한 100% 저장)
+                    if (Array.isArray(data.chunks) && data.chunks.length > 0) {
+                        uploadStatusText.textContent = `구글 시트에 ${data.chunks.length}개 항목 저장 중...`;
                         const currentPin = sessionStorage.getItem('mc_pin') || settings.appPassword || '';
                         const payloadData = {
                             pin: currentPin,
@@ -2424,6 +2424,7 @@ ${text.slice(0, 30000)}`;
                         });
 
                         const gasJson = await gasRes.json().catch(() => null);
+                        console.log('[Google Sheets Direct Append Response]:', gasJson);
                         if (gasJson && gasJson.success === false) {
                             throw new Error(`구글 시트 저장 실패: ${gasJson.error || '권한(PIN) 오류'}`);
                         }

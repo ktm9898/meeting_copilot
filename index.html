@@ -257,10 +257,10 @@
         .ai-answer {
             display: block;
             margin-top: 8px;
-            padding: 8px 12px;
+            padding: 10px 14px;
             background: rgba(167, 139, 250, 0.08);
             border-left: 3px solid var(--accent-purple);
-            border-radius: 0 6px 6px 0;
+            border-radius: 0 8px 8px 0;
             color: var(--text-primary);
             font-size: 0.88rem;
             line-height: 1.6;
@@ -298,22 +298,150 @@
 
         .ai-bullet {
             display: flex;
-            align-items: baseline;
+            align-items: flex-start;
             gap: 6px;
-            margin: 4px 0;
+            margin: 5px 0;
             line-height: 1.55;
             padding-left: 2px;
         }
 
         .ai-bullet .bullet-dot {
             color: var(--accent-purple);
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             flex-shrink: 0;
-            line-height: 1;
+            line-height: 1.5;
         }
 
         .ai-bullet .bullet-text {
             flex: 1;
+            min-width: 0;
+        }
+
+        /* [2번 개선] 출처(Source) 태그 칩 */
+        .source-chip-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin: 4px 0 6px 0;
+            padding-left: 2px;
+        }
+
+        .source-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(167, 139, 250, 0.12);
+            border: 1px solid rgba(167, 139, 250, 0.28);
+            color: #c4b5fd;
+            font-size: 0.72rem;
+            padding: 2px 7px;
+            border-radius: 10px;
+            line-height: 1.35;
+            font-weight: 500;
+            letter-spacing: -0.2px;
+            word-break: break-all;
+        }
+
+        .source-chip .source-icon {
+            font-size: 0.75rem;
+            opacity: 0.85;
+            flex-shrink: 0;
+        }
+
+        /* [3번 개선] 1. 핵심 요약 카드 & 2. 세부 아코디언 */
+        .ai-summary-card {
+            background: rgba(167, 139, 250, 0.12);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin: 8px 0 12px 0;
+            border: 1px solid rgba(167, 139, 250, 0.25);
+        }
+
+        .ai-summary-card .ai-summary-title {
+            font-weight: 800;
+            font-size: 0.92rem;
+            color: #d8b4fe;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ai-accordion {
+            margin: 8px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .ai-accordion[open] {
+            border-color: rgba(167, 139, 250, 0.45);
+            background: rgba(167, 139, 250, 0.04);
+        }
+
+        .ai-accordion-header {
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-secondary);
+            user-select: none;
+            gap: 8px;
+        }
+
+        .ai-accordion-header::-webkit-details-marker {
+            display: none;
+        }
+
+        .ai-accordion-header .accordion-title {
+            flex: 1;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+
+        .ai-accordion-header .accordion-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 12px;
+            background: rgba(167, 139, 250, 0.12);
+            color: var(--accent-purple);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .ai-accordion-header .accordion-badge .arrow {
+            display: inline-block;
+            transition: transform 0.25s ease;
+            font-size: 0.65rem;
+        }
+
+        .ai-accordion[open] .ai-accordion-header .accordion-badge {
+            background: var(--accent-purple);
+            color: #ffffff;
+            border-color: var(--accent-purple);
+        }
+
+        .ai-accordion[open] .ai-accordion-header .accordion-badge .arrow {
+            transform: rotate(180deg);
+        }
+
+        .ai-accordion-body {
+            padding: 10px 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 0.85rem;
+            line-height: 1.6;
         }
 
         /* Empty State */
@@ -1862,10 +1990,12 @@
    - 사용자가 '올해', '최근', '현재' 실적/수치를 물었으나 보유 자료가 과거(예: 작년) 수치인 경우, 답변 맨 첫 줄에 오해가 없도록 명확히 고지하세요.
    - 예: "[시점 안내]: 등록된 최신 자료는 **'2023년 성과보고서'**이며, ${now.getFullYear()}년(올해) 자료는 등록되어 있지 않아 **2023년 결산 수치** 기준으로 안내드립니다."
 4. **충분하고 구조화된 심층 설명**:
-   - 500자 제한 없이 사용자가 필요로 하는 내용을 충분히 상세하게 풀어내세요.
-   - 1) 핵심 답변/결론 요약, 2) 세부 데이터 및 배경 사실관계(원인, 추진 경과, 관련 규정 등), 3) 관련 참고사항 순으로 가독성 높은 소제목과 불릿포인트(•)로 구조화하세요.
-5. **정확한 사실 기반(Fact-based)**:
-   - 추측성 답변은 지양하고, 문서에 명시된 사실과 수치를 **볼드체**로 강조하여 작성하세요.
+   - 질문에 대해 필요한 내용을 핵심 위주로 명확하고 상세하게 작성하세요.
+   - 1) 첫머리에는 반드시 **'1. 핵심 요약'**을 작성하여, 회의 중 3초 안에 즉각 발언할 수 있도록 핵심 결론과 주요 수치를 가장 먼저 제시하세요.
+   - 2) 이어서 **'2. ...'**, **'3. ...'** 형태로 세부 데이터, 추진 경과 및 배경 사실관계를 소제목과 불릿포인트(•)로 일목요연하게 구조화하세요.
+5. **정확한 사실 기반(Fact-based) 및 문장 완결**:
+   - 추측성 답변은 지양하고, 문서에 명시된 사실과 수치를 **볼드체**로 강조하세요.
+   - 문장이 도중에 끊기지 않도록 모든 문장은 마침표(.)로 완결성 있게 명확히 끝마무리하세요.
 6. 장황한 인사말이나 서두 없이, 시점 안내(필요시) 및 핵심 답변부터 전문적인 비즈니스 톤으로 시작하세요.`;
 
                     userPrompt = `[참고 자료]
@@ -1914,7 +2044,9 @@ ${recentText}
                     body: JSON.stringify({
                         system_instruction: { parts: [{ text: systemInstruction }] },
                         contents: [{ parts: [{ text: userPrompt }] }],
-                        generationConfig: { temperature: 0.3, maxOutputTokens: 4096 }
+                        generationConfig: {
+                            temperature: 0.3
+                        }
                     })
                 });
 
@@ -1984,55 +2116,136 @@ ${recentText}
                     parseSSE(lineBuffer);
                 }
 
-                // 가독성 높은 AI 응답 렌더러 (마크다운 기호 ###, ---, 날것의 * 제거, 볼드 소제목 및 점 불릿 변환, 이모지 정제)
+                // 가독성 높은 AI 응답 렌더러 (출처 칩 분리, 1번 요약 카드화, 2번 이후 세부 아코디언 접기)
                 const formatAIResponse = (text) => {
                     if (!text) return '(응답 없음)';
 
                     // 1. 불필요한 이모지 제거 (🤖, 💡, ⚠️ 등 비즈니스 문서에 부적합한 이모지 정제)
                     let clean = text.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
 
-                    // 2. 줄 단위 파싱
-                    const lines = clean.split('\n');
-                    const formattedLines = [];
-
-                    for (let i = 0; i < lines.length; i++) {
-                        let line = lines[i].trim();
-
-                        // 빈 줄 처리
-                        if (!line) {
-                            formattedLines.push('<div style="height: 6px;"></div>');
-                            continue;
+                    // 출처 분리 헬퍼: 문장에서 [2026년 ... 기준/보고서 등] 형태의 출처를 추출하여 칩 태그로 분리
+                    const processSources = (lineContent) => {
+                        const sources = [];
+                        // [시점 안내]는 출처 칩이 아닌 상단 안내이므로 건너뜀
+                        if (lineContent.startsWith('[시점 안내]') || lineContent.startsWith('<strong>[시점 안내]</strong>')) {
+                            return { cleanText: lineContent, sourcesHtml: '' };
                         }
 
-                        // 수평선 (---, ***, ===) 제거 및 깔끔한 구분선 대체
+                        // [대괄호 출처] 패턴 추출 (기준, 보고서, 계획, 신청서, 평가, 자료, 공문, 출처, 시점, 데이터, 기여, 실적, 성과 등 포함)
+                        const contentWithoutSources = lineContent.replace(/\[([^\]]{3,120}?(?:기준|보고서|계획|신청서|평가|자료|공문|출처|시점|데이터|기여|실적|성과)[^\]]*?)\]/g, (match, p1) => {
+                            const trimmed = p1.trim();
+                            if (trimmed) sources.push(trimmed);
+                            return '';
+                        }).trim();
+
+                        let sourcesHtml = '';
+                        if (sources.length > 0) {
+                            sourcesHtml = `<div class="source-chip-container">` +
+                                sources.map(s => `<span class="source-chip"><span class="source-icon">🏷️</span>${s}</span>`).join('') +
+                                `</div>`;
+                        }
+                        return { cleanText: contentWithoutSources || lineContent, sourcesHtml };
+                    };
+
+                    // 라인 포맷 헬퍼 (마크다운 볼드, 불릿 등 변환)
+                    const formatSingleLine = (rawLine) => {
+                        let line = rawLine.trim();
+                        if (!line) return '<div style="height: 4px;"></div>';
+
                         if (/^[-*=]{3,}$/.test(line)) {
-                            formattedLines.push('<hr class="ai-divider">');
-                            continue;
+                            return '<hr class="ai-divider">';
                         }
 
-                        // 소제목 파싱 (### 제목, ## 제목, # 제목)
+                        // 소제목 파싱 (### 제목 등)
                         if (/^#{1,4}\s*(.*)/.test(line)) {
-                            const title = line.replace(/^#{1,4}\s*/, '').trim();
-                            const cleanTitle = title.replace(/\*\*/g, '');
-                            formattedLines.push(`<div class="ai-heading">${cleanTitle}</div>`);
-                            continue;
+                            const title = line.replace(/^#{1,4}\s*/, '').replace(/\*\*/g, '').trim();
+                            return `<div class="ai-heading">${title}</div>`;
                         }
 
-                        // 볼드체 강조 치환
+                        // 볼드 강조 치환
                         line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
                         // 불릿포인트 파싱 (* 항목, - 항목, • 항목)
                         if (/^[-*•]\s+(.*)/.test(line)) {
-                            const content = line.replace(/^[-*•]\s+/, '').trim();
-                            formattedLines.push(`<div class="ai-bullet"><span class="bullet-dot">•</span><span class="bullet-text">${content}</span></div>`);
-                            continue;
+                            const bulletContent = line.replace(/^[-*•]\s+/, '').trim();
+                            const { cleanText, sourcesHtml } = processSources(bulletContent);
+                            return `<div class="ai-bullet"><span class="bullet-dot">•</span><div class="bullet-text"><div>${cleanText}</div>${sourcesHtml}</div></div>`;
                         }
 
-                        // 일반 문단 라인
-                        formattedLines.push(`<div>${line}</div>`);
+                        // 일반 문단
+                        const { cleanText, sourcesHtml } = processSources(line);
+                        return `<div><div>${cleanText}</div>${sourcesHtml}</div>`;
+                    };
+
+                    // 2. 줄 단위 파싱 및 섹션 감지
+                    const lines = clean.split('\n');
+                    const hasNumberedSections = lines.some(l => /^[1-9]\.\s+/.test(l.trim()));
+
+                    // 번호 매겨진 섹션이 없는 경우: 단순 라인 포맷 적용
+                    if (!hasNumberedSections) {
+                        return lines.map(l => formatSingleLine(l)).join('');
                     }
 
-                    return formattedLines.join('');
+                    // 번호 매겨진 대주제 구조화 (1. 핵심 요약, 2. 전략 목표..., 3. 실적...)
+                    const sections = [];
+                    let currentSection = null;
+
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+
+                        const numMatch = line.match(/^([1-9])\.\s*(.*)/);
+
+                        if (numMatch) {
+                            if (currentSection) sections.push(currentSection);
+                            currentSection = {
+                                num: parseInt(numMatch[1], 10),
+                                title: numMatch[2].replace(/\*\*/g, '').trim(),
+                                lines: []
+                            };
+                        } else {
+                            if (!currentSection) {
+                                currentSection = { num: 0, title: '', lines: [] };
+                            }
+                            currentSection.lines.push(line);
+                        }
+                    }
+                    if (currentSection) sections.push(currentSection);
+
+                    const htmlParts = [];
+
+                    for (const sec of sections) {
+                        const bodyHtml = sec.lines.map(l => formatSingleLine(l)).join('');
+
+                        if (sec.num === 1) {
+                            // [1번 핵심 요약 섹션]: 최상단에 상시 오픈된 요약 브리핑 카드
+                            htmlParts.push(`
+                                <div class="ai-summary-card">
+                                    <div class="ai-summary-title">
+                                        <span>📌</span>
+                                        <span>1. ${sec.title}</span>
+                                    </div>
+                                    <div class="ai-summary-body">${bodyHtml}</div>
+                                </div>
+                            `);
+                        } else if (sec.num > 1) {
+                            // [2번, 3번 이후 세부 섹션]: 탭해서 볼 수 있는 아코디언 접기
+                            htmlParts.push(`
+                                <details class="ai-accordion">
+                                    <summary class="ai-accordion-header">
+                                        <span class="accordion-title">${sec.num}. ${sec.title}</span>
+                                        <span class="accordion-badge">세부 내용 <span class="arrow">▼</span></span>
+                                    </summary>
+                                    <div class="ai-accordion-body">${bodyHtml}</div>
+                                </details>
+                            `);
+                        } else {
+                            // 서두 안내 문구 등
+                            htmlParts.push(`<div>${bodyHtml}</div>`);
+                        }
+                    }
+
+                    return htmlParts.join('');
                 };
 
                 // 최종 렌더링 적용

@@ -2045,78 +2045,15 @@ ${recentText}
                         system_instruction: { parts: [{ text: systemInstruction }] },
                         contents: [{ parts: [{ text: userPrompt }] }],
                         generationConfig: {
-                            temperature: 0.3
+                            temperature: 0.3,
+                            maxOutputTokens: 65536
                         }
                     })
                 });
 
                 if (!response.ok) throw new Error(`API ${response.status}`);
 
-                // AI 블록 생성
-                flashEmpty.style.display = 'none';
-                const aiBlock = document.createElement('div');
-                aiBlock.className = 'ai-answer';
-                const prefixLabel = manualQuery ? `자료확인${categoryTag}` : `AI 맥락분석${categoryTag}`;
-                aiBlock.innerHTML = `<span class="ai-label">${prefixLabel}</span><span id="aiStreamText">▌</span>`;
-                if (manualQuery) {
-                    const qTag = document.createElement('div');
-                    qTag.style.fontSize = '0.8rem';
-                    qTag.style.color = 'var(--text-muted)';
-                    qTag.style.marginBottom = '6px';
-                    qTag.innerHTML = `<strong>Q:</strong> ${manualQuery}`;
-                    aiBlock.insertBefore(qTag, aiBlock.firstChild);
-                }
-                flashArea.appendChild(aiBlock);
-                flashArea.scrollTop = flashArea.scrollHeight;
-
-                const streamEl = aiBlock.querySelector('#aiStreamText');
-                streamEl.removeAttribute('id');
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let fullText = '';
-                let lineBuffer = '';
-
-                // SSE 라인 파싱 함수
-                const parseSSE = (line) => {
-                    if (line.startsWith('data: ')) {
-                        const jsonStr = line.slice(6).trim();
-                        if (jsonStr === '[DONE]' || !jsonStr) return;
-                        try {
-                            const data = JSON.parse(jsonStr);
-                            const t = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                            if (t) {
-                                fullText += t;
-                                streamEl.textContent = fullText + ' ▌';
-                                flashArea.scrollTop = flashArea.scrollHeight;
-                            }
-                        } catch (e) {
-                            console.warn('JSON parse error in stream:', e, jsonStr);
-                        }
-                    }
-                };
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    const chunk = decoder.decode(value, { stream: true });
-                    lineBuffer += chunk;
-
-                    const lines = lineBuffer.split('\n');
-                    lineBuffer = lines.pop(); // 미완성 라인 대기
-
-                    for (const line of lines) {
-                        parseSSE(line);
-                    }
-                }
-
-                // 루프 종료 후 남은 버퍼(마지막 라인) 처리
-                if (lineBuffer) {
-                    parseSSE(lineBuffer);
-                }
-
-                // 가독성 높은 AI 응답 렌더러 (출처 칩 분리, 1번 요약 카드화, 2번 이후 세부 아코디언 접기)
+                // 가독성 높은 AI 응답 렌더러 (출처 칩 분리, 1번 요약 카드화, 2번 이후 세부 아코디언 접기, 마크다운 기호 완전 정제)
                 const formatAIResponse = (text) => {
                     if (!text) return '(응답 없음)';
 
@@ -2131,8 +2068,8 @@ ${recentText}
                             return { cleanText: lineContent, sourcesHtml: '' };
                         }
 
-                        // [대괄호 출처] 패턴 추출 (기준, 보고서, 계획, 신청서, 평가, 자료, 공문, 출처, 시점, 데이터, 기여, 실적, 성과 등 포함)
-                        const contentWithoutSources = lineContent.replace(/\[([^\]]{3,120}?(?:기준|보고서|계획|신청서|평가|자료|공문|출처|시점|데이터|기여|실적|성과)[^\]]*?)\]/g, (match, p1) => {
+                        // [대괄호 출처] 패턴 추출 (기준, 보고서, 계획, 신청서, 평가, 자료, 공문, 출처, 시점, 데이터, 기여, 실적, 성과, 목표 등 포함)
+                        const contentWithoutSources = lineContent.replace(/\[([^\]]{2,120}?(?:기준|보고서|계획|신청서|평가|자료|공문|출처|시점|데이터|기여|실적|성과|목표)[^\]]*?)\]/g, (match, p1) => {
                             const trimmed = p1.trim();
                             if (trimmed) sources.push(trimmed);
                             return '';
@@ -2156,14 +2093,15 @@ ${recentText}
                             return '<hr class="ai-divider">';
                         }
 
-                        // 소제목 파싱 (### 제목 등)
+                        // 소제목 파싱 (#### 세부소제목, ### 소제목 등 마크다운 헤딩 기호 정제)
                         if (/^#{1,4}\s*(.*)/.test(line)) {
                             const title = line.replace(/^#{1,4}\s*/, '').replace(/\*\*/g, '').trim();
-                            return `<div class="ai-heading">${title}</div>`;
+                            const { cleanText, sourcesHtml } = processSources(title);
+                            return `<div class="ai-heading">${cleanText}</div>${sourcesHtml}`;
                         }
 
-                        // 볼드 강조 치환
-                        line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        // 볼드 강조 치환 (문장 끝 미완성 ** 까지 안전 처리)
+                        line = line.replace(/\*\*(.*?)(?:\*\*|$)/g, (m, p1) => p1.trim() ? `<strong>${p1}</strong>` : '');
 
                         // 불릿포인트 파싱 (* 항목, - 항목, • 항목)
                         if (/^[-*•]\s+(.*)/.test(line)) {
@@ -2177,9 +2115,19 @@ ${recentText}
                         return `<div><div>${cleanText}</div>${sourcesHtml}</div>`;
                     };
 
-                    // 2. 줄 단위 파싱 및 섹션 감지
+                    // 2. 줄 단위 파싱 및 섹션 감지 (### 1. 제목 또는 1. 제목 모두 감지)
                     const lines = clean.split('\n');
-                    const hasNumberedSections = lines.some(l => /^[1-9]\.\s+/.test(l.trim()));
+
+                    const getNumberedHeading = (lineStr) => {
+                        const stripped = lineStr.replace(/^#{1,4}\s*/, '').trim();
+                        const match = stripped.match(/^([1-9])\.\s*(.*)/);
+                        if (match) {
+                            return { num: parseInt(match[1], 10), title: match[2].replace(/\*\*/g, '').trim() };
+                        }
+                        return null;
+                    };
+
+                    const hasNumberedSections = lines.some(l => getNumberedHeading(l.trim()) !== null);
 
                     // 번호 매겨진 섹션이 없는 경우: 단순 라인 포맷 적용
                     if (!hasNumberedSections) {
@@ -2194,13 +2142,13 @@ ${recentText}
                         const line = lines[i].trim();
                         if (!line) continue;
 
-                        const numMatch = line.match(/^([1-9])\.\s*(.*)/);
+                        const numInfo = getNumberedHeading(line);
 
-                        if (numMatch) {
+                        if (numInfo) {
                             if (currentSection) sections.push(currentSection);
                             currentSection = {
-                                num: parseInt(numMatch[1], 10),
-                                title: numMatch[2].replace(/\*\*/g, '').trim(),
+                                num: numInfo.num,
+                                title: numInfo.title,
                                 lines: []
                             };
                         } else {
@@ -2248,8 +2196,77 @@ ${recentText}
                     return htmlParts.join('');
                 };
 
-                // 최종 렌더링 적용
-                streamEl.innerHTML = formatAIResponse(fullText);
+                // AI 블록 생성
+                flashEmpty.style.display = 'none';
+                const aiBlock = document.createElement('div');
+                aiBlock.className = 'ai-answer';
+                const prefixLabel = manualQuery ? `자료확인${categoryTag}` : `AI 맥락분석${categoryTag}`;
+                aiBlock.innerHTML = `<span class="ai-label">${prefixLabel}</span><span id="aiStreamText">▌</span>`;
+                if (manualQuery) {
+                    const qTag = document.createElement('div');
+                    qTag.style.fontSize = '0.8rem';
+                    qTag.style.color = 'var(--text-muted)';
+                    qTag.style.marginBottom = '6px';
+                    qTag.innerHTML = `<strong>Q:</strong> ${manualQuery}`;
+                    aiBlock.insertBefore(qTag, aiBlock.firstChild);
+                }
+                flashArea.appendChild(aiBlock);
+                flashArea.scrollTop = flashArea.scrollHeight;
+
+                const streamEl = aiBlock.querySelector('#aiStreamText');
+                streamEl.removeAttribute('id');
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = '';
+                let lineBuffer = '';
+
+                // SSE 라인 파싱 함수
+                const parseSSE = (line) => {
+                    if (line.startsWith('data: ')) {
+                        const jsonStr = line.slice(6).trim();
+                        if (jsonStr === '[DONE]' || !jsonStr) return;
+                        try {
+                            const data = JSON.parse(jsonStr);
+                            const t = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                            if (t) {
+                                fullText += t;
+                                streamEl.textContent = fullText + ' ▌';
+                                flashArea.scrollTop = flashArea.scrollHeight;
+                            }
+                        } catch (e) {
+                            console.warn('JSON parse error in stream:', e, jsonStr);
+                        }
+                    }
+                };
+
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        lineBuffer += chunk;
+
+                        const lines = lineBuffer.split('\n');
+                        lineBuffer = lines.pop(); // 미완성 라인 대기
+
+                        for (const line of lines) {
+                            parseSSE(line);
+                        }
+                    }
+
+                    if (lineBuffer) {
+                        parseSSE(lineBuffer);
+                    }
+                } catch (readErr) {
+                    console.warn('Stream read exception:', readErr);
+                } finally {
+                    // 스트리밍이 완료되든 중간에 끊기든 상관없이, 무조건 100% 마크다운 기호 정제 및 아코디언 서식화 적용!
+                    if (fullText) {
+                        streamEl.innerHTML = formatAIResponse(fullText);
+                    }
+                }
 
 
             } catch (e) {

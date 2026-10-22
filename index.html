@@ -2045,10 +2045,25 @@
             let contextData = '';
             const normalizedText = recentText.toLowerCase();
 
-            // 1) 기본 키워드 매칭
-            let matchedRows = state.sheetData.filter(row =>
-                row.keywords.some(kw => normalizedText.includes(kw.toLowerCase()))
-            );
+            // 검색어 토큰화 (2글자 이상 의미 있는 단어 추출)
+            const queryTokens = normalizedText.replace(/[^\w가-힣]/g, ' ')
+                .split(/\s+/)
+                .filter(t => t.length >= 2 && !['요약', '정리', '해줘', '알려줘', '대해', '어떻게', '무엇', '관련'].includes(t));
+
+            // 1) 문서 제목, 카테고리, 주요 키워드 종합 매칭
+            let matchedRows = state.sheetData.filter(row => {
+                const titleLower = row.title.toLowerCase();
+                const catLower = row.category.toLowerCase();
+
+                // ① 문서 제목에 검색 토큰 포함 또는 질문에 문서 제목 포함
+                const titleMatches = queryTokens.some(token => titleLower.includes(token)) || normalizedText.includes(titleLower);
+                // ② 주요 키워드 일치
+                const keywordMatches = row.keywords.some(kw => kw && (normalizedText.includes(kw.toLowerCase()) || queryTokens.includes(kw.toLowerCase())));
+                // ③ 사업 구분(카테고리) 일치
+                const catMatches = queryTokens.some(token => catLower.includes(token));
+
+                return titleMatches || keywordMatches || catMatches;
+            });
 
             // 1-1) 후속/추가 질문 지원: 수동 질의인데 키워드 매칭이 적거나, 직전 질문의 참조 문서가 있으면 함께 유지!
             if (manualQuery && state.lastMatchedRows && state.lastMatchedRows.length > 0) {

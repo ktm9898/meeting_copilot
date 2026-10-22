@@ -253,41 +253,72 @@
             margin: 0 6px;
         }
 
-        /* AI 분석 답변 - 카드 룩 & 가독성 극대화 */
+        /* AI 질의 (Q) 헤더 - 컴팩트하고 세련된 상단 분리 바 */
+        .ai-query-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            background: rgba(99, 102, 241, 0.06);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-left: 3px solid #6366f1;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+        }
+
+        .ai-query-header .query-badge {
+            background: #6366f1;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 4px;
+            flex-shrink: 0;
+            margin-top: 1px;
+            line-height: 1.3;
+        }
+
+        .ai-query-header .query-text {
+            color: #1e1b4b;
+            font-size: 0.85rem;
+            font-weight: 600;
+            line-height: 1.45;
+            flex: 1;
+        }
+
+        /* AI 분석 답변 - 불필요한 이중 테두리를 풀고 전체 가로 폭을 최대로 활용하는 플랫 룩 */
         .ai-answer {
             display: block;
-            margin-top: 10px;
-            padding: 14px 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-left: 4px solid var(--accent-purple);
-            border-radius: 8px;
+            margin-top: 12px;
+            padding: 8px 2px 16px 2px;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
             color: var(--text-primary);
             font-size: 0.88rem;
             line-height: 1.65;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
         }
 
         .ai-answer .ai-label {
             color: #6366f1;
             font-weight: 800;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             display: inline-block;
-            margin-bottom: 8px;
-            padding: 2px 8px;
+            margin-bottom: 6px;
+            padding: 2px 7px;
             background: rgba(99, 102, 241, 0.08);
             border-radius: 4px;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.2px;
         }
 
-        /* 1. 핵심 요약 강조 카드 */
+        /* 1. 핵심 요약 강조 카드 - 답답한 사방 테두리 제거, 좌측 슬림 액센트 바로 시원한 가로폭 확보 */
         .ai-summary-card {
             background: rgba(99, 102, 241, 0.04);
-            border-radius: 8px;
-            padding: 12px 14px;
-            margin: 8px 0 14px 0;
-            border: 1px solid rgba(99, 102, 241, 0.18);
-            border-left: 4px solid #6366f1;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin: 6px 0 12px 0;
+            border: none;
+            border-left: 3.5px solid #6366f1;
         }
 
         .ai-summary-card .ai-summary-title {
@@ -308,12 +339,12 @@
 
         /* 2. 대섹션 아코디언 */
         .ai-accordion {
-            margin: 10px 0;
+            margin: 8px 0;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 7px;
             background: var(--bg-secondary);
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
             transition: all 0.2s ease;
         }
 
@@ -322,8 +353,8 @@
         }
 
         .ai-accordion-header {
-            padding: 11px 14px;
-            font-size: 0.88rem;
+            padding: 10px 12px;
+            font-size: 0.86rem;
             font-weight: 800;
             color: var(--text-primary);
             cursor: pointer;
@@ -353,10 +384,10 @@
         }
 
         .ai-accordion-header .accordion-badge {
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 6px;
+            padding: 2px 7px;
+            border-radius: 5px;
             background: #ffffff;
             color: #6366f1;
             display: inline-flex;
@@ -384,42 +415,41 @@
         }
 
         .ai-accordion-body {
-            padding: 12px 14px;
+            padding: 10px 10px 12px 10px;
             background: var(--bg-secondary);
             font-size: 0.86rem;
             line-height: 1.65;
         }
 
-        /* 3. 소제목 / 중제목 블록 (3.1, 3.2 등 계층화) */
+        /* 3. 소제목 블록 (3.1, 3.2 등 계층화) - 답답한 회색 상자 대신 세련된 플랫 타이포 */
         .ai-subheading {
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 0.88rem;
+            font-size: 0.86rem;
             font-weight: 800;
             color: #1e1b4b;
-            margin: 14px 0 8px 0;
-            padding: 6px 10px;
-            background: #f1f5f9;
-            border-radius: 6px;
-            border-left: 3px solid #6366f1;
+            margin: 12px 0 6px 0;
+            padding: 3px 0;
+            border-bottom: 1px dashed rgba(99, 102, 241, 0.25);
         }
 
         .ai-subheading:first-child {
             margin-top: 2px;
         }
 
-        .ai-subheading .subheading-icon {
-            font-size: 0.75rem;
+        .ai-subheading .subheading-num {
             color: #6366f1;
+            font-weight: 800;
+            font-size: 0.82rem;
         }
 
         .ai-heading {
-            font-size: 0.92rem;
+            font-size: 0.90rem;
             font-weight: 800;
             color: #1e1b4b;
-            margin: 12px 0 6px 0;
-            padding-bottom: 4px;
+            margin: 10px 0 5px 0;
+            padding-bottom: 3px;
             border-bottom: 1px solid var(--border-color);
         }
 
@@ -427,7 +457,7 @@
         .ai-bullet {
             display: flex;
             align-items: flex-start;
-            gap: 7px;
+            gap: 6px;
             margin: 6px 0;
             line-height: 1.6;
             padding-left: 4px;
@@ -1998,11 +2028,36 @@
 
             let contextData = '';
             const normalizedText = recentText.toLowerCase();
-            const matchedRows = state.sheetData.filter(row =>
+
+            // 1) 기본 키워드 매칭
+            let matchedRows = state.sheetData.filter(row =>
                 row.keywords.some(kw => normalizedText.includes(kw.toLowerCase()))
             );
 
+            // 2) 다중 문서 교차검증을 위한 연관 변경/수정/추경 문서 자동 연계 수집
             if (matchedRows.length > 0) {
+                const matchedTitles = matchedRows.map(r => r.title.toLowerCase());
+                const changeKeywords = ['변경', '수정', '추경', '추가', '최종', '의결', '개정', '결산'];
+
+                // 이미 매칭된 문서와 같은 주제이거나 변경 이력을 담은 추가 청크 검색
+                const relatedRows = state.sheetData.filter(row => {
+                    if (matchedRows.includes(row)) return false;
+                    const rowTitle = row.title.toLowerCase();
+                    const rowKeywords = row.keywords.map(k => k.toLowerCase());
+
+                    // 매칭된 문서의 핵심 키워드를 공유하면서 '변경/추가/추경/최종' 성격의 문서인 경우
+                    const sharesTopic = matchedRows.some(mr =>
+                        mr.keywords.some(mk => rowKeywords.includes(mk.toLowerCase()) || rowTitle.includes(mk.toLowerCase()))
+                    );
+                    const isChangeDoc = changeKeywords.some(ck => rowTitle.includes(ck) || rowKeywords.some(rk => rk.includes(ck)));
+
+                    return sharesTopic && isChangeDoc;
+                });
+
+                if (relatedRows.length > 0) {
+                    matchedRows = [...matchedRows, ...relatedRows];
+                }
+
                 contextData = matchedRows.map(r =>
                     `[${r.title}/${r.category}]\n${r.fullText || r.summary}`
                 ).join('\n\n---\n\n');
@@ -2013,10 +2068,6 @@
             }
 
             try {
-                // 매칭된 카테고리 추출
-                const categories = [...new Set(matchedRows.map(r => r.category))].filter(c => c);
-                const categoryTag = categories.length > 0 ? ` (주제: ${categories.join(', ')})` : '';
-
                 const now = new Date();
                 const currentDateStr = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
 
@@ -2025,28 +2076,31 @@
 
                 if (manualQuery) {
                     // [자료확인 (사용자 직접 질의/Q&A)] 프롬프트
-                    systemInstruction = `당신은 공문서, 사업계획서, 성과보고서 등 사내 핵심 문서를 정밀 분석하여 답변하는 수석 데이터분석가이자 회의 보조 AI입니다.
+                    systemInstruction = `당신은 공문서, 사업계획서, 성과보고서, 예산/결산서 등 사내 핵심 문서를 정밀 분석하여 답변하는 수석 데이터분석가이자 회의 보조 AI입니다.
 현재 시점: ${currentDateStr}
 
 [참고 자료]를 바탕으로 사용자의 질문에 대해 심층적이고 구체적인 답변 리포트를 작성하세요.
 
 절대 준수 규칙:
-1. **이모지 및 특수 마크다운 기호 금지**:
-   - 이모지(🤖, 💡, ⚠️ 등)를 일체 사용하지 마세요.
+1. **다중 문서 교차 검증 및 변경 이력 종합 (최우선 필수)**:
+   - 동일한 사업, 과제, 목표치, 예산에 대해 '당초 계획(원래 계획서/결산서)'과 이후의 '변경/추가/수정/추경/이사회 의결' 문서가 공존하는 경우, 반드시 문서 작성 시점(날짜/차수)을 시간순으로 대조하여 **당초 계획 대비 변경/추가된 최종 현황(예: '당초 50개에서 50개가 추가되어 최종 100개로 확대 추진')**을 빠짐없이 종합 산출하여 기술하세요.
+   - 단편적으로 초기 문서 수치만 인용하거나 변경 사실을 누락해서는 절대 안 되며, 복수 문서가 연관된 경우 출처를 모두 명시하세요 (예: [2024년도 사업계획서] [2024년도 제2차 변경계획서]).
+2. **이모지 및 특수 마크다운 기호 금지**:
+   - 이모지(🤖, 💡, ⚠️, 📌 등)를 일체 사용하지 마세요.
    - ###, ##, --- 와 같은 마크다운 헤딩/수평선 기호를 사용하지 마세요. 소제목은 '1. 핵심 요약', '2. 세부 데이터 및 배경 사실관계'처럼 단정하게 작성하세요.
-2. **기준 시점 및 출처 필수 명시**:
+3. **기준 시점 및 출처 필수 명시**:
    - 모든 주요 수치나 팩트를 언급할 때는 반드시 해당 내용이 명시된 **[문서명 및 기준 시점(연도/월/분기)]**을 밝히세요. (예: [2023년도 사업실적보고서 기준], [2024년도 1분기 예산계획서 기준])
-3. **시점 불일치 시 첫머리 안내 (필수)**:
+4. **시점 불일치 시 첫머리 안내 (필수)**:
    - 사용자가 '올해', '최근', '현재' 실적/수치를 물었으나 보유 자료가 과거(예: 작년) 수치인 경우, 답변 맨 첫 줄에 오해가 없도록 명확히 고지하세요.
    - 예: "[시점 안내]: 등록된 최신 자료는 **'2023년 성과보고서'**이며, ${now.getFullYear()}년(올해) 자료는 등록되어 있지 않아 **2023년 결산 수치** 기준으로 안내드립니다."
-4. **충분하고 구조화된 심층 설명 (계층 구조 필수)**:
-   - 1) 첫머리에는 반드시 **'1. 핵심 요약'**을 작성하세요. 줄글로 길게 뭉치지 말고, 회의 중 3초 안에 즉각 발언할 수 있도록 **2~3개의 핵심 불릿포인트(•)**로 핵심 결론과 숫자를 명확히 브리핑하세요.
+5. **충분하고 구조화된 심층 설명 (계층 구조 필수)**:
+   - 1) 첫머리에는 반드시 **'1. 핵심 요약'**을 작성하세요. 줄글로 길게 뭉치지 말고, 회의 중 3초 안에 즉각 발언할 수 있도록 **2~3개의 핵심 불릿포인트(•)**로 종합 결론과 최종 숫자를 명확히 브리핑하세요.
    - 2) 이어서 **'2. ...'**, **'3. ...'** 형태로 대주제를 나누고, 그 안의 세부 주제는 **'3.1. 소제목'**, **'3.2. 소제목'** 순서로 소제목과 불릿포인트(•)로 계층화하여 작성하세요.
    - 3) 각 세부 불릿포인트의 앞머리에는 반드시 **'[핵심 키워드]:'** 형태로 콜론(:)을 두어 어떤 내용인지 한눈에 스캔할 수 있게 작성하세요. (예: • **소상공인 금융지원 강화**: ...)
-5. **정확한 사실 기반(Fact-based) 및 문장 완결**:
+6. **정확한 사실 기반(Fact-based) 및 문장 완결**:
    - 추측성 답변은 지양하고, 문서에 명시된 사실과 수치를 **볼드체**로 강조하세요.
    - 문장이 도중에 끊기지 않도록 모든 문장은 마침표(.)로 완결성 있게 명확히 끝마무리하세요.
-6. 장황한 인사말이나 서두 없이, 시점 안내(필요시) 및 핵심 답변부터 전문적인 비즈니스 톤으로 시작하세요.`;
+7. 장황한 인사말이나 서두 없이, 시점 안내(필요시) 및 핵심 답변부터 전문적인 비즈니스 톤으로 시작하세요.`;
 
                     userPrompt = `[참고 자료]
 ${contextData || '(등록된 자료 없음)'}
@@ -2054,7 +2108,7 @@ ${contextData || '(등록된 자료 없음)'}
 [사용자 질문/요청]
 ${manualQuery}
 
-위 [참고 자료]를 바탕으로 질문에 대해 출처/시점을 명확히 밝히며, 관련 사실관계와 수치를 포함해 구체적이고 전문적으로 상세히 답변해 주세요.`;
+위 [참고 자료]에 수록된 여러 문서를 종합적(원 계획 vs 변경 계획 등)으로 교차 분석하여, 출처/시점과 함께 변동 이력 및 최종 확정 수치를 포함해 구체적이고 전문적으로 상세히 답변해 주세요.`;
 
                 } else {
                     // [AI 맥락분석 (실시간 회의 보조)] 프롬프트
@@ -2064,17 +2118,17 @@ ${manualQuery}
 회의 참석자가 발언을 놓치지 않고 3초 안에 스캔할 수 있도록, [참고 자료]와 [최근 회의 대화 기록]을 대조하여 가장 중요한 팩트를 빠르고 정확하게 브리핑하세요.
 
 절대 준수 규칙:
-1. **이모지 및 마크다운 기호 배제**:
-   - 이모지(🤖, 💡 등)를 사용하지 마세요.
+1. **다중 문서 교차 및 최종 현황 반영**:
+   - 당초 계획과 변경/수정 문서가 함께 있을 경우, 단편적인 이전 계획 수치만 말하지 말고 변경된 최종 팩트를 종합하여 제시하세요.
+2. **이모지 및 마크다운 기호 배제**:
+   - 이모지(🤖, 💡, 📌 등)를 사용하지 마세요.
    - 핵심 불릿포인트 2~3개로만 작성하세요.
-2. **[출처/기준시점] + 핵심 수치 + 전후 사실관계 결합**:
+3. **[출처/기준시점] + 핵심 수치 + 전후 사실관계 결합**:
    - 각 불릿포인트의 시작 부분에 반드시 **[문서명/기준시점]**을 머리말로 명시하세요. (예: • **[2023년 결산보고서 기준]** ...)
    - 단순 수치만 나열하지 말고, **수치가 나오게 된 중요한 배경, 진행 경과, 관련 조건 등 사실관계(Fact)**를 하나의 자연스러운 문장으로 결합하세요.
    - 중요한 수치와 핵심 키워드는 반드시 **볼드체**로 강조하세요.
-3. **시점 차이 주의**:
-   - 회의에서 언급된 시점과 자료의 시점이 다른 경우(예: 회의는 올해를 논의 중이나 자료는 작년 기준인 경우), 이를 명확히 인지할 수 있도록 기준 시점을 돋보이게 작성하세요.
-4. **마지막 줄 회의 참고/시사점 (선택적)**:
-   - 필요 시 마지막 줄에 '**회의 참고**:' 형태로 현재 회의 쟁점과 관련된 1줄 시사점을 제시하세요.
+4. **시점 차이 주의**:
+   - 회의에서 언급된 시점과 자료의 시점이 다른 경우, 이를 명확히 인지할 수 있도록 기준 시점을 돋보이게 작성하세요.
 5. 문장이 도중에 끊기지 않도록 마침표(.)로 완결성 있게 마무리하세요.`;
 
                     userPrompt = `[참고 자료]
@@ -2083,7 +2137,7 @@ ${contextData || '(등록된 자료 없음)'}
 [최근 회의 대화 기록]
 ${recentText}
 
-위 대화 흐름에서 팩트체크가 필요한 핵심 쟁점을 파악하고, [참고 자료]를 대조하여 [출처/시점]이 명시된 2~3개의 정밀 팩트체크 불릿포인트를 작성해 주세요.`;
+위 대화 흐름에서 팩트체크가 필요한 핵심 쟁점을 파악하고, [참고 자료]의 다중 문서를 종합 대조하여 [출처/시점]이 명시된 2~3개의 정밀 팩트체크 불릿포인트를 작성해 주세요.`;
                 }
 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${settings.apiKey}`;
@@ -2107,7 +2161,7 @@ ${recentText}
                 const formatAIResponse = (text) => {
                     if (!text) return '(응답 없음)';
 
-                    // 1. 불필요한 이모지 제거 (🤖, 💡, ⚠️ 등 비즈니스 문서에 부적합한 이모지 정제)
+                    // 1. 불필요한 이모지 제거 (🤖, 💡, ⚠️, 📌 등 비즈니스 문서에 부적합한 이모지 정제)
                     let clean = text.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
 
                     // 출처 분리 헬퍼: 문장에서 [2026년 ... 기준/보고서 등] 형태의 출처를 추출하여 칩 태그로 분리
@@ -2149,20 +2203,20 @@ ${recentText}
                             return '<hr class="ai-divider">';
                         }
 
-                        // [소제목 계층화 1] 3.1. 소제목 / 2.1. 소제목 형태 감지 (불릿 기호가 붙어있어도 분리)
+                        // [소제목 계층화 1] 3.1. 소제목 / 2.1. 소제목 형태 감지 (📌 이모지 배제, 단정한 타이포그래피)
                         const subHeadingMatch = line.match(/^[-*•]?\s*(\d+\.\d+\.?)\s*(.*)/);
                         if (subHeadingMatch) {
                             const subNum = subHeadingMatch[1].replace(/\.$/, ''); // '3.1'
                             const subTitleRaw = subHeadingMatch[2].replace(/\*\*/g, '').trim();
                             const { cleanText, sourcesHtml } = processSources(subTitleRaw);
-                            return `<div class="ai-subheading"><span class="subheading-icon">📌</span><span class="subheading-title">${subNum}. ${cleanText}</span></div>${sourcesHtml}`;
+                            return `<div class="ai-subheading"><span class="subheading-num">${subNum}.</span><span class="subheading-title">${cleanText}</span></div>${sourcesHtml}`;
                         }
 
                         // [소제목 계층화 2] #### 마크다운 헤딩 형태 감지
                         if (/^#{2,4}\s*(.*)/.test(line)) {
                             const title = line.replace(/^#{2,4}\s*/, '').replace(/\*\*/g, '').trim();
                             const { cleanText, sourcesHtml } = processSources(title);
-                            return `<div class="ai-subheading"><span class="subheading-icon">📌</span><span class="subheading-title">${cleanText}</span></div>${sourcesHtml}`;
+                            return `<div class="ai-subheading"><span class="subheading-title">${cleanText}</span></div>${sourcesHtml}`;
                         }
 
                         // 볼드 강조 치환 (문장 끝 미완성 ** 까지 안전 처리)
@@ -2242,11 +2296,10 @@ ${recentText}
                         const bodyHtml = sec.lines.map(l => formatSingleLine(l)).join('');
 
                         if (sec.num === 1) {
-                            // [1번 핵심 요약 섹션]: 최상단에 상시 오픈된 요약 브리핑 카드
+                            // [1번 핵심 요약 섹션]: 📌 이모지 제거, 슬림한 액센트 바 카드
                             htmlParts.push(`
                                 <div class="ai-summary-card">
                                     <div class="ai-summary-title">
-                                        <span>📌</span>
                                         <span>1. ${sec.title}</span>
                                     </div>
                                     <div class="ai-summary-body">${bodyHtml}</div>
@@ -2272,20 +2325,21 @@ ${recentText}
                     return htmlParts.join('');
                 };
 
-                // AI 블록 생성
+                // AI 블록 및 질문 헤더 생성
                 flashEmpty.style.display = 'none';
+
+                // 질문(Q)이 있을 경우: 답답한 네모 상자 안에 가두지 않고, 상단에 독립된 세련된 질문 바(Q Header)로 표시
+                if (manualQuery) {
+                    const queryHeader = document.createElement('div');
+                    queryHeader.className = 'ai-query-header';
+                    queryHeader.innerHTML = `<span class="query-badge">Q</span><span class="query-text">${manualQuery.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
+                    flashArea.appendChild(queryHeader);
+                }
+
                 const aiBlock = document.createElement('div');
                 aiBlock.className = 'ai-answer';
-                const prefixLabel = manualQuery ? `자료확인${categoryTag}` : `AI 맥락분석${categoryTag}`;
-                aiBlock.innerHTML = `<span class="ai-label">${prefixLabel}</span><span id="aiStreamText">▌</span>`;
-                if (manualQuery) {
-                    const qTag = document.createElement('div');
-                    qTag.style.fontSize = '0.8rem';
-                    qTag.style.color = 'var(--text-muted)';
-                    qTag.style.marginBottom = '6px';
-                    qTag.innerHTML = `<strong>Q:</strong> ${manualQuery}`;
-                    aiBlock.insertBefore(qTag, aiBlock.firstChild);
-                }
+                const prefixLabel = manualQuery ? '자료확인' : 'AI 맥락분석';
+                aiBlock.innerHTML = `<span class="ai-label">${prefixLabel}</span><div id="aiStreamContent"><span id="aiStreamText">▌</span></div>`;
                 flashArea.appendChild(aiBlock);
                 flashArea.scrollTop = flashArea.scrollHeight;
 

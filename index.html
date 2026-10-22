@@ -286,11 +286,11 @@
             flex: 1;
         }
 
-        /* AI 분석 답변 - 불필요한 이중 테두리를 풀고 전체 가로 폭을 최대로 활용하는 플랫 룩 */
+        /* AI 분석 답변 - 플랫 문서 리포트 룩 (사방 테두리/박스 전면 해제) */
         .ai-answer {
             display: block;
-            margin-top: 12px;
-            padding: 8px 2px 16px 2px;
+            margin-top: 8px;
+            padding: 2px 0 16px 0;
             background: transparent;
             border: none;
             border-bottom: 1px solid var(--border-color);
@@ -311,127 +311,56 @@
             letter-spacing: 0.2px;
         }
 
-        /* 1. 핵심 요약 강조 카드 - 답답한 사방 테두리 제거, 좌측 슬림 액센트 바로 시원한 가로폭 확보 */
-        .ai-summary-card {
-            background: rgba(99, 102, 241, 0.04);
-            border-radius: 6px;
-            padding: 10px 12px;
-            margin: 6px 0 12px 0;
-            border: none;
-            border-left: 3.5px solid #6366f1;
+        /* 플랫 섹션 구조 (1. 핵심 요약, 2. 세부 내용 등) - 박스 없는 시원한 리포트 */
+        .ai-flat-section {
+            margin: 12px 0;
+            padding: 0;
+            background: transparent;
         }
 
-        .ai-summary-card .ai-summary-title {
+        .ai-flat-section:first-child {
+            margin-top: 2px;
+        }
+
+        /* 1번 핵심 요약 헤더 */
+        .ai-flat-section .flat-title-primary {
             font-weight: 900;
-            font-size: 0.92rem;
+            font-size: 0.96rem;
             color: #4338ca;
             margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #6366f1;
+            letter-spacing: -0.2px;
         }
 
-        .ai-summary-card .ai-summary-body {
+        /* 2번, 3번 세부 섹션 헤더 */
+        .ai-flat-section .flat-title-secondary {
+            font-weight: 800;
+            font-size: 0.92rem;
+            color: #1e293b;
+            margin-top: 18px;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1.5px solid #e2e8f0;
+            letter-spacing: -0.2px;
+        }
+
+        .ai-flat-section .flat-body {
             color: var(--text-primary);
             font-size: 0.88rem;
             line-height: 1.65;
         }
 
-        /* 2. 대섹션 아코디언 */
-        .ai-accordion {
-            margin: 8px 0;
-            border: 1px solid var(--border-color);
-            border-radius: 7px;
-            background: var(--bg-secondary);
-            overflow: hidden;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-            transition: all 0.2s ease;
-        }
-
-        .ai-accordion[open] {
-            border-color: #cbd5e1;
-        }
-
-        .ai-accordion-header {
-            padding: 10px 12px;
-            font-size: 0.86rem;
-            font-weight: 800;
-            color: var(--text-primary);
-            cursor: pointer;
-            list-style: none;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #f8fafc;
-            user-select: none;
-            gap: 8px;
-            border-bottom: 1px solid transparent;
-        }
-
-        .ai-accordion-header::-webkit-details-marker {
-            display: none;
-        }
-
-        .ai-accordion[open] .ai-accordion-header {
-            border-bottom: 1px solid var(--border-color);
-            background: #f1f5f9;
-        }
-
-        .ai-accordion-header .accordion-title {
-            flex: 1;
-            line-height: 1.4;
-            color: var(--text-primary);
-        }
-
-        .ai-accordion-header .accordion-badge {
-            font-size: 0.7rem;
-            font-weight: 700;
-            padding: 2px 7px;
-            border-radius: 5px;
-            background: #ffffff;
-            color: #6366f1;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            flex-shrink: 0;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s ease;
-        }
-
-        .ai-accordion-header .accordion-badge .arrow {
-            display: inline-block;
-            transition: transform 0.25s ease;
-            font-size: 0.65rem;
-        }
-
-        .ai-accordion[open] .ai-accordion-header .accordion-badge {
-            background: #6366f1;
-            color: #ffffff;
-            border-color: #6366f1;
-        }
-
-        .ai-accordion[open] .ai-accordion-header .accordion-badge .arrow {
-            transform: rotate(180deg);
-        }
-
-        .ai-accordion-body {
-            padding: 10px 10px 12px 10px;
-            background: var(--bg-secondary);
-            font-size: 0.86rem;
-            line-height: 1.65;
-        }
-
-        /* 3. 소제목 블록 (3.1, 3.2 등 계층화) - 답답한 회색 상자 대신 세련된 플랫 타이포 */
+        /* 3. 소제목 블록 (3.1, 3.2 등 계층화) */
         .ai-subheading {
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 0.86rem;
             font-weight: 800;
-            color: #1e1b4b;
-            margin: 12px 0 6px 0;
-            padding: 3px 0;
-            border-bottom: 1px dashed rgba(99, 102, 241, 0.25);
+            color: #334155;
+            margin: 12px 0 4px 0;
+            padding-bottom: 2px;
         }
 
         .ai-subheading:first-child {
@@ -441,7 +370,7 @@
         .ai-subheading .subheading-num {
             color: #6366f1;
             font-weight: 800;
-            font-size: 0.82rem;
+            font-size: 0.84rem;
         }
 
         .ai-heading {
@@ -2076,31 +2005,34 @@
 
                 if (manualQuery) {
                     // [자료확인 (사용자 직접 질의/Q&A)] 프롬프트
-                    systemInstruction = `당신은 공문서, 사업계획서, 성과보고서, 예산/결산서 등 사내 핵심 문서를 정밀 분석하여 답변하는 수석 데이터분석가이자 회의 보조 AI입니다.
+                    systemInstruction = `당신은 공문서, 사업계획서, 성과보고서, 예산/결산서 등 사내 핵심 문서를 정밀 분석하여 보고하는 수석 데이터분석가이자 최고경영진 회의 보조 AI입니다.
 현재 시점: ${currentDateStr}
 
-[참고 자료]를 바탕으로 사용자의 질문에 대해 심층적이고 구체적인 답변 리포트를 작성하세요.
+[참고 자료]를 바탕으로 사용자의 질문에 대해 철저히 정량적 데이터(수치)와 팩트 기반의 고품질 분석 리포트를 작성하세요.
 
 절대 준수 규칙:
-1. **다중 문서 교차 검증 및 변경 이력 종합 (최우선 필수)**:
-   - 동일한 사업, 과제, 목표치, 예산에 대해 '당초 계획(원래 계획서/결산서)'과 이후의 '변경/추가/수정/추경/이사회 의결' 문서가 공존하는 경우, 반드시 문서 작성 시점(날짜/차수)을 시간순으로 대조하여 **당초 계획 대비 변경/추가된 최종 현황(예: '당초 50개에서 50개가 추가되어 최종 100개로 확대 추진')**을 빠짐없이 종합 산출하여 기술하세요.
-   - 단편적으로 초기 문서 수치만 인용하거나 변경 사실을 누락해서는 절대 안 되며, 복수 문서가 연관된 경우 출처를 모두 명시하세요 (예: [2024년도 사업계획서] [2024년도 제2차 변경계획서]).
-2. **이모지 및 특수 마크다운 기호 금지**:
+1. **정량적 수치(Metrics) 최우선 & 추상적 미사여구 전면 금지 (가장 중요)**:
+   - '효율성 증대', '인지도 제고', '역량 강화', '상생 협력', '적극 추진', '기반 마련', '성과를 거둠' 등 수치 없는 공허하고 두루뭉술한 미사여구는 답변에서 엄격히 금지합니다.
+   - 모든 항목은 반드시 문서에 기재된 **[금액(억원/백만원), 건수, 업체 수, 목표치, 달성률(%), 전년 대비 증감률]** 등 구체적인 수치 팩트 위주로만 작성하세요. 수치가 없는 공허한 문장은 절대 쓰지 마세요.
+2. **당초 계획 대비 변경/확대 시 [전후 수치 대조 공식] 필수 준수**:
+   - 단순히 '당초 대비 확대 추진', '계획 변경' 등으로 모호하게 쓰지 마세요.
+   - 반드시 **'당초 [X개/억원] → 변경 [Y개/억원] (+Z개 추가 / W% 증감)'** 형태로 당초 수치와 변경 후 최종 확정 수치를 대조하여 기재하세요. (문서에 당초 수치가 명시되지 않은 경우에만 '최종 확정 Y개'로 표기)
+3. **단순 나열 금지 및 기능별 2~3개 핵심 선별 구조화**:
+   - 한 챕터 아래에 불릿을 5~10개씩 무분별하게 단순 나열하지 마세요.
+   - 2번, 3번 세부 내용은 반드시 기능별/분야별(예: '2.1. 정책금융 지원 실적', '2.2. 판로 및 경영지원 성과', '2.3. 전산 시스템 혁신' 등)로 소주제를 분류하고, 각 소주제마다 **가장 중요한 핵심 수치 팩트 2~3개 불릿**으로 엄선하여 구조화하세요.
+4. **다중 문서 교차 검증 및 변경 이력 종합**:
+   - 동일 사업/과제에 대해 '당초 계획서'와 '변경계획/추경/의결서'가 함께 존재할 경우, 시간순으로 교차 검증하여 최종 확정치와 변동 내역을 종합 정리하고 복수 출처를 모두 명시하세요. (예: [2024년도 사업계획서] [2024년도 제2차 변경계획서])
+5. **이모지 및 특수 마크다운 기호 금지**:
    - 이모지(🤖, 💡, ⚠️, 📌 등)를 일체 사용하지 마세요.
-   - ###, ##, --- 와 같은 마크다운 헤딩/수평선 기호를 사용하지 마세요. 소제목은 '1. 핵심 요약', '2. 세부 데이터 및 배경 사실관계'처럼 단정하게 작성하세요.
-3. **기준 시점 및 출처 필수 명시**:
+   - ###, ##, --- 와 같은 마크다운 헤딩/수평선 기호를 사용하지 마세요. 대제목은 '1. 핵심 요약', '2. 세부 데이터 및 배경 사실관계'처럼 단정하게 작성하세요.
+6. **기준 시점 및 출처 필수 명시**:
    - 모든 주요 수치나 팩트를 언급할 때는 반드시 해당 내용이 명시된 **[문서명 및 기준 시점(연도/월/분기)]**을 밝히세요. (예: [2023년도 사업실적보고서 기준], [2024년도 1분기 예산계획서 기준])
-4. **시점 불일치 시 첫머리 안내 (필수)**:
+7. **시점 불일치 시 첫머리 안내 (필수)**:
    - 사용자가 '올해', '최근', '현재' 실적/수치를 물었으나 보유 자료가 과거(예: 작년) 수치인 경우, 답변 맨 첫 줄에 오해가 없도록 명확히 고지하세요.
    - 예: "[시점 안내]: 등록된 최신 자료는 **'2023년 성과보고서'**이며, ${now.getFullYear()}년(올해) 자료는 등록되어 있지 않아 **2023년 결산 수치** 기준으로 안내드립니다."
-5. **충분하고 구조화된 심층 설명 (계층 구조 필수)**:
-   - 1) 첫머리에는 반드시 **'1. 핵심 요약'**을 작성하세요. 줄글로 길게 뭉치지 말고, 회의 중 3초 안에 즉각 발언할 수 있도록 **2~3개의 핵심 불릿포인트(•)**로 종합 결론과 최종 숫자를 명확히 브리핑하세요.
-   - 2) 이어서 **'2. ...'**, **'3. ...'** 형태로 대주제를 나누고, 그 안의 세부 주제는 **'3.1. 소제목'**, **'3.2. 소제목'** 순서로 소제목과 불릿포인트(•)로 계층화하여 작성하세요.
-   - 3) 각 세부 불릿포인트의 앞머리에는 반드시 **'[핵심 키워드]:'** 형태로 콜론(:)을 두어 어떤 내용인지 한눈에 스캔할 수 있게 작성하세요. (예: • **소상공인 금융지원 강화**: ...)
-6. **정확한 사실 기반(Fact-based) 및 문장 완결**:
-   - 추측성 답변은 지양하고, 문서에 명시된 사실과 수치를 **볼드체**로 강조하세요.
-   - 문장이 도중에 끊기지 않도록 모든 문장은 마침표(.)로 완결성 있게 명확히 끝마무리하세요.
-7. 장황한 인사말이나 서두 없이, 시점 안내(필요시) 및 핵심 답변부터 전문적인 비즈니스 톤으로 시작하세요.`;
+8. **핵심 키워드 볼드 콜론 표기**:
+   - 각 세부 불릿포인트의 앞머리에는 반드시 **'[핵심 키워드]:'** 형태로 콜론(:)을 두어 3초 안에 스캔할 수 있게 작성하세요. (예: • **골목상권 멘토 매칭**: 당초 50개 → 50개 추가되어 **총 100개사**로 확대 추진...)
+9. 장황한 인사말이나 서두 없이, 시점 안내(필요시) 및 '1. 핵심 요약'부터 전문적인 비즈니스 톤으로 시작하세요.`;
 
                     userPrompt = `[참고 자료]
 ${contextData || '(등록된 자료 없음)'}
@@ -2108,7 +2040,7 @@ ${contextData || '(등록된 자료 없음)'}
 [사용자 질문/요청]
 ${manualQuery}
 
-위 [참고 자료]에 수록된 여러 문서를 종합적(원 계획 vs 변경 계획 등)으로 교차 분석하여, 출처/시점과 함께 변동 이력 및 최종 확정 수치를 포함해 구체적이고 전문적으로 상세히 답변해 주세요.`;
+위 [참고 자료]를 종합 교차 분석하여, 두루뭉술한 미사여구를 배제하고 [구체적 수치(금액/건수/증감폭)], [당초 대비 변경 대조], [출처/시점]이 명시된 고밀도 팩트 중심 리포트를 작성해 주세요.`;
 
                 } else {
                     // [AI 맥락분석 (실시간 회의 보조)] 프롬프트
@@ -2118,18 +2050,20 @@ ${manualQuery}
 회의 참석자가 발언을 놓치지 않고 3초 안에 스캔할 수 있도록, [참고 자료]와 [최근 회의 대화 기록]을 대조하여 가장 중요한 팩트를 빠르고 정확하게 브리핑하세요.
 
 절대 준수 규칙:
-1. **다중 문서 교차 및 최종 현황 반영**:
+1. **수치 팩트 최우선 & 추상적 서술 금지**:
+   - 두루뭉술한 수식어를 배제하고, 구체적인 수치(금액, 건수, 달성률 등) 위주로 작성하세요.
+2. **다중 문서 교차 및 최종 현황 반영**:
    - 당초 계획과 변경/수정 문서가 함께 있을 경우, 단편적인 이전 계획 수치만 말하지 말고 변경된 최종 팩트를 종합하여 제시하세요.
-2. **이모지 및 마크다운 기호 배제**:
+3. **이모지 및 마크다운 기호 배제**:
    - 이모지(🤖, 💡, 📌 등)를 사용하지 마세요.
    - 핵심 불릿포인트 2~3개로만 작성하세요.
-3. **[출처/기준시점] + 핵심 수치 + 전후 사실관계 결합**:
+4. **[출처/기준시점] + 핵심 수치 + 전후 사실관계 결합**:
    - 각 불릿포인트의 시작 부분에 반드시 **[문서명/기준시점]**을 머리말로 명시하세요. (예: • **[2023년 결산보고서 기준]** ...)
    - 단순 수치만 나열하지 말고, **수치가 나오게 된 중요한 배경, 진행 경과, 관련 조건 등 사실관계(Fact)**를 하나의 자연스러운 문장으로 결합하세요.
    - 중요한 수치와 핵심 키워드는 반드시 **볼드체**로 강조하세요.
-4. **시점 차이 주의**:
+5. **시점 차이 주의**:
    - 회의에서 언급된 시점과 자료의 시점이 다른 경우, 이를 명확히 인지할 수 있도록 기준 시점을 돋보이게 작성하세요.
-5. 문장이 도중에 끊기지 않도록 마침표(.)로 완결성 있게 마무리하세요.`;
+6. 문장이 도중에 끊기지 않도록 마침표(.)로 완결성 있게 마무리하세요.`;
 
                     userPrompt = `[참고 자료]
 ${contextData || '(등록된 자료 없음)'}
@@ -2296,25 +2230,20 @@ ${recentText}
                         const bodyHtml = sec.lines.map(l => formatSingleLine(l)).join('');
 
                         if (sec.num === 1) {
-                            // [1번 핵심 요약 섹션]: 📌 이모지 제거, 슬림한 액센트 바 카드
+                            // [1번 핵심 요약 섹션]: 사방 테두리/박스 없는 플랫 섹션
                             htmlParts.push(`
-                                <div class="ai-summary-card">
-                                    <div class="ai-summary-title">
-                                        <span>1. ${sec.title}</span>
-                                    </div>
-                                    <div class="ai-summary-body">${bodyHtml}</div>
+                                <div class="ai-flat-section">
+                                    <div class="flat-title-primary">1. ${sec.title}</div>
+                                    <div class="flat-body">${bodyHtml}</div>
                                 </div>
                             `);
                         } else if (sec.num > 1) {
-                            // [2번, 3번 이후 세부 섹션]: 탭해서 볼 수 있는 아코디언 접기
+                            // [2번, 3번 이후 세부 섹션]: 아코디언 상자 없는 시원한 플랫 섹션
                             htmlParts.push(`
-                                <details class="ai-accordion">
-                                    <summary class="ai-accordion-header">
-                                        <span class="accordion-title">${sec.num}. ${sec.title}</span>
-                                        <span class="accordion-badge">세부 내용 <span class="arrow">▼</span></span>
-                                    </summary>
-                                    <div class="ai-accordion-body">${bodyHtml}</div>
-                                </details>
+                                <div class="ai-flat-section">
+                                    <div class="flat-title-secondary">${sec.num}. ${sec.title}</div>
+                                    <div class="flat-body">${bodyHtml}</div>
+                                </div>
                             `);
                         } else {
                             // 서두 안내 문구 등
@@ -2328,7 +2257,7 @@ ${recentText}
                 // AI 블록 및 질문 헤더 생성
                 flashEmpty.style.display = 'none';
 
-                // 질문(Q)이 있을 경우: 답답한 네모 상자 안에 가두지 않고, 상단에 독립된 세련된 질문 바(Q Header)로 표시
+                // 질문(Q)이 있을 경우: 상단에 독립된 세련된 질문 바(Q Header)로 표시
                 if (manualQuery) {
                     const queryHeader = document.createElement('div');
                     queryHeader.className = 'ai-query-header';
@@ -2338,8 +2267,10 @@ ${recentText}
 
                 const aiBlock = document.createElement('div');
                 aiBlock.className = 'ai-answer';
-                const prefixLabel = manualQuery ? '자료확인' : 'AI 맥락분석';
-                aiBlock.innerHTML = `<span class="ai-label">${prefixLabel}</span><div id="aiStreamContent"><span id="aiStreamText">▌</span></div>`;
+                // 수동 질의(manualQuery)일 때는 상단 '자료확인' 라벨을 완전히 생략하고 바로 1. 핵심 요약으로 진입!
+                // 실시간 회의 자동 맥락분석일 때만 'AI 맥락분석' 라벨 표시
+                const labelHtml = manualQuery ? '' : '<span class="ai-label">AI 맥락분석</span>';
+                aiBlock.innerHTML = `${labelHtml}<div id="aiStreamContent"><span id="aiStreamText">▌</span></div>`;
                 flashArea.appendChild(aiBlock);
                 flashArea.scrollTop = flashArea.scrollHeight;
 

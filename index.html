@@ -612,7 +612,9 @@
             font-family: 'Noto Sans KR', sans-serif;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
+            white-space: nowrap;
             transition: all var(--transition);
         }
 
@@ -851,15 +853,19 @@
             transform: translateX(-50%) translateY(20px);
             background: var(--bg-card);
             color: var(--text-primary);
-            padding: 10px 24px;
+            padding: 8px 18px;
             border-radius: 10px;
-            font-size: 0.85rem;
-            font-weight: 500;
+            font-size: 0.82rem;
+            font-weight: 600;
             border: 1px solid var(--border-color);
             opacity: 0;
             transition: all 0.3s;
             z-index: 2000;
             pointer-events: none;
+            white-space: nowrap;
+            max-width: 90vw;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
         }
 
         .toast.show {
@@ -922,14 +928,30 @@
             }
 
             .ctrl-btn {
-                padding: 8px 12px;
+                padding: 7px 10px;
                 font-size: 0.75rem;
+                white-space: nowrap;
+                letter-spacing: -0.3px;
             }
 
             .control-left {
                 display: flex;
                 align-items: center;
-                gap: 8px;
+                gap: 6px;
+                flex-shrink: 0;
+            }
+
+            .control-right {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex-shrink: 0;
+            }
+
+            .mic-indicator {
+                font-size: 0.72rem;
+                white-space: nowrap;
+                gap: 4px;
             }
 
             .stt-stream,
@@ -1007,15 +1029,15 @@
 
     <!-- CONTROL BAR -->
     <div class="control-bar">
-        <div class="control-left" style="display: flex; align-items: center; gap: 10px;">
-            <button class="ctrl-btn" id="btnListen" title="듣기 시작/중지">듣기 시작</button>
+        <div class="control-left">
+            <button class="ctrl-btn" id="btnListen" title="듣기/중지">듣기</button>
             <div class="mic-indicator">
                 <span class="mic-dot" id="micDot"></span>
-                <span id="micStatus">중지됨</span>
+                <span id="micStatus">중지</span>
             </div>
         </div>
-        <div class="control-right" style="display: flex; align-items: center; gap: 8px;">
-            <button class="ctrl-btn primary" id="btnContext" title="맥락 분석">맥락 분석</button>
+        <div class="control-right">
+            <button class="ctrl-btn primary" id="btnContext" title="맥락분석">맥락분석</button>
             <button class="ctrl-btn primary" id="btnManualQuery" title="자료확인">자료확인</button>
         </div>
     </div>
@@ -1030,11 +1052,7 @@
                 <div class="hint">Gemini 2.5 Flash 모델을 사용합니다</div>
             </div>
             <div class="form-group" style="background: rgba(74, 158, 255, 0.06); padding: 12px 14px; border-radius: 10px; border: 1px dashed var(--accent-blue);">
-                <label style="color: var(--accent-blue); margin-bottom: 4px; font-weight: 700;">🔗 구글 시트 & Whisper AI 보안 연동 완료</label>
-                <div class="hint" style="margin: 0; color: var(--text-secondary); font-size: 0.82em; line-height: 1.4;">
-                    구글 시트(GAS) Webhook 및 시트 CSV 주소가 보안 내장되어 있습니다.<br>
-                    접속 시 <b>보안 PIN 번호</b>로 즉시 암호화 인증 및 자동 연동됩니다.
-                </div>
+                <label style="color: var(--accent-blue); margin: 0; font-weight: 700;">🔗 구글 시트 & Whisper AI 연동 완료</label>
             </div>
             <div class="form-group">
                 <label>내 PC Kordoc 서버 주소 (태블릿 연결용)</label>
@@ -1059,10 +1077,9 @@
     <div class="modal-overlay" id="pinModal" style="display: flex; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
         <div class="modal" style="text-align: center; max-width: 380px; padding: 28px 24px;">
             <div style="font-size: 2rem; margin-bottom: 12px;">🔒</div>
-            <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 6px;">보안 비밀번호 입력</h3>
-            <p style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 18px;">Meeting Copilot에 접근하려면 비밀번호를 입력하세요.</p>
+            <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 20px;">보안 비밀번호 입력</h3>
             
-            <div class="form-group" style="margin-bottom: 12px;">
+            <div class="form-group" style="margin-bottom: 14px;">
                 <input type="password" id="inputPin" placeholder="••••••••" style="text-align: center; font-size: 1.3rem; letter-spacing: 4px; font-weight: 700; padding: 12px; border-radius: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
             </div>
             <div id="pinError" style="color: var(--accent-red); font-size: 0.82rem; margin-bottom: 14px; display: none; font-weight: bold;">비밀번호가 올바르지 않습니다.</div>
@@ -1137,10 +1154,10 @@
 
     <!-- MANUAL QUERY MODAL -->
     <div class="modal-overlay" id="queryModal">
-        <div class="modal" style="max-width: 400px; padding: 20px;">
-            <div class="form-group" style="margin-bottom: 20px;">
-                <input type="text" id="inputManualQuery" placeholder="질문을 입력하세요..."
-                    style="font-size: 1rem; padding: 14px; border-radius: 10px;">
+        <div class="modal" style="max-width: 440px; padding: 22px 20px;">
+            <div class="form-group" style="margin-bottom: 16px;">
+                <textarea id="inputManualQuery" placeholder="질문을 입력하세요..." rows="3"
+                    style="width: 100%; min-height: 84px; max-height: 240px; font-size: 0.95rem; line-height: 1.5; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); resize: none; outline: none; box-sizing: border-box; font-family: inherit; transition: border-color 0.2s;"></textarea>
             </div>
             <div class="modal-actions" style="margin-top: 0;">
                 <button class="ctrl-btn" id="btnQueryCancel">취소</button>
@@ -1419,7 +1436,7 @@
                 console.log('Parsed rows:', state.sheetData.length, 'Sample:', state.sheetData.slice(0, 2));
                 if (dotEl) dotEl.classList.add('loaded');
                 if (statusTextEl) statusTextEl.textContent = `${state.sheetData.length}건 로드됨`;
-                showToast(`시트 데이터 ${state.sheetData.length}건 로드 완료`);
+                showToast(`시트 연결 완료 (${state.sheetData.length}건)`);
             } catch (e) {
                 if (dotEl) dotEl.classList.remove('loaded');
                 if (statusTextEl) statusTextEl.textContent = '로드 실패';
@@ -1507,9 +1524,9 @@
                 state.listening = true;
                 state.isTransitioning = false;
                 micDot.classList.add('active');
-                micStatus.textContent = '듣는 중...';
+                micStatus.textContent = '듣는 중';
                 headerStatus.textContent = '🔴 듣는 중';
-                $('btnListen').innerHTML = '⏹ 중지';
+                $('btnListen').innerHTML = '중지';
                 $('btnListen').classList.add('danger');
                 $('btnListen').classList.remove('primary');
                 $('btnListen').disabled = false;
@@ -1532,9 +1549,9 @@
                     }, 500);
                 } else {
                     micDot.classList.remove('active');
-                    micStatus.textContent = '중지됨';
+                    micStatus.textContent = '중지';
                     headerStatus.textContent = '대기';
-                    $('btnListen').innerHTML = '▶ 듣기 시작';
+                    $('btnListen').innerHTML = '듣기';
                     $('btnListen').classList.remove('danger');
                 }
             };
@@ -1985,7 +2002,7 @@
             // 고품질 변환 로직 (수동 질문이 아닐 때만)
             const isWhisperRealtime = headerStatus.textContent.includes('위스퍼');
             if (!manualQuery && settings.groqKey && state.audioChunks.length > 0 && !isWhisperRealtime) {
-                $('btnContext').innerHTML = '⏳ 위스퍼 고품질 변환 중...';
+                $('btnContext').innerHTML = '변환 중...';
 
                 if (state.mediaRecorder && state.mediaRecorder.state === 'recording') {
                     state.mediaRecorder.requestData();
@@ -2020,9 +2037,9 @@
             }
 
             if (manualQuery) {
-                $('btnManualQuery').innerHTML = '⏳ 자료 확인 중...';
+                $('btnManualQuery').innerHTML = '확인 중...';
             } else {
-                $('btnContext').innerHTML = '⏳ 맥락 분석 중...';
+                $('btnContext').innerHTML = '분석 중...';
             }
 
             let contextData = '';
@@ -2512,8 +2529,8 @@ ${recentText}
             } finally {
                 $('btnContext').disabled = false;
                 $('btnManualQuery').disabled = false;
-                $('btnContext').innerHTML = '🔍 맥락 분석';
-                $('btnManualQuery').innerHTML = '💡 자료확인';
+                $('btnContext').innerHTML = '맥락분석';
+                $('btnManualQuery').innerHTML = '자료확인';
             }
         }
 
@@ -2548,9 +2565,9 @@ ${recentText}
 
                     if (useWhisper) {
                         micDot.classList.remove('active');
-                        micStatus.textContent = '중지됨';
+                        micStatus.textContent = '중지';
                         headerStatus.textContent = '대기 중';
-                        $('btnListen').innerHTML = '▶ 듣기 시작';
+                        $('btnListen').innerHTML = '듣기';
                         $('btnListen').classList.remove('danger');
                     }
 
@@ -2563,9 +2580,9 @@ ${recentText}
 
                         state.listening = true;
                         micDot.classList.add('active');
-                        micStatus.textContent = '듣는 중...';
+                        micStatus.textContent = '듣는 중';
                         headerStatus.textContent = useWhisper ? '🔴 위스퍼(5초 간격)' : '🔴 듣는 중';
-                        $('btnListen').innerHTML = '⏹ 중지';
+                        $('btnListen').innerHTML = '중지';
                         $('btnListen').classList.add('danger');
                         $('btnListen').classList.remove('primary');
 
@@ -2601,9 +2618,9 @@ ${recentText}
                         $('btnListen').disabled = false;
                         state.listening = false;
                         micDot.classList.remove('active');
-                        micStatus.textContent = '중지됨';
+                        micStatus.textContent = '중지';
                         headerStatus.textContent = '대기 중';
-                        $('btnListen').innerHTML = '▶ 듣기 시작';
+                        $('btnListen').innerHTML = '듣기';
                         $('btnListen').classList.remove('danger');
                         showToast('❌ 마이크를 시작할 수 없습니다');
                     }
@@ -2619,8 +2636,15 @@ ${recentText}
 
             $('btnManualQuery').addEventListener('click', () => {
                 inputQuery.value = '';
+                inputQuery.style.height = 'auto'; // 높이 초기화
                 queryModal.classList.add('show');
                 setTimeout(() => inputQuery.focus(), 100);
+            });
+
+            // 입력 내용에 따라 위아래로 자연스럽게 확장 (Auto-resize textarea)
+            inputQuery.addEventListener('input', () => {
+                inputQuery.style.height = 'auto';
+                inputQuery.style.height = Math.min(Math.max(inputQuery.scrollHeight, 84), 240) + 'px';
             });
 
             $('btnQueryCancel').addEventListener('click', () => {
@@ -2636,8 +2660,13 @@ ${recentText}
             });
 
             inputQuery.addEventListener('keydown', (e) => {
+                // PC 데스크톱에서는 Enter로 즉시 전송, Shift+Enter는 줄바꿈
+                // 모바일 터치 환경에서는 가상키보드 Enter로 줄바꿈 후 '확인' 버튼으로 전송
                 if (e.key === 'Enter') {
-                    $('btnQuerySubmit').click();
+                    if (e.ctrlKey || e.metaKey || (!e.shiftKey && window.innerWidth > 768)) {
+                        e.preventDefault();
+                        $('btnQuerySubmit').click();
+                    }
                 }
             });
 

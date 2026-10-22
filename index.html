@@ -311,9 +311,9 @@
             letter-spacing: 0.2px;
         }
 
-        /* 플랫 섹션 구조 (1. 핵심 요약, 2. 세부 내용 등) - 박스 없는 시원한 리포트 */
+        /* 플랫 섹션 구조 (1. 핵심 요약, 2. 세부 내용 등) - 일체화된 디자인 시스템 */
         .ai-flat-section {
-            margin: 12px 0;
+            margin: 14px 0;
             padding: 0;
             background: transparent;
         }
@@ -322,27 +322,36 @@
             margin-top: 2px;
         }
 
-        /* 1번 핵심 요약 헤더 */
-        .ai-flat-section .flat-title-primary {
+        /* 1번, 2번, 3번 대제목 통일 헤더 */
+        .ai-flat-section .flat-section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-weight: 900;
-            font-size: 0.96rem;
-            color: #4338ca;
-            margin-bottom: 8px;
-            padding-bottom: 5px;
+            font-size: 0.95rem;
+            color: #1e1b4b;
+            margin: 16px 0 10px 0;
+            padding-bottom: 6px;
             border-bottom: 2px solid #6366f1;
             letter-spacing: -0.2px;
         }
 
-        /* 2번, 3번 세부 섹션 헤더 */
-        .ai-flat-section .flat-title-secondary {
+        .ai-flat-section .flat-section-title .section-badge {
+            background: #6366f1;
+            color: #ffffff;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.74rem;
             font-weight: 800;
-            font-size: 0.92rem;
-            color: #1e293b;
-            margin-top: 18px;
-            margin-bottom: 8px;
-            padding-bottom: 4px;
-            border-bottom: 1.5px solid #e2e8f0;
-            letter-spacing: -0.2px;
+            flex-shrink: 0;
+        }
+
+        .ai-flat-section .flat-section-title .section-title-text {
+            flex: 1;
         }
 
         .ai-flat-section .flat-body {
@@ -351,45 +360,104 @@
             line-height: 1.65;
         }
 
-        /* 3. 소제목 블록 (3.1, 3.2 등 계층화) */
+        /* 마크다운 테이블 (표) - 모바일 최적화 및 프리미엄 비즈니스 스타일 */
+        .ai-table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin: 12px 0 16px 0;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 7px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            background: #ffffff;
+        }
+
+        .ai-table {
+            width: 100%;
+            min-width: 440px; /* 모바일에서 찌그러지지 않고 좌우 스크롤 보장 */
+            border-collapse: collapse;
+            font-size: 0.78rem;
+            text-align: left;
+            line-height: 1.45;
+        }
+
+        .ai-table th {
+            background: #f8fafc;
+            color: #1e293b;
+            font-weight: 800;
+            padding: 8px 10px;
+            border-bottom: 1.5px solid #cbd5e1;
+            border-right: 1px solid #f1f5f9;
+            white-space: nowrap;
+        }
+
+        .ai-table th:last-child {
+            border-right: none;
+        }
+
+        .ai-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            border-right: 1px solid #f8fafc;
+            color: #334155;
+            vertical-align: top;
+        }
+
+        .ai-table td:last-child {
+            border-right: none;
+        }
+
+        .ai-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .ai-table tr:nth-child(even) td {
+            background: #fbfcfe;
+        }
+
+        /* 3. 소제목 블록 (3.1, 3.2 등 계층화) - 불릿과 명확히 구분되는 배지 헤더 */
         .ai-subheading {
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 0.86rem;
+            font-size: 0.88rem;
             font-weight: 800;
-            color: #334155;
-            margin: 12px 0 4px 0;
-            padding-bottom: 2px;
+            color: #1e1b4b;
+            margin: 14px 0 6px 0;
+            padding: 4px 8px;
+            background: #f1f5f9;
+            border-left: 3px solid #6366f1;
+            border-radius: 0 5px 5px 0;
         }
 
         .ai-subheading:first-child {
-            margin-top: 2px;
+            margin-top: 4px;
         }
 
         .ai-subheading .subheading-num {
             color: #6366f1;
             font-weight: 800;
-            font-size: 0.84rem;
+            font-size: 0.82rem;
         }
 
         .ai-heading {
             font-size: 0.90rem;
             font-weight: 800;
             color: #1e1b4b;
-            margin: 10px 0 5px 0;
+            margin: 12px 0 6px 0;
             padding-bottom: 3px;
             border-bottom: 1px solid var(--border-color);
         }
 
-        /* 4. 불릿 및 세부 항목 */
+        /* 4. 불릿 및 세부 항목 - 소제목 아래 인덴트(들여쓰기) 적용 */
         .ai-bullet {
             display: flex;
             align-items: flex-start;
             gap: 6px;
-            margin: 6px 0;
+            margin: 6px 0 6px 6px;
+            padding-left: 6px;
+            border-left: 2px solid #f1f5f9;
             line-height: 1.6;
-            padding-left: 4px;
         }
 
         .ai-bullet .bullet-dot {
@@ -2005,34 +2073,43 @@
 
                 if (manualQuery) {
                     // [자료확인 (사용자 직접 질의/Q&A)] 프롬프트
-                    systemInstruction = `당신은 공문서, 사업계획서, 성과보고서, 예산/결산서 등 사내 핵심 문서를 정밀 분석하여 보고하는 수석 데이터분석가이자 최고경영진 회의 보조 AI입니다.
+                    systemInstruction = `당신은 최고경영진 및 이사회에 경영 현황을 직관적으로 보고하는 수석 전략데이터분석가이자 회의 보조 AI입니다.
 현재 시점: ${currentDateStr}
 
-[참고 자료]를 바탕으로 사용자의 질문에 대해 철저히 정량적 데이터(수치)와 팩트 기반의 고품질 분석 리포트를 작성하세요.
+[참고 자료]를 종합 분석하여, 지엽적인 단순 나열을 배제하고 핵심 지표 비교표(Table)와 전략 축 중심의 최고급 '종합 분석 리포트'를 작성하세요.
 
 절대 준수 규칙:
-1. **정량적 수치(Metrics) 최우선 & 추상적 미사여구 전면 금지 (가장 중요)**:
-   - '효율성 증대', '인지도 제고', '역량 강화', '상생 협력', '적극 추진', '기반 마련', '성과를 거둠' 등 수치 없는 공허하고 두루뭉술한 미사여구는 답변에서 엄격히 금지합니다.
-   - 모든 항목은 반드시 문서에 기재된 **[금액(억원/백만원), 건수, 업체 수, 목표치, 달성률(%), 전년 대비 증감률]** 등 구체적인 수치 팩트 위주로만 작성하세요. 수치가 없는 공허한 문장은 절대 쓰지 마세요.
-2. **당초 계획 대비 변경/확대 시 [전후 수치 대조 공식] 필수 준수**:
+1. **[1. 핵심 요약]에 '핵심 지표 종합 비교표(Table)' 작성 의무화 (최우선)**:
+   - 복수 수치, 목표치, 전년 대비 비교, 당초 vs 변경 등이 포함된 질문에는 '1. 핵심 요약' 첫머리에 반드시 **마크다운 표(Table)**를 작성하세요.
+   - 표 컬럼 예시:
+     | 주요 추진 분야 / 핵심 지표 | 2023년 실적 | 2024년 목표 (당초→최종) | 전년비 증감 및 개선점 |
+     |---|---|---|---|
+     | 정책금융 보증 총량 | 1조 2,000억원 | 1조 3,500억원 (+1,500억) | 12.5% 확대, 서민금융 집중 |
+     | 골목상권 멘토 매칭 | 50개사 | 당초 50개 → 최종 100개 | 50개사 추가 확대 (+100%) |
+   - 표 바로 아래에 회의에서 즉각 발언할 수 있는 **2~3줄의 거시적 총괄 브리핑**을 덧붙이세요.
+2. **지엽적 단순 나열 금지 & 3~4대 핵심 전략 축(Pillar) 중심 종합화**:
+   - 미시적인 개별 사업들을 10개 이상 단순 나열하지 마세요.
+   - '2. 세부 데이터 및 배경 사실관계'에서는 반드시 기관의 3~4대 핵심 추진 축(예: '2.1. 정책금융 공급 및 리스크 관리', '2.2. 소상공인 판로개척 및 경영지원', '2.3. 디지털 전환 및 행정 혁신' 등)으로 대분류하고, 각 축별로 가장 중요한 핵심 팩트와 수치 2~3개만 선별하여 종합 보고서 형식으로 작성하세요.
+3. **소제목과 세부 불릿의 엄격한 분리**:
+   - 소제목(카테고리명) 앞에는 절대 불릿(•, -)을 붙이지 마세요.
+   - 소제목은 반드시 '2.1. [소제목명]' 또는 '2.2. [소제목명]'처럼 단독 줄로 작성하세요.
+   - 세부 실행 내용만 • **[핵심 키워드]**: [당초 X → 최종 Y 수치 팩트] 형태로 불릿을 사용하세요.
+4. **당초 계획 대비 변경/확대 시 [전후 수치 대조 공식] 필수 준수**:
    - 단순히 '당초 대비 확대 추진', '계획 변경' 등으로 모호하게 쓰지 마세요.
    - 반드시 **'당초 [X개/억원] → 변경 [Y개/억원] (+Z개 추가 / W% 증감)'** 형태로 당초 수치와 변경 후 최종 확정 수치를 대조하여 기재하세요. (문서에 당초 수치가 명시되지 않은 경우에만 '최종 확정 Y개'로 표기)
-3. **단순 나열 금지 및 기능별 2~3개 핵심 선별 구조화**:
-   - 한 챕터 아래에 불릿을 5~10개씩 무분별하게 단순 나열하지 마세요.
-   - 2번, 3번 세부 내용은 반드시 기능별/분야별(예: '2.1. 정책금융 지원 실적', '2.2. 판로 및 경영지원 성과', '2.3. 전산 시스템 혁신' 등)로 소주제를 분류하고, 각 소주제마다 **가장 중요한 핵심 수치 팩트 2~3개 불릿**으로 엄선하여 구조화하세요.
-4. **다중 문서 교차 검증 및 변경 이력 종합**:
+5. **정량적 수치(Metrics) 최우선 & 추상적 미사여구 전면 금지**:
+   - '효율성 증대', '인지도 제고', '역량 강화', '상생 협력', '적극 추진', '기반 마련', '성과를 거둠' 등 수치 없는 공허하고 두루뭉술한 미사여구는 답변에서 엄격히 금지합니다.
+   - 모든 항목은 반드시 문서에 기재된 **[금액(억원/백만원), 건수, 업체 수, 목표치, 달성률(%), 전년 대비 증감률]** 등 구체적인 수치 팩트 위주로만 작성하세요. 수치가 없는 공허한 문장은 절대 쓰지 마세요.
+6. **다중 문서 교차 검증 및 복수 출처 명시**:
    - 동일 사업/과제에 대해 '당초 계획서'와 '변경계획/추경/의결서'가 함께 존재할 경우, 시간순으로 교차 검증하여 최종 확정치와 변동 내역을 종합 정리하고 복수 출처를 모두 명시하세요. (예: [2024년도 사업계획서] [2024년도 제2차 변경계획서])
-5. **이모지 및 특수 마크다운 기호 금지**:
-   - 이모지(🤖, 💡, ⚠️, 📌 등)를 일체 사용하지 마세요.
-   - ###, ##, --- 와 같은 마크다운 헤딩/수평선 기호를 사용하지 마세요. 대제목은 '1. 핵심 요약', '2. 세부 데이터 및 배경 사실관계'처럼 단정하게 작성하세요.
-6. **기준 시점 및 출처 필수 명시**:
-   - 모든 주요 수치나 팩트를 언급할 때는 반드시 해당 내용이 명시된 **[문서명 및 기준 시점(연도/월/분기)]**을 밝히세요. (예: [2023년도 사업실적보고서 기준], [2024년도 1분기 예산계획서 기준])
-7. **시점 불일치 시 첫머리 안내 (필수)**:
+7. **이모지 및 특수 마크다운 기호 금지**:
+   - 이모지(🤖, 💡, ⚠️, 📌 등)를 일체 사용하지 마세요. 소제목은 '1. 핵심 요약', '2. 세부 데이터 및 배경 사실관계'처럼 단정하게 작성하세요.
+8. **기준 시점 및 출처 필수 명시**:
+   - 모든 주요 수치나 팩트를 언급할 때는 반드시 해당 내용이 명시된 **[문서명 및 기준 시점(연도/월/분기)]**을 밝히세요.
+9. **시점 불일치 시 첫머리 안내 (필수)**:
    - 사용자가 '올해', '최근', '현재' 실적/수치를 물었으나 보유 자료가 과거(예: 작년) 수치인 경우, 답변 맨 첫 줄에 오해가 없도록 명확히 고지하세요.
    - 예: "[시점 안내]: 등록된 최신 자료는 **'2023년 성과보고서'**이며, ${now.getFullYear()}년(올해) 자료는 등록되어 있지 않아 **2023년 결산 수치** 기준으로 안내드립니다."
-8. **핵심 키워드 볼드 콜론 표기**:
-   - 각 세부 불릿포인트의 앞머리에는 반드시 **'[핵심 키워드]:'** 형태로 콜론(:)을 두어 3초 안에 스캔할 수 있게 작성하세요. (예: • **골목상권 멘토 매칭**: 당초 50개 → 50개 추가되어 **총 100개사**로 확대 추진...)
-9. 장황한 인사말이나 서두 없이, 시점 안내(필요시) 및 '1. 핵심 요약'부터 전문적인 비즈니스 톤으로 시작하세요.`;
+10. 장황한 인사말 없이, 시점 안내(필요시) 및 '1. 핵심 요약'의 비교표부터 전문적인 비즈니스 톤으로 시작하세요.`;
 
                     userPrompt = `[참고 자료]
 ${contextData || '(등록된 자료 없음)'}
@@ -2040,7 +2117,7 @@ ${contextData || '(등록된 자료 없음)'}
 [사용자 질문/요청]
 ${manualQuery}
 
-위 [참고 자료]를 종합 교차 분석하여, 두루뭉술한 미사여구를 배제하고 [구체적 수치(금액/건수/증감폭)], [당초 대비 변경 대조], [출처/시점]이 명시된 고밀도 팩트 중심 리포트를 작성해 주세요.`;
+위 [참고 자료]를 종합 교차 분석하여, 지엽적인 단순 나열을 피하고 핵심 지표 종합 비교표(Table)와 3~4대 핵심 전략 축으로 구조화된 고밀도 종합 분석 리포트를 작성해 주세요.`;
 
                 } else {
                     // [AI 맥락분석 (실시간 회의 보조)] 프롬프트
@@ -2091,7 +2168,7 @@ ${recentText}
 
                 if (!response.ok) throw new Error(`API ${response.status}`);
 
-                // 가독성 높은 AI 응답 렌더러 (계층 구조, 서브헤딩 분리, 콜론 키워드 볼드, 출처 미니멀화, 마침표 공백 교정)
+                // 가독성 높은 AI 응답 렌더러 (계층 구조, 테이블 파싱, 서브헤딩 분리, 콜론 키워드 볼드, 출처 미니멀화)
                 const formatAIResponse = (text) => {
                     if (!text) return '(응답 없음)';
 
@@ -2128,7 +2205,7 @@ ${recentText}
                         return { cleanText: cleanText || lineContent, sourcesHtml };
                     };
 
-                    // 라인 포맷 헬퍼 (소제목 3.1 감지, 콜론 앞 키워드 강조, 마크다운 변환)
+                    // 라인 포맷 헬퍼 (소제목 감지, 콜론 앞 키워드 강조, 마크다운 변환)
                     const formatSingleLine = (rawLine) => {
                         let line = rawLine.trim();
                         if (!line) return '<div style="height: 4px;"></div>';
@@ -2137,7 +2214,7 @@ ${recentText}
                             return '<hr class="ai-divider">';
                         }
 
-                        // [소제목 계층화 1] 3.1. 소제목 / 2.1. 소제목 형태 감지 (📌 이모지 배제, 단정한 타이포그래피)
+                        // [소제목 계층화 1] 3.1. 소제목 / 2.1. 소제목 형태 감지
                         const subHeadingMatch = line.match(/^[-*•]?\s*(\d+\.\d+\.?)\s*(.*)/);
                         if (subHeadingMatch) {
                             const subNum = subHeadingMatch[1].replace(/\.$/, ''); // '3.1'
@@ -2151,6 +2228,21 @@ ${recentText}
                             const title = line.replace(/^#{2,4}\s*/, '').replace(/\*\*/g, '').trim();
                             const { cleanText, sourcesHtml } = processSources(title);
                             return `<div class="ai-subheading"><span class="subheading-title">${cleanText}</span></div>${sourcesHtml}`;
+                        }
+
+                        // [소제목 계층화 3] 불릿(•, -)으로 시작하지만 본문 서술(콜론 또는 종결어미)이 없는 단독 소제목 명사구 자동 승격!
+                        // 예: • [비금융 지원 실적] 또는 • 비금융 지원 실적 (기관 사업 실적)
+                        if (/^[-*•]\s+([^\n\r]+)$/.test(line)) {
+                            const bulletContent = line.replace(/^[-*•]\s+/, '').trim();
+                            const isTitleOnly = !bulletContent.includes(':') &&
+                                                !/[.!?]$/.test(bulletContent) &&
+                                                !/(습니다|합니다|됩니다|추진함|기록함|달성함)/.test(bulletContent) &&
+                                                bulletContent.length <= 45;
+
+                            if (isTitleOnly) {
+                                const { cleanText, sourcesHtml } = processSources(bulletContent);
+                                return `<div class="ai-subheading"><span class="subheading-title">${cleanText.replace(/\*\*/g, '')}</span></div>${sourcesHtml}`;
+                            }
                         }
 
                         // 볼드 강조 치환 (문장 끝 미완성 ** 까지 안전 처리)
@@ -2178,6 +2270,59 @@ ${recentText}
                         return `<div><div>${cleanText}</div>${sourcesHtml}</div>`;
                     };
 
+                    // 섹션 내부 라인들 중 마크다운 테이블 블록 감지 및 변환 헬퍼
+                    const parseSectionBody = (secLines) => {
+                        const outputHtml = [];
+                        let idx = 0;
+
+                        while (idx < secLines.length) {
+                            const rawLine = secLines[idx];
+                            const trimmed = rawLine.trim();
+
+                            // 마크다운 표 감지 (| 로 시작하고 | 로 끝나는 라인)
+                            if (trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length > 2) {
+                                const tableRows = [];
+                                while (idx < secLines.length && secLines[idx].trim().startsWith('|') && secLines[idx].trim().endsWith('|')) {
+                                    tableRows.push(secLines[idx].trim());
+                                    idx++;
+                                }
+
+                                if (tableRows.length >= 2) {
+                                    let tableHtml = '<div class="ai-table-container"><table class="ai-table">';
+                                    const parseRow = (rowStr) => rowStr.slice(1, -1).split('|').map(c => c.trim());
+
+                                    // Header
+                                    const headers = parseRow(tableRows[0]);
+                                    tableHtml += '<thead><tr>' + headers.map(h => `<th>${h.replace(/\*\*/g, '')}</th>`).join('') + '</tr></thead>';
+
+                                    // Body (구분선 |---|---| 제외)
+                                    tableHtml += '<tbody>';
+                                    for (let r = 1; r < tableRows.length; r++) {
+                                        const rowText = tableRows[r];
+                                        if (/^\|[\s\-:|]+\|$/.test(rowText)) continue; // 구분선 스킵
+                                        const cells = parseRow(rowText);
+                                        tableHtml += '<tr>' + cells.map(c => {
+                                            let formattedCell = c.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                            return `<td>${formattedCell}</td>`;
+                                        }).join('') + '</tr>';
+                                    }
+                                    tableHtml += '</tbody></table></div>';
+                                    outputHtml.push(tableHtml);
+                                    continue;
+                                } else {
+                                    outputHtml.push(formatSingleLine(tableRows[0]));
+                                    continue;
+                                }
+                            }
+
+                            // 일반 라인
+                            outputHtml.push(formatSingleLine(rawLine));
+                            idx++;
+                        }
+
+                        return outputHtml.join('');
+                    };
+
                     // 2. 줄 단위 파싱 및 섹션 감지 (### 1. 제목 또는 1. 제목 모두 감지)
                     const lines = clean.split('\n');
 
@@ -2193,9 +2338,9 @@ ${recentText}
 
                     const hasNumberedSections = lines.some(l => getNumberedHeading(l.trim()) !== null);
 
-                    // 번호 매겨진 섹션이 없는 경우: 단순 라인 포맷 적용
+                    // 번호 매겨진 섹션이 없는 경우: 테이블 포함 바디 파서 직접 적용
                     if (!hasNumberedSections) {
-                        return lines.map(l => formatSingleLine(l)).join('');
+                        return parseSectionBody(lines);
                     }
 
                     // 번호 매겨진 대주제 구조화 (1. 핵심 요약, 2. 전략 목표..., 3. 실적...)
@@ -2227,28 +2372,18 @@ ${recentText}
                     const htmlParts = [];
 
                     for (const sec of sections) {
-                        const bodyHtml = sec.lines.map(l => formatSingleLine(l)).join('');
+                        const bodyHtml = parseSectionBody(sec.lines);
 
-                        if (sec.num === 1) {
-                            // [1번 핵심 요약 섹션]: 사방 테두리/박스 없는 플랫 섹션
-                            htmlParts.push(`
-                                <div class="ai-flat-section">
-                                    <div class="flat-title-primary">1. ${sec.title}</div>
-                                    <div class="flat-body">${bodyHtml}</div>
+                        // 1번, 2번, 3번 대제목 모두 일체화된 세련된 배지 헤더로 렌더링
+                        htmlParts.push(`
+                            <div class="ai-flat-section">
+                                <div class="flat-section-title">
+                                    <span class="section-badge">${sec.num}</span>
+                                    <span class="section-title-text">${sec.title}</span>
                                 </div>
-                            `);
-                        } else if (sec.num > 1) {
-                            // [2번, 3번 이후 세부 섹션]: 아코디언 상자 없는 시원한 플랫 섹션
-                            htmlParts.push(`
-                                <div class="ai-flat-section">
-                                    <div class="flat-title-secondary">${sec.num}. ${sec.title}</div>
-                                    <div class="flat-body">${bodyHtml}</div>
-                                </div>
-                            `);
-                        } else {
-                            // 서두 안내 문구 등
-                            htmlParts.push(`<div>${bodyHtml}</div>`);
-                        }
+                                <div class="flat-body">${bodyHtml}</div>
+                            </div>
+                        `);
                     }
 
                     return htmlParts.join('');

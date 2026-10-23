@@ -2229,29 +2229,43 @@ ${recentText}
 위 대화 흐름에서 팩트체크가 필요한 핵심 쟁점을 파악하고, [참고 자료]의 다중 문서를 종합 대조하여 [출처/시점]이 명시된 2~3개의 정밀 팩트체크 불릿포인트를 작성해 주세요.`;
                 }
 
+                const candidateModels = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash'];
                 let response = null;
-                for (let attempt = 1; attempt <= 2; attempt++) {
-                    response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            system_instruction: { parts: [{ text: systemInstruction }] },
-                            contents: [{ parts: [{ text: userPrompt }] }],
-                            generationConfig: {
-                                temperature: 0.45,
-                                maxOutputTokens: 8192
-                            }
-                        })
-                    });
+                let usedModel = '';
 
-                    if (response.ok) break;
+                for (const modelName of candidateModels) {
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse&key=${settings.apiKey}`;
+                    try {
+                        response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                system_instruction: { parts: [{ text: systemInstruction }] },
+                                contents: [{ parts: [{ text: userPrompt }] }],
+                                generationConfig: {
+                                    temperature: 0.45,
+                                    maxOutputTokens: 8192
+                                }
+                            })
+                        });
 
-                    if ((response.status === 503 || response.status === 429) && attempt === 1) {
-                        showToast('⏳ 구글 AI 일시 과부하 - 1.5초 후 자동 재시도합니다...');
-                        await new Promise(r => setTimeout(r, 1500));
-                        continue;
+                        if (response.ok) {
+                            usedModel = modelName;
+                            break;
+                        }
+
+                        // 429(일일 쿼터 초과) 또는 503(과부하) 발생 시 다음 후보 모델로 자동 스위칭
+                        if (response.status === 429 || response.status === 503) {
+                            console.warn(`[AI 모델 전환] ${modelName} 상태코드 ${response.status} -> 다음 가용 모델로 자동 전환합니다.`);
+                            continue;
+                        }
+                    } catch (fetchErr) {
+                        console.warn(`[AI 모델 오류] ${modelName}:`, fetchErr);
                     }
-                    throw new Error(`API ${response.status}`);
+                }
+
+                if (!response || !response.ok) {
+                    throw new Error(`API ${response ? response.status : '오프라인'}`);
                 }
 
                 // 가독성 높은 AI 응답 렌더러 (계층 구조, 테이블 파싱, 서브헤딩 분리, 콜론 키워드 볼드, 출처 미니멀화)

@@ -2234,11 +2234,14 @@ ${recentText}
                 let usedModel = '';
 
                 for (const modelName of candidateModels) {
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse&key=${settings.apiKey}`;
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
                     try {
                         response = await fetch(apiUrl, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-goog-api-key': settings.apiKey
+                            },
                             body: JSON.stringify({
                                 system_instruction: { parts: [{ text: systemInstruction }] },
                                 contents: [{ parts: [{ text: userPrompt }] }],
@@ -2944,7 +2947,7 @@ ${recentText}
 [문서 원문]
 ${text.slice(0, 30000)}`;
 
-                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${settings.apiKey}`;
+                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent`;
                     const schemaJson = {
                         "type": "ARRAY",
                         "items": {
@@ -2962,7 +2965,10 @@ ${text.slice(0, 30000)}`;
 
                     const gRes = await fetch(geminiUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-goog-api-key': settings.apiKey
+                        },
                         body: JSON.stringify({
                             "contents": [{"parts": [{"text": prompt}]}],
                             "generationConfig": {

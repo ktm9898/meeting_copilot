@@ -2324,6 +2324,90 @@
             }
         }
 
+        // ============================================================
+        //  WHISPER SMART CONTEXT PROMPT (스마트 150자 사전 빌더)
+        // ============================================================
+        const WHISPER_STOPWORDS = new Set([
+            '관리', '진행', '확인', '관련', '내용', '업무', '계획', '기준', '사항', '개요',
+            '요청', '현황', '안내', '방법', '참고', '조치', '결과', '검토', '처리', '공유',
+            '정리', '협의', '준비', '대응', '설명', '보고', '작성', '지원', '운영', '제공'
+        ]);
+
+        function scoreWhisperKeyword(word) {
+            if (!word || typeof word !== 'string') return -999;
+            const w = word.trim();
+            if (w.length < 2) return -999;
+            if (WHISPER_STOPWORDS.has(w)) return -50;
+
+            let score = 0;
+            // 3글자 이상 전문 복합어 가중치
+            if (w.length >= 3) score += (w.length * 2);
+            // 영문, 숫자, 고유 약어 포함 시 가중치
+            if (/[a-zA-Z0-9]/.test(w)) score += 15;
+            // 복합 띄어쓰기 명사
+            if (/\s/.test(w)) score += 5;
+
+            return score;
+        }
+
+        function buildWhisperPrompt() {
+            if (!state.sheetData || state.sheetData.length === 0) {
+                return state.lastTranscript ? state.lastTranscript.slice(-100) : '';
+            }
+
+            // 1. 각 문서별로 키워드를 고유명사 점수순으로 정렬
+            const docKeywordLists = state.sheetData.map(row => {
+                if (!Array.isArray(row.keywords)) return [];
+                return row.keywords
+                    .map(k => (typeof k === 'string' ? k.trim() : ''))
+                    .filter(k => k.length >= 2 && !WHISPER_STOPWORDS.has(k))
+                    .map(k => ({ word: k, score: scoreWhisperKeyword(k) }))
+                    .sort((a, b) => b.score - a.score)
+                    .map(item => item.word);
+            }).filter(list => list.length > 0);
+
+            if (docKeywordLists.length === 0) {
+                return state.lastTranscript ? state.lastTranscript.slice(-100) : '';
+            }
+
+            // 2. 라운드 로빈 방식으로 150자가 찰 때까지 골고루 수집 (문서가 적으면 한 문서당 여러 개 자동 수집)
+            const selectedWords = [];
+            const usedWordSet = new Set();
+            const MAX_DICT_CHARS = 140;
+            let currentLength = 0;
+            let round = 0;
+            let addedInRound = true;
+
+            while (currentLength < MAX_DICT_CHARS && addedInRound) {
+                addedInRound = false;
+                for (let i = 0; i < docKeywordLists.length; i++) {
+                    const list = docKeywordLists[i];
+                    if (round < list.length) {
+                        const word = list[round];
+                        if (!usedWordSet.has(word)) {
+                            usedWordSet.add(word);
+                            selectedWords.push(word);
+                            currentLength += (word.length + 2);
+                            addedInRound = true;
+                            if (currentLength >= MAX_DICT_CHARS) break;
+                        }
+                    }
+                }
+                round++;
+            }
+
+            // 3. 사전 지식 1순위 보장 + 남는 여유 버퍼(안전 한도 200자 중 남은 공간)에 최근 발화 문맥 덧붙임
+            const dictText = selectedWords.length > 0 ? '회의 주요 어휘: ' + selectedWords.join(', ') : '';
+            const remainingChars = Math.max(0, 200 - dictText.length);
+            let contextTail = '';
+            if (state.lastTranscript && remainingChars >= 20) {
+                contextTail = '. ' + state.lastTranscript.trim().slice(-remainingChars);
+            }
+
+            const finalPrompt = (dictText + contextTail).trim();
+            return finalPrompt;
+        }
+
         async function transcribeAudioWithGroq(apiKey, audioChunks, mimeType) {
             if (!audioChunks || audioChunks.length === 0) return null;
 
@@ -2346,7 +2430,14 @@
             formData.append('response_format', 'text');
             formData.append('language', 'ko');
 
-            // 힌트 프롬프트 구성 (시트 등록 회의 키워드 + 직전 발화 맥락)
+            // 위스퍼 스마트 사전 프롬프트 주입 (불용어 제외 + 고유명사 점수제 + 라운드로빈 150자 풀)
+            const promptText = buildWhisperPrompt();
+            if (promptText) {
+                formData.append('prompt', promptText);
+            }
+
+            /* 이전 프롬프트 로직 비활성화 */
+            if (false) {
             let kwHints = [];
             if (state.sheetData && state.sheetData.length > 0) {
                 const kwSet = new Set();
@@ -2371,6 +2462,7 @@
             }
             if (promptParts.length > 0) {
                 formData.append('prompt', promptParts.join(". ").slice(-350));
+            }
             }
 
             try {

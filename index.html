@@ -248,6 +248,116 @@
             color: var(--text-primary);
         }
 
+        /* ===== KEYWORD ACCORDION (한 줄 문서 버튼 & 아코디언 토글) ===== */
+        .keyword-accordion {
+            margin: 6px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .keyword-accordion:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .keyword-accordion-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-card);
+            border: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.84rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            gap: 8px;
+            transition: background var(--transition);
+        }
+
+        .keyword-accordion-header:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .accordion-header-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .accordion-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--accent-green);
+            background: rgba(52, 211, 153, 0.12);
+            padding: 2px 6px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .accordion-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .accordion-kw {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-weight: normal;
+            flex-shrink: 0;
+            margin-left: 4px;
+        }
+
+        .accordion-arrow {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .keyword-accordion.open .accordion-arrow {
+            transform: rotate(180deg);
+        }
+
+        .keyword-accordion-body {
+            display: none;
+            padding: 10px 14px;
+            font-size: 0.86rem;
+            line-height: 1.65;
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            white-space: pre-wrap;
+            word-break: keep-all;
+        }
+
+        .keyword-accordion.open .keyword-accordion-body {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        /* ===== MOBILE TAB NAVIGATION ===== */
+        .mobile-tab-nav {
+            display: none;
+        }
+
+        .bottom-data-status {
+            display: none;
+        }
+
         .answer-line .answer-sep {
             color: var(--text-muted);
             margin: 0 6px;
@@ -894,13 +1004,122 @@
                 font-size: 0.85rem;
             }
 
+            .mobile-tab-nav {
+                display: flex;
+                background: var(--bg-secondary);
+                border-bottom: 1px solid var(--border-color);
+                padding: 6px 10px;
+                gap: 6px;
+                flex-shrink: 0;
+            }
+
+            .mobile-tab-btn {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                padding: 7px 10px;
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+                background: var(--bg-card);
+                color: var(--text-secondary);
+                font-size: 0.78rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .mobile-tab-btn.active {
+                background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+                color: #ffffff;
+                border-color: transparent;
+                box-shadow: 0 2px 6px rgba(74, 158, 255, 0.25);
+            }
+
             .main-content {
+                flex-direction: column;
+                flex: 1;
+                min-height: 0;
+            }
+
+            /* 모바일 탭 상태에 따른 패널 표시/숨김 */
+            body:not([data-mobile-tab="stt"]) .stt-panel {
+                display: none !important;
+            }
+            body:not([data-mobile-tab="stt"]) .flash-panel {
+                display: flex !important;
+                flex: 1 !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 0 !important;
+            }
+
+            body[data-mobile-tab="stt"] .stt-panel {
+                display: flex !important;
+                flex: 1 !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                border-right: none !important;
+                border-bottom: none !important;
+            }
+            body[data-mobile-tab="stt"] .flash-panel {
+                display: none !important;
+            }
+
+            .stt-header,
+            .flash-header {
+                padding: 6px 12px;
+                font-size: 0.72rem;
+                letter-spacing: 0.5px;
+            }
+
+            .pc-only-status {
+                display: none !important;
+            }
+
+            /* 모바일 탭별 컨트롤바 버튼 표시 제어 */
+            /* 1) 답변 카드 탭 활성 시: 왼쪽 아래 '30건 로드됨', 오른쪽 아래 '맥락분석 / 자료확인' */
+            body:not([data-mobile-tab="stt"]) .control-bar {
+                justify-content: space-between !important;
+            }
+            body:not([data-mobile-tab="stt"]) #btnListen,
+            body:not([data-mobile-tab="stt"]) #micIndicator {
+                display: none !important;
+            }
+            body:not([data-mobile-tab="stt"]) .bottom-data-status {
+                display: flex !important;
+            }
+            body:not([data-mobile-tab="stt"]) .control-right {
+                display: flex !important;
+            }
+
+            /* 2) 실시간 음성인식 탭 활성 시: 오른쪽 아래 '듣기/중지' */
+            body[data-mobile-tab="stt"] .control-bar {
+                justify-content: flex-end !important;
+            }
+            body[data-mobile-tab="stt"] #btnListen {
+                display: inline-flex !important;
+            }
+            body[data-mobile-tab="stt"] #micIndicator {
+                display: flex !important;
+            }
+            body[data-mobile-tab="stt"] .bottom-data-status {
+                display: none !important;
+            }
+            body[data-mobile-tab="stt"] .control-right {
+                display: none !important;
+            }
+
+            .dummy-disabled-layout {
                 flex-direction: column;
             }
 
             .stt-panel {
-                flex: 0 0 20%;
-                max-height: 20%;
+                /* flex: 0 0 20%; */
+                /* max-height: 20%; */
                 border-right: none;
                 border-bottom: 1px solid var(--border-color);
             }
@@ -994,15 +1213,25 @@
         </div>
     </div>
 
+    <!-- MOBILE TAB NAVIGATION -->
+    <div class="mobile-tab-nav" id="mobileTabNav">
+        <button type="button" class="mobile-tab-btn" id="tabBtnStt" onclick="switchMobileTab('stt')">
+            <span class="tab-icon">🎙</span> 음성인식
+        </button>
+        <button type="button" class="mobile-tab-btn active" id="tabBtnCards" onclick="switchMobileTab('cards')">
+            <span class="tab-icon">💬</span> 답변카드
+        </button>
+    </div>
+
     <!-- MAIN -->
     <div class="main-content">
         <!-- STT Stream -->
         <div class="stt-panel">
             <div class="stt-header">
                 <span>실시간 음성 인식</span>
-                <span class="data-status" id="dataStatus">
+                <span class="data-status pc-only-status" id="dataStatus">
                     <span class="data-dot" id="dataDot"></span>
-                    <span id="dataStatusText">시트 미연결</span>
+                    <span class="data-status-text" id="dataStatusText">시트 미연결</span>
                 </span>
             </div>
             <div class="stt-stream" id="sttStream"></div>
@@ -1031,9 +1260,13 @@
     <div class="control-bar">
         <div class="control-left">
             <button class="ctrl-btn" id="btnListen" title="듣기/중지">듣기</button>
-            <div class="mic-indicator">
+            <div class="mic-indicator" id="micIndicator">
                 <span class="mic-dot" id="micDot"></span>
                 <span id="micStatus">중지</span>
+            </div>
+            <div class="data-status bottom-data-status" id="dataStatusBottom">
+                <span class="data-dot"></span>
+                <span class="data-status-text">시트 미연결</span>
             </div>
         </div>
         <div class="control-right">
@@ -1240,6 +1473,35 @@
         const toast = $('toast');
 
         // ============================================================
+        //  MOBILE TAB NAVIGATION & STATUS SYNC
+        // ============================================================
+        function switchMobileTab(tabName) {
+            document.body.setAttribute('data-mobile-tab', tabName);
+            const tabBtnStt = $('tabBtnStt');
+            const tabBtnCards = $('tabBtnCards');
+            if (tabBtnStt && tabBtnCards) {
+                if (tabName === 'stt') {
+                    tabBtnStt.classList.add('active');
+                    tabBtnCards.classList.remove('active');
+                } else {
+                    tabBtnCards.classList.add('active');
+                    tabBtnStt.classList.remove('active');
+                }
+            }
+        }
+
+        // 초기 기본 탭: 답변카드
+        document.body.setAttribute('data-mobile-tab', 'cards');
+
+        function updateDataStatus(text, isLoaded = false) {
+            document.querySelectorAll('.data-status-text').forEach(el => el.textContent = text);
+            document.querySelectorAll('.data-dot').forEach(el => {
+                if (isLoaded) el.classList.add('loaded');
+                else el.classList.remove('loaded');
+            });
+        }
+
+        // ============================================================
         //  SETTINGS: LOAD / SAVE
         // ============================================================
         function loadSettings() {
@@ -1416,7 +1678,7 @@
             const statusTextEl = $('dataStatusText');
             const dotEl = $('dataDot');
 
-            if (statusTextEl) statusTextEl.textContent = '로드 중...';
+            updateDataStatus('로드 중...', false);
             try {
                 let text = '';
                 const fetchUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
@@ -1435,11 +1697,11 @@
                 parseCSV(text);
                 console.log('Parsed rows:', state.sheetData.length, 'Sample:', state.sheetData.slice(0, 2));
                 if (dotEl) dotEl.classList.add('loaded');
-                if (statusTextEl) statusTextEl.textContent = `${state.sheetData.length}건 로드됨`;
+                updateDataStatus(`${state.sheetData.length}건 로드됨`, true);
                 showToast(`시트 연결 완료 (${state.sheetData.length}건)`);
             } catch (e) {
                 if (dotEl) dotEl.classList.remove('loaded');
-                if (statusTextEl) statusTextEl.textContent = '로드 실패';
+                updateDataStatus('로드 실패', false);
                 showToast(`시트 로드 실패: ${e.message}`);
                 console.error('Sheet load error:', e);
             }
@@ -1745,6 +2007,45 @@
         //  ANSWERS (미니멀 텍스트)
         // ============================================================
         function addAnswer(label, text, matchedKws = []) {
+            flashEmpty.style.display = 'none';
+            const acc = document.createElement('div');
+            acc.className = 'keyword-accordion';
+
+            // 키워드 태그
+            const kwTag = matchedKws.length > 0 ? `<span class="accordion-kw">(키워드: ${matchedKws.join(', ')})</span>` : '';
+
+            // 본문 문장 단위 줄바꿈
+            const formatted = text
+                .replace(/([.?!])\s+/g, '$1\n')
+                .replace(/\n+/g, '\n')
+                .trim();
+
+            acc.innerHTML = `
+                <button type="button" class="keyword-accordion-header">
+                    <div class="accordion-header-left">
+                        <span class="accordion-badge">📄 문서</span>
+                        <span class="accordion-title" title="${label}">${label}</span>
+                        ${kwTag}
+                    </div>
+                    <span class="accordion-arrow">▼</span>
+                </button>
+                <div class="keyword-accordion-body">
+                    ${formatted}
+                </div>
+            `;
+
+            const btn = acc.querySelector('.keyword-accordion-header');
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                acc.classList.toggle('open');
+            });
+
+            flashArea.appendChild(acc);
+            flashArea.scrollTop = flashArea.scrollHeight;
+            return;
+        }
+
+        function legacyAddAnswerUnused(label, text, matchedKws = []) {
             flashEmpty.style.display = 'none';
             const line = document.createElement('div');
             line.className = 'answer-line';

@@ -2149,16 +2149,21 @@
             // 키워드 태그
             const kwTag = matchedKws.length > 0 ? `<span class="accordion-kw">(키워드: ${matchedKws.join(', ')})</span>` : '';
 
-            // 본문 문장 단위 줄바꿈
+            // 본문 문장 단위 줄바꿈 및 불필요한 들여쓰기/공백 완벽 제거
             const formatted = text
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .join('\n')
                 .replace(/([.?!])\s+/g, '$1\n')
-                .replace(/\n+/g, '\n')
-                .trim();
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .join('\n');
 
             acc.innerHTML = `
                 <button type="button" class="keyword-accordion-header">
                     <div class="accordion-header-left">
-                        <span class="accordion-badge">📄 문서</span>
                         <span class="accordion-title" title="${label}">${label}</span>
                         ${kwTag}
                     </div>
@@ -2254,50 +2259,33 @@
                             const cutoff = Date.now() - state.maxBufferSec * 1000;
                             state.audioChunks = state.audioChunks.filter(c => c.time > cutoff);
 
-                            // 실시간 위스퍼 변환 (직전 청크와 오버랩 전송으로 단어 잘림 방지)
+                            // 실시간 위스퍼 변환 (최신 단독 청크 전송으로 중복 전사 원천 차단)
                             const settings = loadSettings();
                             if (settings.groqKey && state.listening && useWhisperChunks) {
-                                // 최근 2개 청크를 묶어서 전송 (문맥 유지 및 음절 단절 방지)
-                                const chunksToSend = state.audioChunks.slice(-2);
-                                transcribeAudioWithGroq(settings.groqKey, chunksToSend, recorderMimeType)
-                                    .then(whisperText => {
-                                        if (whisperText && whisperText.trim().length > 0) {
-                                            const rawText = whisperText.trim();
-                                            let newDelta = rawText;
+                                const latestChunk = state.audioChunks[state.audioChunks.length - 1];
+                                if (latestChunk) {
+                                    transcribeAudioWithGroq(settings.groqKey, [latestChunk], recorderMimeType)
+                                        .then(whisperText => {
+                                            if (whisperText && whisperText.trim().length > 0) {
+                                                const text = whisperText.trim();
+                                                if (!text) return;
 
-                                            // 직전 청크 텍스트와의 중복 어구 스마트 제거
-                                            if (state.lastChunkText) {
-                                                if (rawText.startsWith(state.lastChunkText)) {
-                                                    newDelta = rawText.substring(state.lastChunkText.length).trim();
-                                                } else {
-                                                    const prevWords = state.lastChunkText.trim().split(/\s+/);
-                                                    const currWords = rawText.trim().split(/\s+/);
-                                                    let matchLen = 0;
-                                                    for (let k = Math.min(prevWords.length, currWords.length, 6); k >= 1; k--) {
-                                                        const tail = prevWords.slice(-k).join(' ');
-                                                        const head = currWords.slice(0, k).join(' ');
-                                                        if (tail === head) {
-                                                            matchLen = k;
-                                                            break;
-                                                        }
-                                                    }
-                                                    if (matchLen > 0) {
-                                                        newDelta = currWords.slice(matchLen).join(' ');
-                                                    }
+                                                // 직전 청크 텍스트와의 연속 중복 방지
+                                                const cleanNew = text.replace(/[.,!?'"~`\s]/g, '');
+                                                const cleanLast = (state.lastChunkText || '').replace(/[.,!?'"~`\s]/g, '');
+                                                if (cleanLast && (cleanNew === cleanLast || cleanLast.endsWith(cleanNew))) {
+                                                    console.log('Filtered duplicated text across chunks:', text);
+                                                    return;
                                                 }
-                                            }
 
-                                            state.lastChunkText = rawText;
-
-                                            if (newDelta && newDelta.trim().length > 0) {
-                                                const text = newDelta.trim();
+                                                state.lastChunkText = text;
                                                 addSTTLine(text, true);
                                                 state.speechBuffer.push({ time: Date.now(), text: text, final: true });
                                                 cleanBuffer();
                                                 checkKeywordMatch(text);
                                             }
-                                        }
-                                    }).catch(err => console.error('Realtime Whisper error:', err));
+                                        }).catch(err => console.error('Realtime Whisper error:', err));
+                                }
                             }
                         }
                     };
@@ -2475,7 +2463,12 @@
                     const errorObj = await res.json();
                     throw new Error(errorObj.error?.message || `HTTP ${res.status}`);
                 }
-                const resultText = await res.text();
+                let resultText = (await res.text()).trim();
+
+                // 문장 끝에 붙는 뉴스/방송 환각 꼬리표 정규식 제거 (예: "이 시각 세계였습니다.")
+                resultText = resultText
+                    .replace(/\s*(이\s*시각\s*세계였습니다|이\s*시각\s*세계|뉴스였습니다|기자였습니다|날씨였습니다|시청해\s*주셔서\s*감사합니다|감사합니다|구독과\s*좋아요)\s*[.?!]*$/gi, '')
+                    .trim();
 
                 // ✨ Whisper 한국어 환각(Hallucination) 필터링 강화
                 const cleanText = resultText.replace(/[.,!?'"~`\s]/g, '');
@@ -2483,9 +2476,10 @@
                     '감사합니다', '시청해주셔서감사합니다', '이번영상은여기까지입니다',
                     '구독과좋아요', '구독좋아요', 'MBC뉴스', 'KBS뉴스', 'SBS뉴스',
                     '안녕히계세요', '다음영상에서만나요', '끝까지시청해주셔서감사합니다',
-                    '좋은하루되세요', '수고하셨습니다'
+                    '좋은하루되세요', '수고하셨습니다', '이시각세계였습니다', '이시각세계',
+                    '뉴스였습니다', '날씨였습니다', '기자였습니다', '뉴스특보'
                 ];
-                if (hallucinations.some(h => cleanText === h || (cleanText.startsWith(h) && cleanText.length < h.length + 5))) {
+                if (!cleanText || hallucinations.some(h => cleanText === h || (cleanText.startsWith(h) && cleanText.length < h.length + 5))) {
                     console.log('Filtered Whisper hallucination:', resultText);
                     return null;
                 }

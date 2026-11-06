@@ -211,7 +211,7 @@ class KordocHandler(BaseHTTPRequestHandler):
    - keywords: 회의 중 음성 인식과 직접 자동 매칭될 해당 주제의 핵심 단어 4~7개 (문자열 배열)
    - fullText: 해당 세부 주제에 속하는 본문 텍스트 원문 내용 (문자열)"""
 
-                    gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+                    gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key={api_key}"
                     schema_json = {
                         "type": "ARRAY",
                         "items": {

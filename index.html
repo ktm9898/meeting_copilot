@@ -2751,7 +2751,7 @@ ${recentText}
 위 대화 흐름에서 팩트체크가 필요한 핵심 쟁점을 파악하고, [참고 자료]의 다중 문서를 종합 대조하여 [출처/시점]이 명시된 2~3개의 정밀 팩트체크 불릿포인트를 작성해 주세요.`;
                 }
 
-                const candidateModels = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash'];
+                const candidateModels = ['gemini-3.5-flash-lite', 'gemini-3.6-flash'];
                 let response = null;
                 let usedModel = '';
 
@@ -3469,7 +3469,7 @@ ${recentText}
 [문서 원문]
 ${text.slice(0, 30000)}`;
 
-                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent`;
+                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`;
                     const schemaJson = {
                         "type": "ARRAY",
                         "items": {

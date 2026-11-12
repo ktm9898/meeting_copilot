@@ -26,6 +26,25 @@ function getGroqApiKey() {
   return key ? String(key).trim() : "";
 }
 
+function getOrCreateSheetWithHeaders(ss, sheetName, headers) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+    var headerRange = sheet.getRange(1, 1, 1, headers.length);
+    headerRange.setBackground("#1a1a2e");
+    headerRange.setFontColor("#ffffff");
+    headerRange.setFontWeight("bold");
+  }
+  return sheet;
+}
+
+function formatNowKST() {
+  return Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
+}
+
 function doPost(e) {
   try {
     var authPin = getAuthPin();
@@ -44,12 +63,44 @@ function doPost(e) {
       }
     }
 
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var action = data.action || "uploadDoc";
+
+    // 1) STT 기록 저장 (탭: STT기록, 열: 날짜 | 내용)
+    if (action === "saveSTT") {
+      var sttSheet = getOrCreateSheetWithHeaders(ss, "STT기록", ["날짜", "내용"]);
+      var dateStr = data.date || formatNowKST();
+      var content = data.content || "";
+      sttSheet.appendRow([dateStr, content]);
+      return responseJSON({
+        success: true,
+        action: "saveSTT",
+        message: "STT 기록이 구글 시트에 저장되었습니다.",
+        row: sttSheet.getLastRow()
+      });
+    }
+
+    // 2) 맥락분석 및 자료확인 자동 저장 (탭: 분석기록, 열: 날짜 | 질문 | 답변)
+    if (action === "saveAnalysis") {
+      var analysisSheet = getOrCreateSheetWithHeaders(ss, "분석기록", ["날짜", "질문", "답변"]);
+      var dateStr2 = data.date || formatNowKST();
+      var question = data.question || "";
+      var answer = data.answer || "";
+      analysisSheet.appendRow([dateStr2, question, answer]);
+      return responseJSON({
+        success: true,
+        action: "saveAnalysis",
+        message: "분석 및 자료확인 결과가 구글 시트에 자동 저장되었습니다.",
+        row: analysisSheet.getLastRow()
+      });
+    }
+
+    // 3) 기본 동작: 지식 DB 문서 업로드 (첫 번째 시트 고정 사용)
+    var sheet = ss.getSheets()[0];
     
     // 헤더가 없으면 작성 (1행)
     if (sheet.getLastRow() === 0) {
       sheet.appendRow(["문서제목", "사업구분", "핵심내용 요약", "주요 키워드", "문서원문"]);
-      // 헤더 스타일링
       var headerRange = sheet.getRange(1, 1, 1, 5);
       headerRange.setBackground("#1a1a2e");
       headerRange.setFontColor("#ffffff");
@@ -67,7 +118,6 @@ function doPost(e) {
       var keywords = Array.isArray(item.keywords) ? item.keywords.join(", ") : (item.keywords || "");
       var fullText = item.fullText || "";
 
-      // 새로운 행 추가
       sheet.appendRow([title, category, summary, keywords, fullText]);
       insertedCount++;
     }
@@ -87,6 +137,7 @@ function doPost(e) {
 function doGet(e) {
   var authPin = getAuthPin();
   var inputPin = e.parameter ? String(e.parameter.pin || "").trim() : "";
+  var action = e.parameter ? String(e.parameter.action || "").trim() : "";
   
   // 1. 구글 시트 스크립트 속성에 AUTH_PIN이 등록되지 않은 경우
   if (!authPin) {
@@ -106,10 +157,56 @@ function doGet(e) {
     });
   }
 
-  // 3. 올바른 비밀번호일 때 Groq API 키 및 시트 CSV 읽기 주소 자동 반환
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 3. 저장된 기록 불러오기 요청 처리 (action=getHistory&type=stt|analysis)
+  if (action === "getHistory") {
+    var type = e.parameter.type || "all";
+    var result = { success: true, sttList: [], analysisList: [] };
+
+    if (type === "stt" || type === "all") {
+      var sttSheet = ss.getSheetByName("STT기록");
+      if (sttSheet && sttSheet.getLastRow() > 1) {
+        var sttValues = sttSheet.getRange(2, 1, sttSheet.getLastRow() - 1, 2).getValues();
+        for (var i = sttValues.length - 1; i >= 0; i--) {
+          var rawDate = sttValues[i][0];
+          var dateFormatted = (rawDate instanceof Date)
+            ? Utilities.formatDate(rawDate, "GMT+9", "yyyy-MM-dd HH:mm")
+            : String(rawDate || "");
+          result.sttList.push({
+            date: dateFormatted,
+            content: String(sttValues[i][1] || "")
+          });
+        }
+      }
+    }
+
+    if (type === "analysis" || type === "all") {
+      var analysisSheet = ss.getSheetByName("분석기록");
+      if (analysisSheet && analysisSheet.getLastRow() > 1) {
+        var anaValues = analysisSheet.getRange(2, 1, analysisSheet.getLastRow() - 1, 3).getValues();
+        for (var j = anaValues.length - 1; j >= 0; j--) {
+          var rawDate2 = anaValues[j][0];
+          var dateFormatted2 = (rawDate2 instanceof Date)
+            ? Utilities.formatDate(rawDate2, "GMT+9", "yyyy-MM-dd HH:mm")
+            : String(rawDate2 || "");
+          result.analysisList.push({
+            date: dateFormatted2,
+            question: String(anaValues[j][1] || ""),
+            answer: String(anaValues[j][2] || "")
+          });
+        }
+      }
+    }
+
+    return responseJSON(result);
+  }
+
+  // 4. 기본 동작: 올바른 비밀번호일 때 Groq API 키 및 첫 번째 시트(지식 DB) CSV 주소 반환
   var groqApiKey = getGroqApiKey();
-  var sheetId = SpreadsheetApp.getActiveSpreadsheet().getId();
-  var sheetCsvUrl = "https://docs.google.com/spreadsheets/d/" + sheetId + "/export?format=csv";
+  var sheetId = ss.getId();
+  var firstSheetGid = ss.getSheets()[0].getSheetId();
+  var sheetCsvUrl = "https://docs.google.com/spreadsheets/d/" + sheetId + "/export?format=csv&gid=" + firstSheetGid;
 
   return responseJSON({ 
     success: true, 

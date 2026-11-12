@@ -1270,10 +1270,16 @@
                     <button type="button" class="mini-tab-btn" data-tab="stt" onclick="switchMobileTab('stt')">🎙 음성인식</button>
                     <button type="button" class="mini-tab-btn" data-tab="cards" onclick="switchMobileTab('cards')">💬 답변카드</button>
                 </div>
-                <span class="data-status pc-only-status" id="dataStatus">
-                    <span class="data-dot" id="dataDot"></span>
-                    <span class="data-status-text" id="dataStatusText">시트 미연결</span>
-                </span>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="data-status pc-only-status" id="dataStatus" style="margin-right: 4px;">
+                        <span class="data-dot" id="dataDot"></span>
+                        <span class="data-status-text" id="dataStatusText">시트 미연결</span>
+                    </span>
+                    <button id="btnSaveSTT" title="현재 음성 인식 내용 시트에 저장"
+                        style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">저장</button>
+                    <button id="btnLoadSTT" title="저장된 음성 인식 불러오기"
+                        style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">불러오기</button>
+                </div>
             </div>
             <div class="stt-stream" id="sttStream"></div>
         </div>
@@ -1286,8 +1292,12 @@
                     <button type="button" class="mini-tab-btn" data-tab="stt" onclick="switchMobileTab('stt')">🎙 음성인식</button>
                     <button type="button" class="mini-tab-btn" data-tab="cards" onclick="switchMobileTab('cards')">💬 답변카드</button>
                 </div>
-                <button id="btnClearCards" title="카드 모두 지우기"
-                    style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">지우기</button>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <button id="btnLoadCards" title="저장된 분석/자료확인 불러오기"
+                        style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">불러오기</button>
+                    <button id="btnClearCards" title="카드 모두 지우기"
+                        style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">지우기</button>
+                </div>
             </div>
             <div class="flash-area" id="flashArea">
                 <div class="flash-empty" id="flashEmpty">
@@ -1440,6 +1450,25 @@
             <div class="modal-actions" style="margin-top: 0;">
                 <button class="ctrl-btn" id="btnQueryCancel">취소</button>
                 <button class="ctrl-btn primary" id="btnQuerySubmit">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY LOAD MODAL -->
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal" style="max-width: 540px; width: 92%; max-height: 82vh; display: flex; flex-direction: column; padding: 22px 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h2 id="historyModalTitle" style="margin: 0; font-size: 1.05rem;">불러오기</h2>
+                <span id="historySyncStatus" style="font-size: 0.75rem; color: var(--text-muted);"></span>
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <input type="text" id="inputHistorySearch" placeholder="날짜, 질문, 내용 검색..."
+                    style="width: 100%; padding: 9px 12px; font-size: 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); outline: none; box-sizing: border-box;">
+            </div>
+            <div id="historyListContainer" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 180px; max-height: 52vh; padding-right: 4px;">
+            </div>
+            <div class="modal-actions" style="margin-top: 14px;">
+                <button class="ctrl-btn" id="btnHistoryClose" style="width: 100%; justify-content: center;">닫기</button>
             </div>
         </div>
     </div>
@@ -2727,6 +2756,8 @@ ${manualQuery}
 회의 참석자가 발언을 놓치지 않고 3초 안에 스캔할 수 있도록, [참고 자료]와 [최근 회의 대화 기록]을 대조하여 가장 중요한 팩트를 빠르고 정확하게 브리핑하세요.
 
 절대 준수 규칙:
+0. **첫 줄 대화내용 요약 필수**:
+   - 답변의 맨 첫 번째 줄에는 반드시 '[대화요약]: (최근 회의 대화의 핵심 주제를 1줄 이내로 명료하게 요약)' 형식으로 작성하고 줄바꿈한 뒤, 그 아래에 팩트체크 불릿포인트를 작성하세요.
 1. **수치 팩트 최우선 & 추상적 서술 금지**:
    - 두루뭉술한 수식어를 배제하고, 구체적인 수치(금액, 건수, 달성률 등) 위주로 작성하세요.
 2. **다중 문서 교차 및 최종 현황 반영**:
@@ -3109,19 +3140,43 @@ ${recentText}
                     if (fullText) {
                         // 만약 남아있는 연속 하이픈 줄이 있다면 최종 정제
                         fullText = fullText.replace(/[-=_*~]{10,}/g, '');
-                        streamEl.innerHTML = formatAIResponse(fullText);
+                        let finalQuestionForSave = manualQuery ? manualQuery.trim() : '';
+                        let finalAnswerText = fullText.trim();
 
-                        // 직전 질의응답 기록 상세 보존 (단, 비정상 반복 기호가 섞인 답변은 절대 저장하지 않음)
-                        if (manualQuery && !/[-=_*~]{8,}/.test(fullText)) {
-                            if (!state.qaHistory) state.qaHistory = [];
-                            state.qaHistory.push({
-                                query: manualQuery,
-                                answer: fullText.trim(),
-                                timestamp: Date.now()
-                            });
-                            if (state.qaHistory.length > 5) {
-                                state.qaHistory.shift();
+                        if (!manualQuery) {
+                            let contextSummary = '';
+                            const summaryMatch = finalAnswerText.match(/^\[?대화요약\]?\s*[:：]\s*(.+)$/m);
+                            if (summaryMatch) {
+                                contextSummary = summaryMatch[1].trim().replace(/\*\*/g, '');
+                                finalAnswerText = finalAnswerText.replace(summaryMatch[0], '').trim();
+                            } else {
+                                const cleanRecent = recentText.replace(/\s+/g, ' ').trim();
+                                contextSummary = cleanRecent.slice(0, 50) + (cleanRecent.length > 50 ? '...' : '');
                             }
+                            finalQuestionForSave = `[맥락분석] ${contextSummary}`;
+                            const labelEl = aiBlock.querySelector('.ai-label');
+                            if (labelEl && contextSummary) {
+                                labelEl.textContent = `AI 맥락분석 · ${contextSummary}`;
+                            }
+                        }
+
+                        streamEl.innerHTML = formatAIResponse(finalAnswerText);
+
+                        // 직전 질의응답 기록 상세 보존 및 자동 저장 (단, 비정상 반복 기호가 섞인 답변은 절대 저장하지 않음)
+                        if (!/[-=_*~]{8,}/.test(finalAnswerText)) {
+                            if (manualQuery) {
+                                if (!state.qaHistory) state.qaHistory = [];
+                                state.qaHistory.push({
+                                    query: manualQuery,
+                                    answer: finalAnswerText,
+                                    timestamp: Date.now()
+                                });
+                                if (state.qaHistory.length > 5) {
+                                    state.qaHistory.shift();
+                                }
+                            }
+                            // 맥락분석 및 자료확인 결과 자동 저장 (로컬 백업 + 구글 시트 '분석기록' 탭)
+                            saveAnalysisRecord(finalQuestionForSave, finalAnswerText);
                         }
                     }
                 }
@@ -3135,6 +3190,282 @@ ${recentText}
                 $('btnManualQuery').disabled = false;
                 $('btnContext').innerHTML = '맥락분석';
                 $('btnManualQuery').innerHTML = '자료확인';
+            }
+        }
+
+        // ============================================================
+        //  STT & ANALYSIS HISTORY SAVE / LOAD (시트 연동 + 로컬 캐시)
+        // ============================================================
+        function getFormattedNow() {
+            const d = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        function getLocalHistory(key) {
+            try {
+                const raw = localStorage.getItem(key);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveLocalHistory(key, item, maxItems = 100) {
+            try {
+                const list = getLocalHistory(key);
+                list.unshift(item);
+                if (list.length > maxItems) list.length = maxItems;
+                localStorage.setItem(key, JSON.stringify(list));
+            } catch (e) {
+                console.warn('Local history save error:', e);
+            }
+        }
+
+        // 1) STT 수동 저장 (종료 후 [저장] 버튼 클릭 시)
+        async function saveSTTRecord() {
+            const words = Array.from(sttStream.querySelectorAll('.stt-word:not(.interim)'))
+                .map(el => el.textContent.replace(/^✨\s*/, '').trim())
+                .filter(Boolean);
+
+            const content = words.join(' ').trim();
+            if (!content) {
+                showToast('⚠️ 저장할 음성 인식 내용이 없습니다');
+                return;
+            }
+
+            const dateStr = getFormattedNow();
+            const record = { date: dateStr, content: content };
+
+            // 로컬 즉시 백업
+            saveLocalHistory('mc_stt_history', record, 100);
+
+            const btn = $('btnSaveSTT');
+            const origText = btn.textContent;
+            btn.textContent = '저장중..';
+            btn.disabled = true;
+
+            try {
+                const settings = loadSettings();
+                const webhookUrl = settings.webhookUrl || GAS_WEBAPP_URL;
+                const pin = sessionStorage.getItem('mc_pin') || '';
+
+                const res = await fetch(webhookUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'saveSTT',
+                        pin: pin,
+                        date: dateStr,
+                        content: content
+                    })
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    showToast('💾 음성 인식 내용이 구글 시트(STT기록 탭)에 저장되었습니다');
+                } else {
+                    showToast('💾 음성 인식 내용이 저장되었습니다');
+                }
+            } catch (err) {
+                console.warn('Google Sheet STT save fallback to local:', err);
+                showToast('💾 음성 인식 내용이 로컬에 저장되었습니다');
+            } finally {
+                btn.textContent = origText;
+                btn.disabled = false;
+            }
+        }
+
+        // 2) 맥락분석 & 자료확인 자동 저장
+        async function saveAnalysisRecord(question, answer) {
+            if (!question || !answer) return;
+            const dateStr = getFormattedNow();
+            const record = { date: dateStr, question: question, answer: answer };
+
+            // 로컬 즉시 백업
+            saveLocalHistory('mc_analysis_history', record, 150);
+
+            try {
+                const settings = loadSettings();
+                const webhookUrl = settings.webhookUrl || GAS_WEBAPP_URL;
+                const pin = sessionStorage.getItem('mc_pin') || '';
+
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'saveAnalysis',
+                        pin: pin,
+                        date: dateStr,
+                        question: question,
+                        answer: answer
+                    })
+                });
+                console.log('✅ 분석기록 구글 시트 자동 저장 완료:', question);
+            } catch (err) {
+                console.warn('Google Sheet Analysis auto-save fallback to local:', err);
+            }
+        }
+
+        // 3) 불러오기 모달 제어 및 렌더링
+        let currentHistoryType = 'analysis';
+        let currentHistoryItems = [];
+
+        function renderHistoryList(filterKeyword = '') {
+            const container = $('historyListContainer');
+            container.innerHTML = '';
+
+            const kw = filterKeyword.trim().toLowerCase();
+            const filtered = currentHistoryItems.filter(item => {
+                if (!kw) return true;
+                if (currentHistoryType === 'stt') {
+                    return (item.date || '').toLowerCase().includes(kw) ||
+                           (item.content || '').toLowerCase().includes(kw);
+                } else {
+                    return (item.date || '').toLowerCase().includes(kw) ||
+                           (item.question || '').toLowerCase().includes(kw) ||
+                           (item.answer || '').toLowerCase().includes(kw);
+                }
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 42px 16px; color: var(--text-muted); font-size: 0.85rem;">
+                        저장된 내역이 없습니다.
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach((item) => {
+                const card = document.createElement('div');
+                card.style.cssText = 'padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; transition: border-color 0.15s, background 0.15s;';
+                card.onmouseenter = () => { card.style.borderColor = 'var(--accent-blue)'; };
+                card.onmouseleave = () => { card.style.borderColor = 'var(--border-color)'; };
+
+                if (currentHistoryType === 'stt') {
+                    const preview = (item.content || '').replace(/\s+/g, ' ').trim();
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 0.72rem; font-weight: 700; color: var(--accent-blue); background: rgba(74, 158, 255, 0.12); padding: 2px 8px; border-radius: 4px;">STT 기록</span>
+                            <span style="font-size: 0.73rem; color: var(--text-muted);">${item.date || ''}</span>
+                        </div>
+                        <div style="font-size: 0.86rem; color: var(--text-primary); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                            ${preview.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                        </div>
+                    `;
+                    card.onclick = () => {
+                        sttStream.innerHTML = '';
+                        const span = document.createElement('span');
+                        span.className = 'stt-word';
+                        span.textContent = item.content + ' ';
+                        sttStream.appendChild(span);
+                        sttStream.scrollTop = sttStream.scrollHeight;
+                        state.speechBuffer = [{ time: Date.now(), text: item.content, final: true }];
+                        $('historyModal').classList.remove('show');
+                        showToast('📂 음성 인식 내용을 불러왔습니다');
+                    };
+                } else {
+                    const qText = (item.question || '').trim();
+                    const isContext = qText.startsWith('[맥락분석]');
+                    const badgeLabel = isContext ? '맥락분석' : '자료확인';
+                    const badgeBg = isContext ? 'rgba(52, 211, 153, 0.14)' : 'rgba(74, 158, 255, 0.14)';
+                    const badgeColor = isContext ? '#34d399' : 'var(--accent-blue)';
+                    const cleanTitle = qText.replace(/^\[맥락분석\]\s*/, '').trim() || qText;
+                    const ansPreview = (item.answer || '').replace(/[#*|>-]/g, ' ').replace(/\s+/g, ' ').trim();
+
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <span style="font-size: 0.71rem; font-weight: 700; color: ${badgeColor}; background: ${badgeBg}; padding: 2px 7px; border-radius: 4px;">${badgeLabel}</span>
+                            <span style="font-size: 0.73rem; color: var(--text-muted);">${item.date || ''}</span>
+                        </div>
+                        <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; line-height: 1.35;">
+                            ${cleanTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                            ${ansPreview.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                        </div>
+                    `;
+                    card.onclick = () => {
+                        const emptyEl = $('flashEmpty');
+                        if (emptyEl) emptyEl.style.display = 'none';
+                        flashEmpty.style.display = 'none';
+                        if (!isContext) {
+                            const queryHeader = document.createElement('div');
+                            queryHeader.className = 'ai-query-header';
+                            queryHeader.innerHTML = `<span class="query-badge">Q</span><span class="query-text">${cleanTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
+                            flashArea.appendChild(queryHeader);
+                        }
+                        const aiBlock = document.createElement('div');
+                        aiBlock.className = 'ai-answer';
+                        const labelHtml = isContext
+                            ? `<span class="ai-label">AI 맥락분석 · ${cleanTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`
+                            : '';
+                        aiBlock.innerHTML = `${labelHtml}<div>${formatAIResponse(item.answer || '')}</div>`;
+                        flashArea.appendChild(aiBlock);
+                        flashArea.scrollTop = flashArea.scrollHeight;
+
+                        // 불러온 기록도 후속 질의 컨텍스트에 반영
+                        if (!state.qaHistory) state.qaHistory = [];
+                        state.qaHistory.push({
+                            query: cleanTitle,
+                            answer: item.answer || '',
+                            timestamp: Date.now()
+                        });
+                        if (state.qaHistory.length > 5) state.qaHistory.shift();
+
+                        $('historyModal').classList.remove('show');
+                        showToast('📂 저장된 답변 카드를 불러왔습니다');
+                    };
+                }
+
+                container.appendChild(card);
+            });
+        }
+
+        async function openHistoryModal(type) {
+            currentHistoryType = type;
+            $('historyModalTitle').textContent = type === 'stt' ? '음성 인식 불러오기' : '답변 카드 불러오기';
+            $('inputHistorySearch').value = '';
+            $('historySyncStatus').textContent = '시트 동기화 중...';
+            $('historyModal').classList.add('show');
+
+            // 1. 로컬 캐시 먼저 즉시 표시
+            const localKey = type === 'stt' ? 'mc_stt_history' : 'mc_analysis_history';
+            currentHistoryItems = getLocalHistory(localKey);
+            renderHistoryList('');
+
+            // 2. 구글 시트(STT기록 / 분석기록 탭)에서 최신 데이터 동기화
+            try {
+                const settings = loadSettings();
+                const webhookUrl = settings.webhookUrl || GAS_WEBAPP_URL;
+                const pin = sessionStorage.getItem('mc_pin') || '';
+                const res = await fetch(`${webhookUrl}?pin=${encodeURIComponent(pin)}&action=getHistory&type=${type}`);
+                const data = await res.json();
+
+                if (data && data.success) {
+                    const remoteList = type === 'stt' ? (data.sttList || []) : (data.analysisList || []);
+                    if (remoteList.length > 0) {
+                        // 시트 데이터를 기준으로 병합 (중복 제거)
+                        const seen = new Set();
+                        const merged = [];
+                        [...remoteList, ...currentHistoryItems].forEach(it => {
+                            const sig = type === 'stt'
+                                ? `${it.date}|${(it.content || '').slice(0, 40)}`
+                                : `${it.date}|${it.question}|${(it.answer || '').slice(0, 40)}`;
+                            if (!seen.has(sig)) {
+                                seen.add(sig);
+                                merged.push(it);
+                            }
+                        });
+                        currentHistoryItems = merged;
+                        localStorage.setItem(localKey, JSON.stringify(merged.slice(0, 150)));
+                        renderHistoryList($('inputHistorySearch').value);
+                    }
+                    $('historySyncStatus').textContent = `시트 연동됨 (${currentHistoryItems.length}건)`;
+                } else {
+                    $('historySyncStatus').textContent = `로컬 기록 (${currentHistoryItems.length}건)`;
+                }
+            } catch (e) {
+                console.warn('History sync fallback to local:', e);
+                $('historySyncStatus').textContent = `로컬 기록 (${currentHistoryItems.length}건)`;
             }
         }
 
@@ -3245,6 +3576,18 @@ ${recentText}
                 state.qaHistory = [];
                 state.lastMatchedRows = [];
                 showToast('🧹 답변 카드 및 이전 대화 기억이 초기화되었습니다');
+            });
+
+            // STT 저장 / 불러오기 및 답변카드 불러오기 이벤트
+            $('btnSaveSTT').addEventListener('click', () => saveSTTRecord());
+            $('btnLoadSTT').addEventListener('click', () => openHistoryModal('stt'));
+            $('btnLoadCards').addEventListener('click', () => openHistoryModal('analysis'));
+            $('btnHistoryClose').addEventListener('click', () => $('historyModal').classList.remove('show'));
+            $('historyModal').addEventListener('click', (e) => {
+                if (e.target === $('historyModal')) $('historyModal').classList.remove('show');
+            });
+            $('inputHistorySearch').addEventListener('input', (e) => {
+                renderHistoryList(e.target.value);
             });
 
             // 맥락 분석

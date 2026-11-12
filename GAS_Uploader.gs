@@ -26,6 +26,72 @@ function getGroqApiKey() {
   return key ? String(key).trim() : "";
 }
 
+/**
+ * 무차별 대입(Brute-Force) 방어: 5회 연속 실패 시 10분(600초)간 접속 완전 차단
+ */
+function verifyPinWithRateLimit(inputPin) {
+  var authPin = getAuthPin();
+  if (!authPin) {
+    return {
+      ok: false,
+      error: "AUTH_PIN_NOT_SET",
+      message: "구글 시트의 [프로젝트 설정 -> 스크립트 속성]에 AUTH_PIN(비밀번호)을 추가해 주세요."
+    };
+  }
+
+  var cache = CacheService.getScriptCache();
+  if (cache.get("MC_PIN_LOCKOUT")) {
+    return {
+      ok: false,
+      error: "LOCKED_OUT",
+      message: "비밀번호 5회 연속 오류로 인해 10분간 접속이 차단되었습니다."
+    };
+  }
+
+  if (!inputPin || String(inputPin).trim() !== authPin) {
+    var failCount = parseInt(cache.get("MC_PIN_FAILS") || "0", 10) + 1;
+    if (failCount >= 5) {
+      cache.put("MC_PIN_LOCKOUT", "true", 600); // 10분 차단
+      cache.remove("MC_PIN_FAILS");
+      return {
+        ok: false,
+        error: "LOCKED_OUT",
+        message: "비밀번호 5회 연속 오류로 인해 10분간 접속이 차단되었습니다."
+      };
+    } else {
+      cache.put("MC_PIN_FAILS", String(failCount), 600);
+      return {
+        ok: false,
+        error: "Unauthorized: Invalid PIN",
+        message: "비밀번호가 올바르지 않습니다. (" + failCount + "/5회 오류)"
+      };
+    }
+  }
+
+  // 성공 시 실패 카운트 초기화
+  cache.remove("MC_PIN_FAILS");
+  return { ok: true };
+}
+
+function readKnowledgeDBRows(ss) {
+  var sheet = ss.getSheets()[0];
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5).getValues();
+  var list = [];
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+    if (!row[0] && !row[2] && !row[4]) continue;
+    list.push({
+      title: String(row[0] || ""),
+      category: String(row[1] || ""),
+      summary: String(row[2] || ""),
+      keywords: String(row[3] || ""),
+      fullText: String(row[4] || "")
+    });
+  }
+  return list;
+}
+
 function getOrCreateSheetWithHeaders(ss, sheetName, headers) {
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
@@ -47,7 +113,6 @@ function formatNowKST() {
 
 function doPost(e) {
   try {
-    var authPin = getAuthPin();
     var data;
     if (e.postData && e.postData.contents) {
       data = JSON.parse(e.postData.contents);
@@ -55,12 +120,10 @@ function doPost(e) {
       return responseJSON({ success: false, error: "No post data" });
     }
 
-    // PIN 검증 (설정되어 있을 경우)
-    if (authPin) {
-      var inputPin = (data && data.pin) ? String(data.pin).trim() : (e.parameter ? String(e.parameter.pin || "").trim() : "");
-      if (inputPin !== authPin) {
-        return responseJSON({ success: false, error: "Unauthorized: Invalid PIN" });
-      }
+    var inputPin = (data && data.pin) ? String(data.pin).trim() : (e.parameter ? String(e.parameter.pin || "").trim() : "");
+    var authCheck = verifyPinWithRateLimit(inputPin);
+    if (!authCheck.ok) {
+      return responseJSON({ success: false, error: authCheck.error, message: authCheck.message });
     }
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -135,31 +198,21 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  var authPin = getAuthPin();
   var inputPin = e.parameter ? String(e.parameter.pin || "").trim() : "";
   var action = e.parameter ? String(e.parameter.action || "").trim() : "";
   
-  // 1. 구글 시트 스크립트 속성에 AUTH_PIN이 등록되지 않은 경우
-  if (!authPin) {
-    return responseJSON({ 
-      success: false, 
-      error: "AUTH_PIN_NOT_SET", 
-      message: "구글 시트의 [프로젝트 설정 -> 스크립트 속성]에 AUTH_PIN(비밀번호)을 추가해 주세요." 
-    });
-  }
-
-  // 2. 비밀번호 불일치 엄격 차단
-  if (inputPin !== authPin) {
-    return responseJSON({ 
-      success: false, 
-      error: "Unauthorized: Invalid PIN", 
-      message: "비밀번호가 올바르지 않습니다." 
+  var authCheck = verifyPinWithRateLimit(inputPin);
+  if (!authCheck.ok) {
+    return responseJSON({
+      success: false,
+      error: authCheck.error,
+      message: authCheck.message
     });
   }
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // 3. 저장된 기록 불러오기 요청 처리 (action=getHistory&type=stt|analysis)
+  // 저장된 기록 불러오기 요청 처리 (action=getHistory&type=stt|analysis)
   if (action === "getHistory") {
     var type = e.parameter.type || "all";
     var result = { success: true, sttList: [], analysisList: [] };
@@ -202,8 +255,15 @@ function doGet(e) {
     return responseJSON(result);
   }
 
-  // 4. 기본 동작: 올바른 비밀번호일 때 Groq API 키 및 첫 번째 시트(지식 DB) CSV 주소 반환
-  var groqApiKey = getGroqApiKey();
+  // 지식 DB 행만 새로고침 요청 시 (시트가 '비공개'여도 안전하게 직접 반환)
+  if (action === "getSheetData") {
+    return responseJSON({
+      success: true,
+      rows: readKnowledgeDBRows(ss)
+    });
+  }
+
+  // 기본 로그인 성공 응답: Groq 키 및 지식 DB 행 데이터 직접 반환 (시트 비공개 상태 완벽 지원)
   var sheetId = ss.getId();
   var firstSheetGid = ss.getSheets()[0].getSheetId();
   var sheetCsvUrl = "https://docs.google.com/spreadsheets/d/" + sheetId + "/export?format=csv&gid=" + firstSheetGid;
@@ -211,7 +271,8 @@ function doGet(e) {
   return responseJSON({ 
     success: true, 
     status: "ok", 
-    groqApiKey: groqApiKey,
+    groqApiKey: getGroqApiKey(),
+    rows: readKnowledgeDBRows(ss),
     sheetUrl: sheetCsvUrl,
     message: "Meeting Copilot GAS Uploader is running." 
   });

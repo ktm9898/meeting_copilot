@@ -1498,12 +1498,59 @@
             mediaRecorder: null,
             audioChunks: [],
             lastTranscript: "",
-            groqKey: sessionStorage.getItem('mc_groqKey') || "",
-            sheetUrl: sessionStorage.getItem('mc_sheetUrl') || "",
+            groqKey: "",
+            sheetUrl: "",
             lastChunkText: "",
             qaHistory: [],           // 최근 질문과 답변 최소 2~3개 이상 누적 보관 ({ query, answer, timestamp })
             lastMatchedRows: [],     // 직전 질문 시 매칭된 문서 행들 (후속/추가 질문 컨텍스트 계승용)
         };
+
+        // 보안 메모리 변수 (F12 Application 스토리지에 절대 노출되지 않는 런타임 전용)
+        let _runtimePin = "";
+        let _memorySttHistory = [];
+        let _memoryAnalysisHistory = [];
+
+        // 기존 브라우저 스토리지에 남아있을 수 있는 민감 흔적 즉시 완전 소거
+        try {
+            ['mc_pin', 'mc_groqKey', 'mc_sheetUrl', 'mc_authenticated', 'mc_stt_history', 'mc_analysis_history', 'mc_webhookUrl'].forEach(k => {
+                sessionStorage.removeItem(k);
+                localStorage.removeItem(k);
+            });
+        } catch (e) {}
+
+        // 사용자별 Gemini API 키 로컬 암호화/복호화 헬퍼 (PIN 기반 XOR + Base64 난독화)
+        function encryptApiKeyWithPin(plainKey, pin) {
+            if (!plainKey) return '';
+            if (!pin) return plainKey;
+            if (plainKey.startsWith('enc1:')) return plainKey;
+            try {
+                const keyStr = 'MC_SEC_' + pin;
+                const bytes = [];
+                for (let i = 0; i < plainKey.length; i++) {
+                    bytes.push(plainKey.charCodeAt(i) ^ keyStr.charCodeAt(i % keyStr.length));
+                }
+                return 'enc1:' + btoa(String.fromCharCode(...bytes));
+            } catch (e) {
+                return plainKey;
+            }
+        }
+
+        function decryptApiKeyWithPin(storedVal, pin) {
+            if (!storedVal) return '';
+            if (!storedVal.startsWith('enc1:')) return storedVal;
+            if (!pin) return '';
+            try {
+                const raw = atob(storedVal.slice(5));
+                const keyStr = 'MC_SEC_' + pin;
+                let out = '';
+                for (let i = 0; i < raw.length; i++) {
+                    out += String.fromCharCode(raw.charCodeAt(i) ^ keyStr.charCodeAt(i % keyStr.length));
+                }
+                return out;
+            } catch (e) {
+                return '';
+            }
+        }
 
         // 기본 구글 앱스 스크립트(GAS) Webhook URL (stock-signal, asset-signal과 동일한 표준 내장)
         const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycby8RFA7VPYW2K3GMt76VYfQ89KEunBgyB3xMRNL2cx39YeP4RJzJFoC1E6O0DcEdbZLkA/exec";
@@ -1583,22 +1630,28 @@
         //  SETTINGS: LOAD / SAVE
         // ============================================================
         function loadSettings() {
+            const rawStoredKey = localStorage.getItem('mc_apiKey') || '';
+            const decryptedKey = decryptApiKeyWithPin(rawStoredKey, _runtimePin);
             return {
-                apiKey: localStorage.getItem('mc_apiKey') || '',
-                groqKey: state.groqKey || sessionStorage.getItem('mc_groqKey') || '',
-                sheetUrl: state.sheetUrl || sessionStorage.getItem('mc_sheetUrl') || localStorage.getItem('mc_sheetUrl') || '',
-                webhookUrl: localStorage.getItem('mc_webhookUrl') || GAS_WEBAPP_URL,
+                apiKey: decryptedKey,
+                groqKey: state.groqKey || '',
+                sheetUrl: state.sheetUrl || '',
+                webhookUrl: GAS_WEBAPP_URL,
                 serverUrl: localStorage.getItem('mc_serverUrl') || 'http://localhost:5000',
                 sensitivity: parseInt(localStorage.getItem('mc_sensitivity') || '1'),
             };
         }
 
         function saveSettings(s) {
-            localStorage.setItem('mc_apiKey', s.apiKey);
-            // Groq 키, 시트 URL, Webhook URL은 GAS 및 PIN 보안 인증을 통해 메모리/세션에서 안전하게 자동 관리
+            const encryptedKey = encryptApiKeyWithPin((s.apiKey || '').trim(), _runtimePin);
+            localStorage.setItem('mc_apiKey', encryptedKey);
+            // 민감 키/시트URL/비밀번호는 로컬·세션 스토리지에 절대 남기지 않음
             localStorage.removeItem('mc_groqKey');
             localStorage.removeItem('mc_sheetUrl');
             localStorage.removeItem('mc_webhookUrl');
+            sessionStorage.removeItem('mc_pin');
+            sessionStorage.removeItem('mc_groqKey');
+            sessionStorage.removeItem('mc_sheetUrl');
             localStorage.setItem('mc_serverUrl', s.serverUrl || 'http://localhost:5000');
             localStorage.setItem('mc_sensitivity', String(s.sensitivity));
         }
@@ -1608,6 +1661,24 @@
             $('inputApiKey').value = s.apiKey;
             $('inputServerUrl').value = s.serverUrl || 'http://localhost:5000';
             $('inputSensitivity').value = s.sensitivity;
+        }
+
+        function applyRowsFromGAS(rows) {
+            if (!Array.isArray(rows)) return false;
+            state.sheetData = rows.map(r => ({
+                title: r.title || '',
+                category: r.category || '',
+                summary: r.summary || '',
+                keywords: Array.isArray(r.keywords)
+                    ? r.keywords
+                    : String(r.keywords || '').split(/[,，]/).map(k => k.trim()).filter(Boolean),
+                fullText: r.fullText || ''
+            }));
+            const dotEl = $('dataDot');
+            if (dotEl) dotEl.classList.add('loaded');
+            updateDataStatus(`${state.sheetData.length}건 로드됨`, true);
+            showToast(`시트 연결 완료 (${state.sheetData.length}건)`);
+            return true;
         }
 
         async function verifyPin() {
@@ -1635,52 +1706,41 @@
                 let data = null;
                 const testUrl = `${activeWebhookUrl.trim()}?pin=${encodeURIComponent(inputVal)}`;
 
-                // 1차 시도: 직접 호출
-                try {
-                    const res = await fetch(testUrl, { redirect: 'follow' });
-                    const contentType = res.headers.get('content-type') || '';
-                    if (res.ok && contentType.includes('application/json')) {
-                        data = await res.json();
-                    }
-                } catch (directErr) {
-                    console.warn('Direct PIN auth failed, trying CORS proxy:', directErr);
-                }
-
-                // 2차 시도: 프록시 호출
-                if (!data) {
-                    try {
-                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(testUrl)}`;
-                        const res = await fetch(proxyUrl);
-                        const contentType = res.headers.get('content-type') || '';
-                        if (res.ok && contentType.includes('application/json')) {
-                            data = await res.json();
-                        }
-                    } catch (proxyErr) {
-                        console.warn('Proxy PIN auth failed:', proxyErr);
-                    }
+                const res = await fetch(testUrl, { redirect: 'follow', cache: 'no-store' });
+                const contentType = res.headers.get('content-type') || '';
+                if (res.ok && contentType.includes('application/json')) {
+                    data = await res.json();
                 }
 
                 // 응답 분석 및 엄격 차단
                 if (data) {
                     if (data.success === true && data.status === "ok") {
-                        // ✅ 올바른 비밀번호 인증 성공
+                        // ✅ 올바른 비밀번호 인증 성공 (오직 런타임 메모리에만 보관)
+                        _runtimePin = inputVal;
+                        $('inputPin').value = '';
+
+                        // 기존 평문 Gemini API 키가 로컬에 있었다면 즉시 PIN 암호화 형태로 자동 전환
+                        const rawStored = localStorage.getItem('mc_apiKey') || '';
+                        if (rawStored && !rawStored.startsWith('enc1:')) {
+                            localStorage.setItem('mc_apiKey', encryptApiKeyWithPin(rawStored, _runtimePin));
+                        }
+                        initSettingsUI();
+
                         if (data.groqApiKey) {
                             state.groqKey = data.groqApiKey.trim();
-                            sessionStorage.setItem('mc_groqKey', state.groqKey);
-                            console.log('✅ Groq Whisper STT securely loaded from GAS');
                         }
                         if (data.sheetUrl) {
                             state.sheetUrl = data.sheetUrl.trim();
-                            sessionStorage.setItem('mc_sheetUrl', state.sheetUrl);
-                            console.log('✅ Google Sheet CSV URL automatically retrieved from GAS');
                         }
                         $('pinModal').style.display = 'none';
                         if (pinErrorEl) pinErrorEl.style.display = 'none';
-                        sessionStorage.setItem('mc_authenticated', 'true');
-                        sessionStorage.setItem('mc_pin', inputVal);
 
-                        const targetSheetUrl = state.sheetUrl || s.sheetUrl;
-                        if (targetSheetUrl) loadSheetData(targetSheetUrl);
+                        // GAS에서 직접 전달된 지식 DB 행(rows)이 있으면 비공개 시트에서도 즉시 로드
+                        if (Array.isArray(data.rows)) {
+                            applyRowsFromGAS(data.rows);
+                        } else if (state.sheetUrl) {
+                            loadSheetData(state.sheetUrl);
+                        }
                         return;
                     } else if (data.error === "AUTH_PIN_NOT_SET") {
                         if (pinErrorEl) {
@@ -1689,7 +1749,7 @@
                         }
                         return;
                     } else {
-                        // ❌ 비밀번호 불일치 (절대 통과 금지)
+                        // ❌ 비밀번호 불일치 또는 5회 실패 잠금 차단
                         if (pinErrorEl) {
                             pinErrorEl.textContent = data.message || '비밀번호가 올바르지 않습니다.';
                             pinErrorEl.style.display = 'block';
@@ -1700,7 +1760,6 @@
                     }
                 }
 
-                // 서버 통신 불가 시 (프리패스 폴백 완전 제거)
                 if (pinErrorEl) {
                     pinErrorEl.innerHTML = '구글 서버 응답 없음 (Webhook URL 및 새 배포 상태 확인 필요)';
                     pinErrorEl.style.display = 'block';
@@ -1726,54 +1785,42 @@
         }
 
         // ============================================================
-        //  GOOGLE SHEETS CSV LOADER
+        //  GOOGLE SHEETS LOADER (GAS 보안 연동 우선 + CSV 폴백)
         // ============================================================
-        // 구글 시트 URL → CSV export URL 자동 변환
         function normalizeSheetUrl(url) {
-            // 이미 export URL이면 그대로
             if (url.includes('/export?') || url.includes('/export?format=csv')) return url;
-
-            // 시트 ID 추출: /spreadsheets/d/{SHEET_ID}/...
             const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
             if (!match) return url;
-
             const sheetId = match[1];
-
-            // gid 추출 (있으면)
             const gidMatch = url.match(/gid=(\d+)/);
             const gid = gidMatch ? gidMatch[1] : '0';
-
             return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
         }
 
         async function loadSheetData(url) {
-            if (!url) { showToast('⚠️ 시트 URL을 설정에서 입력하세요'); return; }
-
-            // URL 자동 변환
-            url = normalizeSheetUrl(url);
-            console.log('Normalized sheet URL:', url);
-
-            const statusTextEl = $('dataStatusText');
             const dotEl = $('dataDot');
-
             updateDataStatus('로드 중...', false);
             try {
-                let text = '';
-                const fetchUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
-                try {
-                    const res = await fetch(fetchUrl, { redirect: 'follow', cache: 'no-store' });
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    text = await res.text();
-                } catch (directErr) {
-                    console.warn('Direct fetch failed, trying CORS proxy:', directErr);
-                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fetchUrl)}`;
-                    const res = await fetch(proxyUrl, { cache: 'no-store' });
-                    if (!res.ok) throw new Error(`프록시 실패 HTTP ${res.status}`);
-                    text = await res.text();
+                // 1순위: GAS 보안 API를 통한 직접 로드 (구글 시트가 '비공개'여도 안전하게 로드)
+                if (_runtimePin) {
+                    try {
+                        const gasRes = await fetch(`${GAS_WEBAPP_URL}?pin=${encodeURIComponent(_runtimePin)}&action=getSheetData`, { redirect: 'follow', cache: 'no-store' });
+                        const gasData = await gasRes.json();
+                        if (gasData && gasData.success && Array.isArray(gasData.rows)) {
+                            applyRowsFromGAS(gasData.rows);
+                            return;
+                        }
+                    } catch (gasErr) {}
                 }
-                console.log('CSV raw length:', text.length, 'first 200 chars:', text.substring(0, 200));
+
+                // 2순위: 기존 CSV 직접 로드 (외부 프록시 corsproxy.io 완전 제거)
+                if (!url) { updateDataStatus('시트 미연결', false); return; }
+                url = normalizeSheetUrl(url);
+                const fetchUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                const res = await fetch(fetchUrl, { redirect: 'follow', cache: 'no-store' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const text = await res.text();
                 parseCSV(text);
-                console.log('Parsed rows:', state.sheetData.length, 'Sample:', state.sheetData.slice(0, 2));
                 if (dotEl) dotEl.classList.add('loaded');
                 updateDataStatus(`${state.sheetData.length}건 로드됨`, true);
                 showToast(`시트 연결 완료 (${state.sheetData.length}건)`);
@@ -1781,7 +1828,6 @@
                 if (dotEl) dotEl.classList.remove('loaded');
                 updateDataStatus('로드 실패', false);
                 showToast(`시트 로드 실패: ${e.message}`);
-                console.error('Sheet load error:', e);
             }
         }
 
@@ -3194,7 +3240,7 @@ ${recentText}
         }
 
         // ============================================================
-        //  STT & ANALYSIS HISTORY SAVE / LOAD (시트 연동 + 로컬 캐시)
+        //  STT & ANALYSIS HISTORY SAVE / LOAD (구글 시트 연동 + 런타임 메모리)
         // ============================================================
         function getFormattedNow() {
             const d = new Date();
@@ -3202,24 +3248,14 @@ ${recentText}
             return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
         }
 
-        function getLocalHistory(key) {
-            try {
-                const raw = localStorage.getItem(key);
-                return raw ? JSON.parse(raw) : [];
-            } catch (e) {
-                return [];
-            }
+        function getMemoryHistory(type) {
+            return type === 'stt' ? _memorySttHistory : _memoryAnalysisHistory;
         }
 
-        function saveLocalHistory(key, item, maxItems = 100) {
-            try {
-                const list = getLocalHistory(key);
-                list.unshift(item);
-                if (list.length > maxItems) list.length = maxItems;
-                localStorage.setItem(key, JSON.stringify(list));
-            } catch (e) {
-                console.warn('Local history save error:', e);
-            }
+        function saveMemoryHistory(type, item, maxItems = 100) {
+            const list = getMemoryHistory(type);
+            list.unshift(item);
+            if (list.length > maxItems) list.length = maxItems;
         }
 
         // 1) STT 수동 저장 (종료 후 [저장] 버튼 클릭 시)
@@ -3237,8 +3273,8 @@ ${recentText}
             const dateStr = getFormattedNow();
             const record = { date: dateStr, content: content };
 
-            // 로컬 즉시 백업
-            saveLocalHistory('mc_stt_history', record, 100);
+            // 런타임 메모리에만 즉시 보관 (로컬 스토리지 흔적 없음)
+            saveMemoryHistory('stt', record, 100);
 
             const btn = $('btnSaveSTT');
             const origText = btn.textContent;
@@ -3248,13 +3284,12 @@ ${recentText}
             try {
                 const settings = loadSettings();
                 const webhookUrl = settings.webhookUrl || GAS_WEBAPP_URL;
-                const pin = sessionStorage.getItem('mc_pin') || '';
 
                 const res = await fetch(webhookUrl, {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'saveSTT',
-                        pin: pin,
+                        pin: _runtimePin,
                         date: dateStr,
                         content: content
                     })
@@ -3266,8 +3301,7 @@ ${recentText}
                     showToast('💾 음성 인식 내용이 저장되었습니다');
                 }
             } catch (err) {
-                console.warn('Google Sheet STT save fallback to local:', err);
-                showToast('💾 음성 인식 내용이 로컬에 저장되었습니다');
+                showToast('💾 음성 인식 내용이 임시 저장되었습니다');
             } finally {
                 btn.textContent = origText;
                 btn.disabled = false;
@@ -3280,28 +3314,24 @@ ${recentText}
             const dateStr = getFormattedNow();
             const record = { date: dateStr, question: question, answer: answer };
 
-            // 로컬 즉시 백업
-            saveLocalHistory('mc_analysis_history', record, 150);
+            // 런타임 메모리에만 즉시 보관 (로컬 스토리지 흔적 없음)
+            saveMemoryHistory('analysis', record, 150);
 
             try {
                 const settings = loadSettings();
                 const webhookUrl = settings.webhookUrl || GAS_WEBAPP_URL;
-                const pin = sessionStorage.getItem('mc_pin') || '';
 
                 await fetch(webhookUrl, {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'saveAnalysis',
-                        pin: pin,
+                        pin: _runtimePin,
                         date: dateStr,
                         question: question,
                         answer: answer
                     })
                 });
-                console.log('✅ 분석기록 구글 시트 자동 저장 완료:', question);
-            } catch (err) {
-                console.warn('Google Sheet Analysis auto-save fallback to local:', err);
-            }
+            } catch (err) {}
         }
 
         // 3) 불러오기 모달 제어 및 렌더링
@@ -3427,23 +3457,20 @@ ${recentText}
             $('historySyncStatus').textContent = '시트 동기화 중...';
             $('historyModal').classList.add('show');
 
-            // 1. 로컬 캐시 먼저 즉시 표시
-            const localKey = type === 'stt' ? 'mc_stt_history' : 'mc_analysis_history';
-            currentHistoryItems = getLocalHistory(localKey);
+            // 1. 현재 세션 메모리 기록 먼저 표시 (로컬 스토리지 저장 없음)
+            currentHistoryItems = [...getMemoryHistory(type)];
             renderHistoryList('');
 
-            // 2. 구글 시트(STT기록 / 분석기록 탭)에서 최신 데이터 동기화
+            // 2. 구글 시트(STT기록 / 분석기록 탭)에서 최신 데이터 보안 동기화
             try {
                 const settings = loadSettings();
                 const webhookUrl = settings.webhookUrl || GAS_WEBAPP_URL;
-                const pin = sessionStorage.getItem('mc_pin') || '';
-                const res = await fetch(`${webhookUrl}?pin=${encodeURIComponent(pin)}&action=getHistory&type=${type}`);
+                const res = await fetch(`${webhookUrl}?pin=${encodeURIComponent(_runtimePin)}&action=getHistory&type=${type}`);
                 const data = await res.json();
 
                 if (data && data.success) {
                     const remoteList = type === 'stt' ? (data.sttList || []) : (data.analysisList || []);
                     if (remoteList.length > 0) {
-                        // 시트 데이터를 기준으로 병합 (중복 제거)
                         const seen = new Set();
                         const merged = [];
                         [...remoteList, ...currentHistoryItems].forEach(it => {
@@ -3456,16 +3483,16 @@ ${recentText}
                             }
                         });
                         currentHistoryItems = merged;
-                        localStorage.setItem(localKey, JSON.stringify(merged.slice(0, 150)));
+                        if (type === 'stt') _memorySttHistory = merged;
+                        else _memoryAnalysisHistory = merged;
                         renderHistoryList($('inputHistorySearch').value);
                     }
                     $('historySyncStatus').textContent = `시트 연동됨 (${currentHistoryItems.length}건)`;
                 } else {
-                    $('historySyncStatus').textContent = `로컬 기록 (${currentHistoryItems.length}건)`;
+                    $('historySyncStatus').textContent = `${currentHistoryItems.length}건`;
                 }
             } catch (e) {
-                console.warn('History sync fallback to local:', e);
-                $('historySyncStatus').textContent = `로컬 기록 (${currentHistoryItems.length}건)`;
+                $('historySyncStatus').textContent = `${currentHistoryItems.length}건`;
             }
         }
 
@@ -3866,7 +3893,7 @@ ${text.slice(0, 30000)}`;
                         fullText: item.fullText || text.slice(0, 5000)
                     }));
 
-                    const currentPin = sessionStorage.getItem('mc_pin') || settings.appPassword || '';
+                    const currentPin = _runtimePin || '';
                     const payloadData = {
                         pin: currentPin,
                         items: payloadItems
@@ -3883,7 +3910,7 @@ ${text.slice(0, 30000)}`;
                     showToast(`[${title}] ${chunks.length}개 항목 구글 시트 저장 완료!`);
 
                     setTimeout(() => {
-                        if (settings.sheetUrl) loadSheetData(settings.sheetUrl);
+                        loadSheetData(settings.sheetUrl || '');
                     }, 1500);
 
                 } catch (mode2Err) {
@@ -3902,7 +3929,7 @@ ${text.slice(0, 30000)}`;
                     return;
                 }
 
-                const currentPin = sessionStorage.getItem('mc_pin') || settings.appPassword || '';
+                const currentPin = _runtimePin || '';
                 if (!currentPin) {
                     showToast('⚠️ 구글 시트 저장 권한을 위해 먼저 접속 비밀번호(PIN)를 확인해 주세요');
                     $('pinModal').style.display = 'flex';
@@ -3960,7 +3987,6 @@ ${text.slice(0, 30000)}`;
                         }
                     }
 
-                    console.log('[Kordoc Server Upload Response]:', data);
                     if (!res.ok || data.error) {
                         throw new Error(data.error || `HTTP ${res.status}`);
                     }
@@ -3975,7 +4001,7 @@ ${text.slice(0, 30000)}`;
                     showToast(`[${file.name}] ${countMsg} 구글 시트 저장 완료!`);
 
                     setTimeout(() => {
-                        if (settings.sheetUrl) loadSheetData(settings.sheetUrl);
+                        loadSheetData(settings.sheetUrl || '');
                     }, 1500);
 
                 } catch (err) {

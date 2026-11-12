@@ -197,21 +197,21 @@ class KordocHandler(BaseHTTPRequestHandler):
 아래에 제공되는 [문서 원문 텍스트]의 전체 구조와 목차(Chapter), 사업 분야를 정밀하게 분석하여, 회의 지원 지식 DB로 활용할 수 있도록 논리적 주제 단위의 지식 DB 항목 배열(JSON Array)로 분할해 주세요.
 
 [문서 원문 텍스트]
-{parsed_text[:16000]}
+{parsed_text[:20000]}
 
 [분할 및 수집 핵심 지침]
 1. 문서 구조 판단 & 분할 기준:
    - 단일 안내문/짧은 공문 (1~2쪽): 억지로 나누지 말고 1개 항목으로 통합 작성하세요.
-   - 중대형 보고서/업무계획서/성과집: 문서에 포함된 목차 구분(예: Ⅰ. 일반현황, Ⅱ. 주요성과, Ⅲ. 금융지원 성과, Ⅳ. 경영지원 성과, Ⅴ. 상권지원 성과 등)이나 사업 영역별로 반드시 3개~7개의 별개 지식 DB 항목(JSON Array)으로 분할하세요.
+   - 중대형 보고서/업무계획서/성과집: 문서에 포함된 목차 구분이나 사업 영역별로 자연스럽게 3개~7개의 별개 지식 DB 항목(JSON Array)으로 분할하세요.
 
 2. 각 주제 항목 필수 필드 정의:
    - title: 문서 전체 대표 제목 (예: "{default_doc_title}")
    - category: 해당 세부 단락이 다루는 핵심 사업구분 (예: 경영기획, 금융지원, 부실관리, 경영지원, 상권지원 등 단정한 1개 단어)
    - summary: 해당 세부 주제의 구체적 핵심 내용 및 수치 성과 요약 (마침표로 명확히 끝나는 완성형 2~4문장)
    - keywords: 회의 중 음성 인식과 직접 자동 매칭될 해당 주제의 핵심 단어 4~7개 (문자열 배열)
-   - fullText: 해당 세부 주제에 속하는 본문 텍스트 원문 내용 (문자열)"""
+   - fullText: 해당 세부 주제에 속하는 본문 텍스트 및 표 데이터 원문 (요약하지 말고 원문 내용 그대로 유지)"""
 
-                    gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key={api_key}"
+                    gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
                     schema_json = {
                         "type": "ARRAY",
                         "items": {

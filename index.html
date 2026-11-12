@@ -2751,7 +2751,7 @@ ${recentText}
 위 대화 흐름에서 팩트체크가 필요한 핵심 쟁점을 파악하고, [참고 자료]의 다중 문서를 종합 대조하여 [출처/시점]이 명시된 2~3개의 정밀 팩트체크 불릿포인트를 작성해 주세요.`;
                 }
 
-                const candidateModels = ['gemini-3.5-flash-lite', 'gemini-3.6-flash'];
+                const candidateModels = ['gemini-3.6-flash'];
                 let response = null;
                 let usedModel = '';
 
@@ -3453,23 +3453,23 @@ ${recentText}
                 uploadDetailText.textContent = `${title} 텍스트 세부 주제 분할 중`;
 
                 try {
-                    // Gemini 2.5 Flash API 구조화 호출
+                    // Gemini 3.6 Flash API 구조화 호출
                     const prompt = `다음은 이미 파싱된 문서 [${title}]의 전체 원문입니다.
 이 문서의 내용을 바탕으로 음성 대화 중 질문이 들어왔을 때 즉시 인덱싱하여 답변 카드로 보여줄 수 있도록 세부 주제 단위로 스마트하게 분할(Chunking)해 주세요.
 
 [요구사항]
-1. 문서 내용의 깊이에 따라 1개~10개 사이의 핵심 세부 주제(Chunk)로 나눌 것.
+1. 문서 내용의 깊이에 따라 1개~10개 사이의 핵심 세부 주제(Chunk)로 나눌 것 (목차나 사업 분야별로 자연스럽게 분리).
 2. 각 세부 주제별로:
    - title: 문서 제목 (기본값: "${title}")
    - category: 사업 구분 또는 문서 분류 (예: 사업기획, 운영성과, 일반현황, 정책협력 등)
    - summary: 핵심 내용 요약 (2~4문장의 명확하고 정돈된 텍스트)
    - keywords: 해당 주제와 관련된 핵심 단어 3~6개 배열 (예: ["용산구", "지역경제", "성과"])
-   - fullText: 해당 세부 주제에 해당하는 원문 텍스트 단락 (최대 3000자)
+   - fullText: 해당 세부 주제에 속하는 본문 텍스트 및 표 데이터 원문 (요약하지 말고 원문 내용 그대로 유지)
 
 [문서 원문]
 ${text.slice(0, 30000)}`;
 
-                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`;
+                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`;
                     const schemaJson = {
                         "type": "ARRAY",
                         "items": {

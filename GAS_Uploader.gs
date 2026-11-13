@@ -197,7 +197,7 @@ function doPost(e) {
     var docType = (data && data.docType === "참고자료") ? "참고자료" : "업무문서";
     var sheet;
     if (docType === "참고자료") {
-      sheet = getOrCreateSheetWithHeaders(ss, "참고자료", ["문서제목", "사업구분", "핵심내용 요약", "주요 키워드", "문서원문"]);
+      sheet = getOrCreateSheetWithHeaders(ss, "참고자료", ["문서제목", "소제목(목차)", "핵심내용 요약", "주요 키워드", "문서원문"]);
     } else {
       sheet = ss.getSheets()[0];
       if (sheet.getLastRow() === 0) {

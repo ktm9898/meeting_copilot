@@ -1743,16 +1743,35 @@
         }
 
         let _docSelectionLoadedFromStorage = false;
+        let _cloudSyncTimer = null;
 
-        function saveDocSelectionToStorage() {
+        function saveDocSelectionToStorage(syncToCloud = false) {
             try {
+                const selectedArr = Array.from(state.selectedDocKeys);
+                const knownArr = Array.from(state.knownDocKeys);
                 const payload = JSON.stringify({
-                    selected: Array.from(state.selectedDocKeys),
-                    known: Array.from(state.knownDocKeys)
+                    selected: selectedArr,
+                    known: knownArr
                 });
                 const asciiPayload = encodeURIComponent(payload);
                 const storedVal = _runtimePin ? encryptApiKeyWithPin(asciiPayload, _runtimePin) : asciiPayload;
                 localStorage.setItem('mc_docFilterState', storedVal);
+
+                // 다른 PC / 스마트폰에서도 동일하게 유지되도록 구글 앱스 스크립트 클라우드에 동기화
+                if (syncToCloud && _runtimePin) {
+                    if (_cloudSyncTimer) clearTimeout(_cloudSyncTimer);
+                    _cloudSyncTimer = setTimeout(() => {
+                        fetch(GAS_WEBAPP_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'saveDocSelection',
+                                pin: _runtimePin,
+                                selected: selectedArr,
+                                known: knownArr
+                            })
+                        }).catch(() => {});
+                    }, 300);
+                }
             } catch (e) {
                 console.warn('Doc selection save failed:', e);
             }
@@ -1856,8 +1875,13 @@
             $('inputSensitivity').value = s.sensitivity;
         }
 
-        function applyRowsFromGAS(rows) {
+        function applyRowsFromGAS(rows, cloudDocSelection = null) {
             if (!Array.isArray(rows)) return false;
+            if (cloudDocSelection && Array.isArray(cloudDocSelection.known) && Array.isArray(cloudDocSelection.selected)) {
+                state.knownDocKeys = new Set(cloudDocSelection.known);
+                state.selectedDocKeys = new Set(cloudDocSelection.selected);
+                _docSelectionLoadedFromStorage = true;
+            }
             state.sheetData = rows.map(r => ({
                 docType: r.docType === '참고자료' ? '참고자료' : '업무문서',
                 title: r.title || '',
@@ -1933,7 +1957,7 @@
 
                         // GAS에서 직접 전달된 지식 DB 행(rows)이 있으면 비공개 시트에서도 즉시 로드
                         if (Array.isArray(data.rows)) {
-                            applyRowsFromGAS(data.rows);
+                            applyRowsFromGAS(data.rows, data.docSelection || null);
                         } else if (state.sheetUrl) {
                             loadSheetData(state.sheetUrl);
                         }
@@ -2003,7 +2027,7 @@
                         const gasRes = await fetch(`${GAS_WEBAPP_URL}?pin=${encodeURIComponent(_runtimePin)}&action=getSheetData`, { redirect: 'follow', cache: 'no-store' });
                         const gasData = await gasRes.json();
                         if (gasData && gasData.success && Array.isArray(gasData.rows)) {
-                            applyRowsFromGAS(gasData.rows);
+                            applyRowsFromGAS(gasData.rows, gasData.docSelection || null);
                             return;
                         }
                     } catch (gasErr) { }
@@ -3818,7 +3842,7 @@ ${recentText}
                     } else {
                         state.selectedDocKeys.add(doc.key);
                     }
-                    saveDocSelectionToStorage();
+                    saveDocSelectionToStorage(true);
                     refreshDataStatusCount();
                     renderDocFilterList();
                 });
@@ -3991,7 +4015,7 @@ ${recentText}
                         Array.from(d.categories).some(c => c.toLowerCase().includes(searchKw)) ||
                         Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw)))
                     .forEach(d => state.selectedDocKeys.add(d.key));
-                saveDocSelectionToStorage();
+                saveDocSelectionToStorage(true);
                 refreshDataStatusCount();
                 renderDocFilterList();
             });
@@ -4003,7 +4027,7 @@ ${recentText}
                         Array.from(d.categories).some(c => c.toLowerCase().includes(searchKw)) ||
                         Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw)))
                     .forEach(d => state.selectedDocKeys.delete(d.key));
-                saveDocSelectionToStorage();
+                saveDocSelectionToStorage(true);
                 refreshDataStatusCount();
                 renderDocFilterList();
             });

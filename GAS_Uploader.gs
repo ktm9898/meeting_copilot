@@ -26,6 +26,16 @@ function getGroqApiKey() {
   return key ? String(key).trim() : "";
 }
 
+function getDocSelectionState() {
+  try {
+    var raw = PropertiesService.getScriptProperties().getProperty("DOC_SELECTION_STATE");
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
 /**
  * 무차별 대입(Brute-Force) 방어: 5회 연속 실패 시 10분(600초)간 접속 완전 차단
  */
@@ -170,6 +180,19 @@ function doPost(e) {
       });
     }
 
+    // 2-1) 참조 문서 선택 상태 클라우드 동기화 저장 (다른 PC / 스마트폰 연동용)
+    if (action === "saveDocSelection") {
+      var selectionObj = {
+        selected: Array.isArray(data.selected) ? data.selected : [],
+        known: Array.isArray(data.known) ? data.known : []
+      };
+      PropertiesService.getScriptProperties().setProperty("DOC_SELECTION_STATE", JSON.stringify(selectionObj));
+      return responseJSON({
+        success: true,
+        action: "saveDocSelection"
+      });
+    }
+
     // 3) 기본 동작: 지식 DB 문서 업로드 ('업무문서'는 첫 번째 시트, '참고자료'는 참고자료 탭 자동 생성/사용)
     var docType = (data && data.docType === "참고자료") ? "참고자료" : "업무문서";
     var sheet;
@@ -275,7 +298,8 @@ function doGet(e) {
   if (action === "getSheetData") {
     return responseJSON({
       success: true,
-      rows: readKnowledgeDBRows(ss)
+      rows: readKnowledgeDBRows(ss),
+      docSelection: getDocSelectionState()
     });
   }
 
@@ -289,6 +313,7 @@ function doGet(e) {
     status: "ok", 
     groqApiKey: getGroqApiKey(),
     rows: readKnowledgeDBRows(ss),
+    docSelection: getDocSelectionState(),
     sheetUrl: sheetCsvUrl,
     message: "Meeting Copilot GAS Uploader is running." 
   });

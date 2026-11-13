@@ -10,6 +10,7 @@ kordoc_server.py - 내 컴퓨터(로컬) Kordoc 파서 전용 백엔드 서버
 
 import os
 import sys
+import time
 import json
 import subprocess
 import tempfile

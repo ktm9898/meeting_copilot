@@ -125,6 +125,7 @@ class KordocHandler(BaseHTTPRequestHandler):
             api_key = ""
             webhook_url = ""
             pin = ""
+            doc_type = "업무문서"
 
             for part in parts:
                 if b'Content-Disposition' in part:
@@ -143,6 +144,8 @@ class KordocHandler(BaseHTTPRequestHandler):
                             webhook_url = content.decode('utf-8', errors='ignore').strip()
                         elif 'name="pin"' in headers_str:
                             pin = content.decode('utf-8', errors='ignore').strip()
+                        elif 'name="docType"' in headers_str:
+                            doc_type = content.decode('utf-8', errors='ignore').strip() or "업무문서"
                     except Exception as p_err:
                         pass
 
@@ -279,6 +282,7 @@ class KordocHandler(BaseHTTPRequestHandler):
 
                     payload_obj = {
                         "pin": pin,
+                        "docType": doc_type,
                         "items": payload_items
                     }
                     payload = json.dumps(payload_obj).encode('utf-8')

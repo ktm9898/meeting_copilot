@@ -73,21 +73,33 @@ function verifyPinWithRateLimit(inputPin) {
   return { ok: true };
 }
 
-function readKnowledgeDBRows(ss) {
-  var sheet = ss.getSheets()[0];
-  if (!sheet || sheet.getLastRow() < 2) return [];
+function appendRowsFromSheet(sheet, docTypeLabel, list) {
+  if (!sheet || sheet.getLastRow() < 2) return;
   var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5).getValues();
-  var list = [];
   for (var i = 0; i < values.length; i++) {
     var row = values[i];
     if (!row[0] && !row[2] && !row[4]) continue;
     list.push({
+      docType: docTypeLabel,
       title: String(row[0] || ""),
       category: String(row[1] || ""),
       summary: String(row[2] || ""),
       keywords: String(row[3] || ""),
       fullText: String(row[4] || "")
     });
+  }
+}
+
+function readKnowledgeDBRows(ss) {
+  var list = [];
+  // 1) 첫 번째 기본 시트 -> '업무문서'
+  var mainSheet = ss.getSheets()[0];
+  appendRowsFromSheet(mainSheet, "업무문서", list);
+
+  // 2) '참고자료' 탭이 존재하면 함께 읽기 -> '참고자료'
+  var refSheet = ss.getSheetByName("참고자료");
+  if (refSheet && (!mainSheet || refSheet.getSheetId() !== mainSheet.getSheetId())) {
+    appendRowsFromSheet(refSheet, "참고자료", list);
   }
   return list;
 }
@@ -158,16 +170,20 @@ function doPost(e) {
       });
     }
 
-    // 3) 기본 동작: 지식 DB 문서 업로드 (첫 번째 시트 고정 사용)
-    var sheet = ss.getSheets()[0];
-    
-    // 헤더가 없으면 작성 (1행)
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(["문서제목", "사업구분", "핵심내용 요약", "주요 키워드", "문서원문"]);
-      var headerRange = sheet.getRange(1, 1, 1, 5);
-      headerRange.setBackground("#1a1a2e");
-      headerRange.setFontColor("#ffffff");
-      headerRange.setFontWeight("bold");
+    // 3) 기본 동작: 지식 DB 문서 업로드 ('업무문서'는 첫 번째 시트, '참고자료'는 참고자료 탭 자동 생성/사용)
+    var docType = (data && data.docType === "참고자료") ? "참고자료" : "업무문서";
+    var sheet;
+    if (docType === "참고자료") {
+      sheet = getOrCreateSheetWithHeaders(ss, "참고자료", ["문서제목", "사업구분", "핵심내용 요약", "주요 키워드", "문서원문"]);
+    } else {
+      sheet = ss.getSheets()[0];
+      if (sheet.getLastRow() === 0) {
+        sheet.appendRow(["문서제목", "사업구분", "핵심내용 요약", "주요 키워드", "문서원문"]);
+        var headerRange = sheet.getRange(1, 1, 1, 5);
+        headerRange.setBackground("#1a1a2e");
+        headerRange.setFontColor("#ffffff");
+        headerRange.setFontWeight("bold");
+      }
     }
 
     var items = Array.isArray(data) ? data : (data.items || [data]);

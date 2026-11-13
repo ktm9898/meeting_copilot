@@ -357,6 +357,7 @@
         .pc-only-title {
             display: inline;
         }
+
         .mobile-tab-nav {
             display: none;
         }
@@ -491,7 +492,8 @@
 
         .ai-table {
             width: 100%;
-            min-width: 440px; /* 모바일에서 찌그러지지 않고 좌우 스크롤 보장 */
+            min-width: 440px;
+            /* 모바일에서 찌그러지지 않고 좌우 스크롤 보장 */
             border-collapse: collapse;
             font-size: 0.78rem;
             text-align: left;
@@ -982,7 +984,7 @@
             white-space: nowrap;
             max-width: 90vw;
             text-align: center;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
         }
 
         .toast.show {
@@ -1075,7 +1077,8 @@
                 transition: all 0.2s ease;
             }
 
-            /* dummy */ .dummy-closed-tabs {
+            /* dummy */
+            .dummy-closed-tabs {
                 background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
                 color: #ffffff;
                 border-color: transparent;
@@ -1092,6 +1095,7 @@
             body:not([data-mobile-tab="stt"]) .stt-panel {
                 display: none !important;
             }
+
             body:not([data-mobile-tab="stt"]) .flash-panel {
                 display: flex !important;
                 flex: 1 !important;
@@ -1110,6 +1114,7 @@
                 border-right: none !important;
                 border-bottom: none !important;
             }
+
             body[data-mobile-tab="stt"] .flash-panel {
                 display: none !important;
             }
@@ -1130,13 +1135,16 @@
             body:not([data-mobile-tab="stt"]) .control-bar {
                 justify-content: space-between !important;
             }
+
             body:not([data-mobile-tab="stt"]) #btnListen,
             body:not([data-mobile-tab="stt"]) #micIndicator {
                 display: none !important;
             }
+
             body:not([data-mobile-tab="stt"]) .bottom-data-status {
                 display: flex !important;
             }
+
             body:not([data-mobile-tab="stt"]) .control-right {
                 display: flex !important;
             }
@@ -1145,15 +1153,19 @@
             body[data-mobile-tab="stt"] .control-bar {
                 justify-content: flex-end !important;
             }
+
             body[data-mobile-tab="stt"] #btnListen {
                 display: inline-flex !important;
             }
+
             body[data-mobile-tab="stt"] #micIndicator {
                 display: flex !important;
             }
+
             body[data-mobile-tab="stt"] .bottom-data-status {
                 display: none !important;
             }
+
             body[data-mobile-tab="stt"] .control-right {
                 display: none !important;
             }
@@ -1253,6 +1265,7 @@
             <span class="header-status" id="headerStatus">대기 중</span>
         </div>
         <div class="header-right" style="display: flex; gap: 8px; align-items: center;">
+            <button class="icon-btn" id="btnDocFilter" title="참조 문서 선택">📚</button>
             <button class="icon-btn" id="btnUploadDoc" title="문서 업로드">📁</button>
             <button class="icon-btn" id="btnSettings" title="설정">⚙</button>
         </div>
@@ -1267,8 +1280,10 @@
             <div class="stt-header">
                 <span class="pc-only-title">실시간 음성 인식</span>
                 <div class="mobile-header-tabs">
-                    <button type="button" class="mini-tab-btn" data-tab="stt" onclick="switchMobileTab('stt')">🎙 음성인식</button>
-                    <button type="button" class="mini-tab-btn" data-tab="cards" onclick="switchMobileTab('cards')">💬 답변카드</button>
+                    <button type="button" class="mini-tab-btn" data-tab="stt" onclick="switchMobileTab('stt')">🎙
+                        음성인식</button>
+                    <button type="button" class="mini-tab-btn" data-tab="cards" onclick="switchMobileTab('cards')">💬
+                        답변카드</button>
                 </div>
                 <div style="display: flex; align-items: center; gap: 6px;">
                     <span class="data-status pc-only-status" id="dataStatus" style="margin-right: 4px;">
@@ -1289,8 +1304,10 @@
             <div class="flash-header">
                 <span class="pc-only-title">답변 카드</span>
                 <div class="mobile-header-tabs">
-                    <button type="button" class="mini-tab-btn" data-tab="stt" onclick="switchMobileTab('stt')">🎙 음성인식</button>
-                    <button type="button" class="mini-tab-btn" data-tab="cards" onclick="switchMobileTab('cards')">💬 답변카드</button>
+                    <button type="button" class="mini-tab-btn" data-tab="stt" onclick="switchMobileTab('stt')">🎙
+                        음성인식</button>
+                    <button type="button" class="mini-tab-btn" data-tab="cards" onclick="switchMobileTab('cards')">💬
+                        답변카드</button>
                 </div>
                 <div style="display: flex; align-items: center; gap: 6px;">
                     <button id="btnLoadCards" title="저장된 분석/자료확인 불러오기"
@@ -1339,13 +1356,14 @@
                 <input type="password" id="inputApiKey" placeholder="AIzaSy...">
                 <div class="hint">Gemini 2.5 Flash 모델을 사용합니다</div>
             </div>
-            <div class="form-group" style="background: rgba(74, 158, 255, 0.06); padding: 12px 14px; border-radius: 10px; border: 1px dashed var(--accent-blue);">
-                <label style="color: var(--accent-blue); margin: 0; font-weight: 700;">🔗 구글 시트 & Whisper AI 연동 완료</label>
+            <div class="form-group"
+                style="background: rgba(74, 158, 255, 0.06); padding: 12px 14px; border-radius: 10px; border: 1px dashed var(--accent-blue);">
+                <label style="color: var(--accent-blue); margin: 0; font-weight: 700;">🔗 구글 시트 & Whisper AI 연동
+                    완료</label>
             </div>
             <div class="form-group">
                 <label>내 PC Kordoc 서버 주소 (태블릿 연결용)</label>
-                <input type="text" id="inputServerUrl"
-                    placeholder="http://localhost:5000">
+                <input type="text" id="inputServerUrl" placeholder="http://localhost:5000">
                 <div class="hint">동일 Wi-Fi 접속 태블릿에서 사용 시 노트북 IP(예: http://10.140.78.1:5000)를 입력하세요</div>
             </div>
             <div class="form-group">
@@ -1354,7 +1372,8 @@
                 <div class="hint">숫자가 클수록 더 많은 키워드가 일치해야 카드가 표시됩니다</div>
             </div>
             <div class="modal-actions">
-                <button class="ctrl-btn danger" id="btnUpdateApp" style="flex:1.5; justify-content: center; text-align: center;">최신 버전 업데이트</button>
+                <button class="ctrl-btn danger" id="btnUpdateApp"
+                    style="flex:1.5; justify-content: center; text-align: center;">최신 버전 업데이트</button>
                 <button class="ctrl-btn primary" id="btnSettingsSave">저장</button>
                 <button class="ctrl-btn" id="btnSettingsClose">닫기</button>
             </div>
@@ -1362,16 +1381,23 @@
     </div>
 
     <!-- PIN SECURITY MODAL -->
-    <div class="modal-overlay" id="pinModal" style="display: flex; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
+    <div class="modal-overlay" id="pinModal"
+        style="display: flex; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
         <div class="modal" style="text-align: center; max-width: 380px; padding: 28px 24px;">
             <div style="font-size: 2rem; margin-bottom: 12px;">🔒</div>
             <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 20px;">보안 비밀번호 입력</h3>
-            
+
             <div class="form-group" style="margin-bottom: 14px;">
-                <input type="password" id="inputPin" placeholder="••••••••" style="text-align: center; font-size: 1.3rem; letter-spacing: 4px; font-weight: 700; padding: 12px; border-radius: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
+                <input type="password" id="inputPin" placeholder="••••••••"
+                    style="text-align: center; font-size: 1.3rem; letter-spacing: 4px; font-weight: 700; padding: 12px; border-radius: 10px;"
+                    onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
             </div>
-            <div id="pinError" style="color: var(--accent-red); font-size: 0.82rem; margin-bottom: 14px; display: none; font-weight: bold;">비밀번호가 올바르지 않습니다.</div>
-            <button class="ctrl-btn primary" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 800; justify-content: center; text-align: center;" onclick="verifyPin()">접속하기</button>
+            <div id="pinError"
+                style="color: var(--accent-red); font-size: 0.82rem; margin-bottom: 14px; display: none; font-weight: bold;">
+                비밀번호가 올바르지 않습니다.</div>
+            <button class="ctrl-btn primary"
+                style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 800; justify-content: center; text-align: center;"
+                onclick="verifyPin()">접속하기</button>
         </div>
     </div>
 
@@ -1379,13 +1405,32 @@
     <div class="modal-overlay" id="uploadModal">
         <div class="modal" style="max-width: 520px;">
             <h2>지식 DB 문서 등록</h2>
-            
+
+            <!-- 문서 구분(탭) 선택: 업무문서 vs 참고자료 -->
+            <div style="margin-bottom: 12px;">
+                <div style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">저장할
+                    시트 탭 구분</div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" id="btnDocTypeWork"
+                        style="flex: 1; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--accent-blue); background: rgba(74, 158, 255, 0.15); color: #fff; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                        📂 업무문서
+                    </button>
+                    <button type="button" id="btnDocTypeRef"
+                        style="flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-muted); font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                        📑 참고자료
+                    </button>
+                </div>
+            </div>
+
             <!-- 모드 선택 탭 -->
-            <div style="display: flex; background: var(--bg-card); padding: 4px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--border-color);">
-                <button id="tabMode1" style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: var(--accent-blue); color: #fff; cursor: pointer; transition: all 0.2s;">
+            <div
+                style="display: flex; background: var(--bg-card); padding: 4px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--border-color);">
+                <button id="tabMode1"
+                    style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: var(--accent-blue); color: #fff; cursor: pointer; transition: all 0.2s;">
                     1. 원본 문서 파싱 등록
                 </button>
-                <button id="tabMode2" style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">
+                <button id="tabMode2"
+                    style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">
                     2. 파싱 완료 텍스트 직접 등록
                 </button>
             </div>
@@ -1393,13 +1438,16 @@
             <!-- MODE 1: 원본 문서 파일 업로드 (Kordoc) -->
             <div id="uploadMode1Section">
                 <!-- 서버 상태 안내 상자 -->
-                <div id="serverStatusNotice" style="padding: 10px 14px; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 8px; font-size: 0.82rem; margin-bottom: 14px; line-height: 1.5; color: var(--text-primary);">
+                <div id="serverStatusNotice"
+                    style="padding: 10px 14px; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 8px; font-size: 0.82rem; margin-bottom: 14px; line-height: 1.5; color: var(--text-primary);">
                     <span id="serverStatusText">
-                        <strong>서버 안내:</strong> 업로드 전 프로젝트 폴더에서 <code>run_kordoc_background.vbs</code> 파일 더블 클릭으로 백그라운드 서버를 실행해 주세요.
+                        <strong>서버 안내:</strong> 업로드 전 프로젝트 폴더에서 <code>run_kordoc_background.vbs</code> 파일 더블 클릭으로 백그라운드
+                        서버를 실행해 주세요.
                     </span>
                 </div>
 
-                <div id="dropZone" style="border: 2px dashed var(--accent-blue); border-radius: 12px; padding: 24px; text-align: center; background: rgba(74, 158, 255, 0.05); cursor: pointer; transition: all 0.3s;">
+                <div id="dropZone"
+                    style="border: 2px dashed var(--accent-blue); border-radius: 12px; padding: 24px; text-align: center; background: rgba(74, 158, 255, 0.05); cursor: pointer; transition: all 0.3s;">
                     <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
                         원본 문서 드래그 앤 드롭 또는 클릭하여 선택
                     </div>
@@ -1408,28 +1456,36 @@
                     </div>
                     <input type="file" id="fileInput" accept=".hwp,.hwpx,.pdf,.xlsx,.docx,.doc" style="display: none;">
                 </div>
-                <div id="selectedFileInfo1" style="display: none; margin-top: 10px; padding: 8px 12px; background: var(--bg-card); border-radius: 6px; font-size: 0.82rem; font-weight: bold; color: var(--accent-blue);">
+                <div id="selectedFileInfo1"
+                    style="display: none; margin-top: 10px; padding: 8px 12px; background: var(--bg-card); border-radius: 6px; font-size: 0.82rem; font-weight: bold; color: var(--accent-blue);">
                     선택된 파일: <span id="fileNameDisplay1">없음</span>
                 </div>
             </div>
 
             <!-- MODE 2: 이미 파싱된 텍스트/MD 파일 또는 붙여넣기 -->
             <div id="uploadMode2Section" style="display: none;">
-                <div style="padding: 10px 14px; background: rgba(74, 158, 255, 0.1); border-left: 4px solid var(--accent-blue); border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px; line-height: 1.5; color: var(--text-primary);">
+                <div
+                    style="padding: 10px 14px; background: rgba(74, 158, 255, 0.1); border-left: 4px solid var(--accent-blue); border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px; line-height: 1.5; color: var(--text-primary);">
                     <strong>안내:</strong> 로컬 파서 서버 연결 없이 파싱된 텍스트/마크다운을 AI 분석 후 구글 시트에 바로 등록합니다.
                 </div>
                 <div style="margin-bottom: 10px;">
-                    <input type="text" id="inputParsedTitle" placeholder="문서 제목 입력 (예: 2026 사업계획서)" style="width: 100%; padding: 10px 12px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); margin-bottom: 8px;">
-                    <textarea id="inputParsedText" rows="6" placeholder="파싱된 마크다운(.md) 또는 텍스트 내용을 붙여넣거나 아래에 파일을 드래그하세요..." style="width: 100%; padding: 10px 12px; font-size: 0.82rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); resize: vertical; font-family: monospace;"></textarea>
+                    <input type="text" id="inputParsedTitle" placeholder="문서 제목 입력 (예: 2026 사업계획서)"
+                        style="width: 100%; padding: 10px 12px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); margin-bottom: 8px;">
+                    <textarea id="inputParsedText" rows="6"
+                        placeholder="파싱된 마크다운(.md) 또는 텍스트 내용을 붙여넣거나 아래에 파일을 드래그하세요..."
+                        style="width: 100%; padding: 10px 12px; font-size: 0.82rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); resize: vertical; font-family: monospace;"></textarea>
                 </div>
-                <div id="dropZoneText" style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 8px; text-align: center; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; background: var(--bg-primary);">
+                <div id="dropZoneText"
+                    style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 8px; text-align: center; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; background: var(--bg-primary);">
                     .md 또는 .txt 파일 드래그 앤 드롭
                     <input type="file" id="fileInputText" accept=".md,.txt,.markdown" style="display: none;">
                 </div>
             </div>
 
-            <div id="uploadProgress" style="display: none; margin-top: 14px; padding: 10px; background: var(--bg-card); border-radius: 8px; font-size: 0.85rem; text-align: center;">
-                <div id="uploadStatusText" style="font-weight: bold; color: var(--accent-blue); margin-bottom: 4px;">분석 처리 중...</div>
+            <div id="uploadProgress"
+                style="display: none; margin-top: 14px; padding: 10px; background: var(--bg-card); border-radius: 8px; font-size: 0.85rem; text-align: center;">
+                <div id="uploadStatusText" style="font-weight: bold; color: var(--accent-blue); margin-bottom: 4px;">분석
+                    처리 중...</div>
                 <div id="uploadDetailText" style="color: var(--text-secondary); font-size: 0.75rem;">잠시만 기다려 주세요</div>
             </div>
 
@@ -1456,7 +1512,8 @@
 
     <!-- HISTORY LOAD MODAL -->
     <div class="modal-overlay" id="historyModal">
-        <div class="modal" style="max-width: 540px; width: 92%; max-height: 82vh; display: flex; flex-direction: column; padding: 22px 20px;">
+        <div class="modal"
+            style="max-width: 540px; width: 92%; max-height: 82vh; display: flex; flex-direction: column; padding: 22px 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <h2 id="historyModalTitle" style="margin: 0; font-size: 1.05rem;">불러오기</h2>
                 <span id="historySyncStatus" style="font-size: 0.75rem; color: var(--text-muted);"></span>
@@ -1465,10 +1522,58 @@
                 <input type="text" id="inputHistorySearch" placeholder="날짜, 질문, 내용 검색..."
                     style="width: 100%; padding: 9px 12px; font-size: 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); outline: none; box-sizing: border-box;">
             </div>
-            <div id="historyListContainer" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 180px; max-height: 52vh; padding-right: 4px;">
+            <div id="historyListContainer"
+                style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 180px; max-height: 52vh; padding-right: 4px;">
             </div>
             <div class="modal-actions" style="margin-top: 14px;">
                 <button class="ctrl-btn" id="btnHistoryClose" style="width: 100%; justify-content: center;">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DOCUMENT FILTER (참조 문서 선택) MODAL -->
+    <div class="modal-overlay" id="docFilterModal">
+        <div class="modal"
+            style="max-width: 540px; width: 92%; max-height: 84vh; display: flex; flex-direction: column; padding: 22px 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h2 style="margin: 0; font-size: 1.05rem;">📚 참조 문서 선택</h2>
+                <span id="docFilterSummaryText"
+                    style="font-size: 0.76rem; color: var(--accent-blue); font-weight: 700;"></span>
+            </div>
+
+            <!-- 탭 전환: 업무문서 / 참고자료 -->
+            <div
+                style="display: flex; background: var(--bg-card); padding: 4px; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--border-color);">
+                <button type="button" id="tabFilterWork"
+                    style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: var(--accent-blue); color: #fff; cursor: pointer; transition: all 0.2s;">
+                    📂 업무문서 <span id="badgeCountWork" style="font-size: 0.74rem; opacity: 0.9;">(0)</span>
+                </button>
+                <button type="button" id="tabFilterRef"
+                    style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">
+                    📑 참고자료 <span id="badgeCountRef" style="font-size: 0.74rem; opacity: 0.9;">(0)</span>
+                </button>
+            </div>
+
+            <!-- 검색 + 전체선택/해제 툴바 -->
+            <div style="display: flex; gap: 6px; margin-bottom: 10px; align-items: center;">
+                <input type="text" id="inputDocFilterSearch" placeholder="문서 제목 검색..."
+                    style="flex: 1; padding: 8px 11px; font-size: 0.83rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); outline: none;">
+                <button type="button" id="btnDocSelectAll"
+                    style="padding: 7px 10px; font-size: 0.75rem; font-weight: 600; border-radius: 7px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); cursor: pointer; white-space: nowrap;">전체
+                    선택</button>
+                <button type="button" id="btnDocDeselectAll"
+                    style="padding: 7px 10px; font-size: 0.75rem; font-weight: 600; border-radius: 7px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">전체
+                    해제</button>
+            </div>
+
+            <!-- 문서 체크박스 목록 -->
+            <div id="docFilterListContainer"
+                style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 7px; min-height: 200px; max-height: 48vh; padding-right: 4px;">
+            </div>
+
+            <div class="modal-actions" style="margin-top: 14px;">
+                <button class="ctrl-btn primary" id="btnDocFilterClose"
+                    style="width: 100%; justify-content: center;">확인</button>
             </div>
         </div>
     </div>
@@ -1503,6 +1608,8 @@
             lastChunkText: "",
             qaHistory: [],           // 최근 질문과 답변 최소 2~3개 이상 누적 보관 ({ query, answer, timestamp })
             lastMatchedRows: [],     // 직전 질문 시 매칭된 문서 행들 (후속/추가 질문 컨텍스트 계승용)
+            selectedDocKeys: new Set(), // 현재 참조 활성화된 문서 키 Set ("업무문서|문서제목" 또는 "참고자료|문서제목")
+            knownDocKeys: new Set(),    // 시트에서 한 번이라도 로드된 문서 키 Set
         };
 
         // 보안 메모리 변수 (F12 Application 스토리지에 절대 노출되지 않는 런타임 전용)
@@ -1516,7 +1623,7 @@
                 sessionStorage.removeItem(k);
                 localStorage.removeItem(k);
             });
-        } catch (e) {}
+        } catch (e) { }
 
         // 사용자별 Gemini API 키 로컬 암호화/복호화 헬퍼 (PIN 기반 XOR + Base64 난독화)
         function encryptApiKeyWithPin(plainKey, pin) {
@@ -1626,6 +1733,92 @@
             });
         }
 
+        function getDocKey(row) {
+            return `${row.docType || '업무문서'}|${row.title || '제목없음'}`;
+        }
+
+        function getActiveSheetData() {
+            if (!state.sheetData || state.sheetData.length === 0) return [];
+            return state.sheetData.filter(r => state.selectedDocKeys.has(getDocKey(r)));
+        }
+
+        let _docSelectionLoadedFromStorage = false;
+
+        function saveDocSelectionToStorage() {
+            try {
+                const payload = JSON.stringify({
+                    selected: Array.from(state.selectedDocKeys),
+                    known: Array.from(state.knownDocKeys)
+                });
+                const asciiPayload = encodeURIComponent(payload);
+                const storedVal = _runtimePin ? encryptApiKeyWithPin(asciiPayload, _runtimePin) : asciiPayload;
+                localStorage.setItem('mc_docFilterState', storedVal);
+            } catch (e) {
+                console.warn('Doc selection save failed:', e);
+            }
+        }
+
+        function loadDocSelectionFromStorage() {
+            if (_docSelectionLoadedFromStorage) return;
+            try {
+                const raw = localStorage.getItem('mc_docFilterState');
+                if (!raw) return;
+                const asciiPayload = raw.startsWith('enc1:')
+                    ? decryptApiKeyWithPin(raw, _runtimePin)
+                    : raw;
+                if (!asciiPayload) return;
+                const parsed = JSON.parse(decodeURIComponent(asciiPayload));
+                if (parsed && Array.isArray(parsed.known) && Array.isArray(parsed.selected)) {
+                    state.knownDocKeys = new Set(parsed.known);
+                    state.selectedDocKeys = new Set(parsed.selected);
+                    _docSelectionLoadedFromStorage = true;
+                }
+            } catch (e) {
+                console.warn('Doc selection load failed:', e);
+            }
+        }
+
+        function syncDocSelectionWithRows(rows) {
+            loadDocSelectionFromStorage();
+            const currentKeys = new Set();
+            (rows || []).forEach(r => {
+                const k = getDocKey(r);
+                currentKeys.add(k);
+                if (!state.knownDocKeys.has(k)) {
+                    state.knownDocKeys.add(k);
+                    state.selectedDocKeys.add(k);
+                }
+            });
+            Array.from(state.knownDocKeys).forEach(k => {
+                if (!currentKeys.has(k)) {
+                    state.knownDocKeys.delete(k);
+                    state.selectedDocKeys.delete(k);
+                }
+            });
+            saveDocSelectionToStorage();
+        }
+
+        function refreshDataStatusCount() {
+            const totalRows = state.sheetData.length;
+            if (totalRows === 0) {
+                updateDataStatus('0건 로드됨', false);
+                return;
+            }
+            const allKeys = new Set(state.sheetData.map(r => getDocKey(r)));
+            const totalDocs = allKeys.size;
+            let selectedDocs = 0;
+            allKeys.forEach(k => {
+                if (state.selectedDocKeys.has(k)) selectedDocs++;
+            });
+            const activeRows = getActiveSheetData().length;
+
+            if (selectedDocs === totalDocs) {
+                updateDataStatus(`${totalDocs}문서 (${totalRows}건)`, true);
+            } else {
+                updateDataStatus(`${selectedDocs}/${totalDocs}문서 (${activeRows}건)`, activeRows > 0);
+            }
+        }
+
         // ============================================================
         //  SETTINGS: LOAD / SAVE
         // ============================================================
@@ -1666,6 +1859,7 @@
         function applyRowsFromGAS(rows) {
             if (!Array.isArray(rows)) return false;
             state.sheetData = rows.map(r => ({
+                docType: r.docType === '참고자료' ? '참고자료' : '업무문서',
                 title: r.title || '',
                 category: r.category || '',
                 summary: r.summary || '',
@@ -1674,10 +1868,12 @@
                     : String(r.keywords || '').split(/[,，]/).map(k => k.trim()).filter(Boolean),
                 fullText: r.fullText || ''
             }));
+            syncDocSelectionWithRows(state.sheetData);
             const dotEl = $('dataDot');
             if (dotEl) dotEl.classList.add('loaded');
-            updateDataStatus(`${state.sheetData.length}건 로드됨`, true);
-            showToast(`시트 연결 완료 (${state.sheetData.length}건)`);
+            refreshDataStatusCount();
+            const docCount = new Set(state.sheetData.map(r => getDocKey(r))).size;
+            showToast(`시트 연결 완료 (${docCount}개 문서 / ${state.sheetData.length}건)`);
             return true;
         }
 
@@ -1810,7 +2006,7 @@
                             applyRowsFromGAS(gasData.rows);
                             return;
                         }
-                    } catch (gasErr) {}
+                    } catch (gasErr) { }
                 }
 
                 // 2순위: 기존 CSV 직접 로드 (외부 프록시 corsproxy.io 완전 제거)
@@ -1821,8 +2017,9 @@
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const text = await res.text();
                 parseCSV(text);
+                syncDocSelectionWithRows(state.sheetData);
                 if (dotEl) dotEl.classList.add('loaded');
-                updateDataStatus(`${state.sheetData.length}건 로드됨`, true);
+                refreshDataStatusCount();
                 showToast(`시트 연결 완료 (${state.sheetData.length}건)`);
             } catch (e) {
                 if (dotEl) dotEl.classList.remove('loaded');
@@ -1881,6 +2078,7 @@
                     .filter(k => k.length > 0);
 
                 return {
+                    docType: '업무문서',
                     title: cols[0],
                     category: cols[1],
                     summary: cols[2],
@@ -2083,9 +2281,9 @@
         // ============================================================
         //  HANGUL JAMO FUZZY MATCHING (80% 유사도 보정)
         // ============================================================
-        const CHOSUNG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
-        const JUNGSUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
-        const JONGSUNG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+        const CHOSUNG = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+        const JUNGSUNG = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ'];
+        const JONGSUNG = ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
 
         function decomposeHangul(str) {
             let result = '';
@@ -2167,16 +2365,17 @@
         }
 
         function checkKeywordMatch(text) {
-            if (state.sheetData.length === 0) return;
+            const activeSheetData = getActiveSheetData();
+            if (activeSheetData.length === 0) return;
 
             const settings = loadSettings();
             const sensitivity = settings.sensitivity || 1;
             const now = Date.now();
             const normalizedText = text.toLowerCase();
 
-            console.log(`🔍 매칭 검사: "${text}" (시트 ${state.sheetData.length}건)`);
+            console.log(`🔍 매칭 검사: "${text}" (선택된 시트 ${activeSheetData.length}건)`);
 
-            state.sheetData.forEach((row, idx) => {
+            activeSheetData.forEach((row, idx) => {
                 // 1. 단기 쿨다운 체크 (동일 단어 연타 방지)
                 if (state.lastMatchedIndices.has(idx) && now - state.lastMatchTime < state.matchCooldownMs) return;
 
@@ -2206,9 +2405,9 @@
             });
 
             // 매칭 안 된 경우 첫 한번만 상태 표시
-            if (!state._matchDebugShown && state.sheetData.length > 0) {
+            if (!state._matchDebugShown && activeSheetData.length > 0) {
                 state._matchDebugShown = true;
-                const kwSample = state.sheetData.slice(0, 3).map(r => r.keywords.join(',')).join(' / ');
+                const kwSample = activeSheetData.slice(0, 3).map(r => r.keywords.join(',')).join(' / ');
                 console.log(`📋 시트 키워드 예시: ${kwSample}`);
             }
         }
@@ -2414,12 +2613,13 @@
         }
 
         function buildWhisperPrompt() {
-            if (!state.sheetData || state.sheetData.length === 0) {
+            const activeSheetData = getActiveSheetData();
+            if (!activeSheetData || activeSheetData.length === 0) {
                 return state.lastTranscript ? state.lastTranscript.slice(-100) : '';
             }
 
             // 1. 각 문서별로 키워드를 고유명사 점수순으로 정렬
-            const docKeywordLists = state.sheetData.map(row => {
+            const docKeywordLists = activeSheetData.map(row => {
                 if (!Array.isArray(row.keywords)) return [];
                 return row.keywords
                     .map(k => (typeof k === 'string' ? k.trim() : ''))
@@ -2501,31 +2701,31 @@
 
             /* 이전 프롬프트 로직 비활성화 */
             if (false) {
-            let kwHints = [];
-            if (state.sheetData && state.sheetData.length > 0) {
-                const kwSet = new Set();
-                state.sheetData.forEach(r => {
-                    if (Array.isArray(r.keywords)) {
-                        r.keywords.forEach(k => {
-                            if (k && typeof k === 'string' && k.trim().length > 1) {
-                                kwSet.add(k.trim());
-                            }
-                        });
-                    }
-                });
-                kwHints = Array.from(kwSet).slice(0, 35);
-            }
+                let kwHints = [];
+                if (state.sheetData && state.sheetData.length > 0) {
+                    const kwSet = new Set();
+                    state.sheetData.forEach(r => {
+                        if (Array.isArray(r.keywords)) {
+                            r.keywords.forEach(k => {
+                                if (k && typeof k === 'string' && k.trim().length > 1) {
+                                    kwSet.add(k.trim());
+                                }
+                            });
+                        }
+                    });
+                    kwHints = Array.from(kwSet).slice(0, 35);
+                }
 
-            let promptParts = [];
-            if (kwHints.length > 0) {
-                promptParts.push("회의 주요 키워드: " + kwHints.join(", "));
-            }
-            if (state.lastTranscript) {
-                promptParts.push(state.lastTranscript);
-            }
-            if (promptParts.length > 0) {
-                formData.append('prompt', promptParts.join(". ").slice(-350));
-            }
+                let promptParts = [];
+                if (kwHints.length > 0) {
+                    promptParts.push("회의 주요 키워드: " + kwHints.join(", "));
+                }
+                if (state.lastTranscript) {
+                    promptParts.push(state.lastTranscript);
+                }
+                if (promptParts.length > 0) {
+                    formData.append('prompt', promptParts.join(". ").slice(-350));
+                }
             }
 
             try {
@@ -2641,6 +2841,11 @@
 
             let contextData = '';
             const normalizedText = recentText.toLowerCase();
+            const activeSheetData = getActiveSheetData();
+
+            if (activeSheetData.length === 0 && state.sheetData.length > 0) {
+                showToast('⚠️ 참조할 문서가 선택되지 않았습니다 (상단 📚 아이콘에서 문서를 선택해 주세요)');
+            }
 
             // 검색어 토큰화 (2글자 이상 의미 있는 단어 추출)
             const stopWords = ['요약', '정리', '해줘', '알려줘', '대해', '어떻게', '무엇', '관련', '얼마', '누구', '있는', '없는'];
@@ -2648,8 +2853,8 @@
                 .split(/\s+/)
                 .filter(t => t.length >= 2 && !stopWords.includes(t));
 
-            // 1) 문서 제목, 카테고리, 주요 키워드 및 본문 콘텐츠(요약/원문) 종합 매칭
-            let matchedRows = state.sheetData.filter(row => {
+            // 1) 선택된 문서(activeSheetData) 내에서만 문서 제목, 카테고리, 주요 키워드 및 본문 콘텐츠(요약/원문) 종합 매칭
+            let matchedRows = activeSheetData.filter(row => {
                 const titleLower = row.title.toLowerCase();
                 const catLower = row.category.toLowerCase();
                 const summaryLower = (row.summary || '').toLowerCase();
@@ -2669,22 +2874,25 @@
                 return titleMatches || keywordMatches || catMatches || contentMatches;
             });
 
-            // 1-1) 후속/추가 질문 지원: 수동 질의인데 키워드 매칭이 적거나, 직전 질문의 참조 문서가 있으면 함께 유지!
+            // 1-1) 후속/추가 질문 지원: 직전 질문의 참조 문서 중 현재도 체크(선택)되어 있는 문서만 함께 유지
             if (manualQuery && state.lastMatchedRows && state.lastMatchedRows.length > 0) {
                 for (const prevRow of state.lastMatchedRows) {
-                    if (!matchedRows.includes(prevRow)) {
+                    if (state.selectedDocKeys.has(getDocKey(prevRow)) && !matchedRows.includes(prevRow)) {
                         matchedRows.push(prevRow);
                     }
                 }
             }
 
-            // 2) 다중 문서 교차검증을 위한 연관 변경/수정/추경 문서 자동 연계 수집
+            // 문서 원문 내 비정상적인 연속 장식선(----, ===== 등) 사전 정제 헬퍼
+            const sanitizeSymbols = (str) => (str || '').replace(/[-=_*~]{4,}/g, '---');
+
+            // 2) 다중 문서 교차검증을 위한 연관 변경/수정/추경 문서 자동 연계 수집 (선택된 문서 범위 내)
             if (matchedRows.length > 0) {
                 const matchedTitles = matchedRows.map(r => r.title.toLowerCase());
                 const changeKeywords = ['변경', '수정', '추경', '추가', '최종', '의결', '개정', '결산'];
 
                 // 이미 매칭된 문서와 같은 주제이거나 변경 이력을 담은 추가 청크 검색
-                const relatedRows = state.sheetData.filter(row => {
+                const relatedRows = activeSheetData.filter(row => {
                     if (matchedRows.includes(row)) return false;
                     const rowTitle = row.title.toLowerCase();
                     const rowKeywords = row.keywords.map(k => k.toLowerCase());
@@ -2705,14 +2913,11 @@
                 // 직전 매칭 행으로 보존 (후속 질문 컨텍스트 계승용)
                 state.lastMatchedRows = matchedRows.slice(0, 10);
 
-                // 문서 원문 내 비정상적인 연속 장식선(----, ===== 등) 사전 정제 헬퍼
-                const sanitizeSymbols = (str) => (str || '').replace(/[-=_*~]{4,}/g, '---');
-
                 contextData = matchedRows.map(r =>
                     `[${r.title}/${r.category}]\n${sanitizeSymbols(r.fullText || r.summary)}`
                 ).join('\n\n[문서 구분]\n\n');
-            } else if (state.sheetData.length > 0) {
-                contextData = state.sheetData.map(r =>
+            } else if (activeSheetData.length > 0) {
+                contextData = activeSheetData.map(r =>
                     `[${r.title}/${r.category}] ${sanitizeSymbols(r.summary)}`
                 ).join('\n');
             }
@@ -2940,9 +3145,9 @@ ${recentText}
                         if (/^[-*•]\s+([^\n\r]+)$/.test(line)) {
                             const bulletContent = line.replace(/^[-*•]\s+/, '').trim();
                             const isTitleOnly = !bulletContent.includes(':') &&
-                                                !/[.!?]$/.test(bulletContent) &&
-                                                !/(습니다|합니다|됩니다|추진함|기록함|달성함)/.test(bulletContent) &&
-                                                bulletContent.length <= 45;
+                                !/[.!?]$/.test(bulletContent) &&
+                                !/(습니다|합니다|됩니다|추진함|기록함|달성함)/.test(bulletContent) &&
+                                bulletContent.length <= 45;
 
                             if (isTitleOnly) {
                                 const { cleanText, sourcesHtml } = processSources(bulletContent);
@@ -3331,7 +3536,7 @@ ${recentText}
                         answer: answer
                     })
                 });
-            } catch (err) {}
+            } catch (err) { }
         }
 
         // 3) 불러오기 모달 제어 및 렌더링
@@ -3347,11 +3552,11 @@ ${recentText}
                 if (!kw) return true;
                 if (currentHistoryType === 'stt') {
                     return (item.date || '').toLowerCase().includes(kw) ||
-                           (item.content || '').toLowerCase().includes(kw);
+                        (item.content || '').toLowerCase().includes(kw);
                 } else {
                     return (item.date || '').toLowerCase().includes(kw) ||
-                           (item.question || '').toLowerCase().includes(kw) ||
-                           (item.answer || '').toLowerCase().includes(kw);
+                        (item.question || '').toLowerCase().includes(kw) ||
+                        (item.answer || '').toLowerCase().includes(kw);
                 }
             });
 
@@ -3497,6 +3702,158 @@ ${recentText}
         }
 
         // ============================================================
+        //  DOCUMENT FILTER MODAL (참조 문서 선택 - 업무문서 / 참고자료)
+        // ============================================================
+        let currentDocFilterTab = '업무문서';
+
+        function getGroupedDocuments() {
+            const map = new Map();
+            (state.sheetData || []).forEach(r => {
+                const docType = r.docType === '참고자료' ? '참고자료' : '업무문서';
+                const title = r.title || '제목없음';
+                const key = `${docType}|${title}`;
+                if (!map.has(key)) {
+                    map.set(key, {
+                        key,
+                        docType,
+                        title,
+                        chunkCount: 0,
+                        categories: new Set(),
+                        keywords: new Set()
+                    });
+                }
+                const entry = map.get(key);
+                entry.chunkCount++;
+                if (r.category) entry.categories.add(r.category);
+                (r.keywords || []).forEach(kw => {
+                    if (kw) entry.keywords.add(kw);
+                });
+            });
+            return Array.from(map.values());
+        }
+
+        function updateDocFilterHeaderCounts(groupedDocs) {
+            const workDocs = groupedDocs.filter(d => d.docType === '업무문서');
+            const refDocs = groupedDocs.filter(d => d.docType === '참고자료');
+
+            const selWork = workDocs.filter(d => state.selectedDocKeys.has(d.key)).length;
+            const selRef = refDocs.filter(d => state.selectedDocKeys.has(d.key)).length;
+            const totalSelected = selWork + selRef;
+            const totalAll = groupedDocs.length;
+
+            const badgeWork = $('badgeCountWork');
+            const badgeRef = $('badgeCountRef');
+            const summaryEl = $('docFilterSummaryText');
+
+            if (badgeWork) badgeWork.textContent = `(${selWork}/${workDocs.length})`;
+            if (badgeRef) badgeRef.textContent = `(${selRef}/${refDocs.length})`;
+            if (summaryEl) summaryEl.textContent = `총 ${totalSelected}/${totalAll}개 문서 참조 중`;
+        }
+
+        function renderDocFilterList() {
+            const container = $('docFilterListContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const groupedDocs = getGroupedDocuments();
+            updateDocFilterHeaderCounts(groupedDocs);
+
+            const searchKw = ($('inputDocFilterSearch')?.value || '').trim().toLowerCase();
+            const tabDocs = groupedDocs.filter(d => d.docType === currentDocFilterTab);
+
+            const filteredDocs = tabDocs.filter(d => {
+                if (!searchKw) return true;
+                const inTitle = d.title.toLowerCase().includes(searchKw);
+                const inCat = Array.from(d.categories).some(c => c.toLowerCase().includes(searchKw));
+                const inKw = Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw));
+                return inTitle || inCat || inKw;
+            });
+
+            if (filteredDocs.length === 0) {
+                const emptyMsg = tabDocs.length === 0
+                    ? `등록된 [${currentDocFilterTab}]가 없습니다.<br><span style="font-size:0.76rem; opacity:0.8;">우측 상단 📁 아이콘에서 [${currentDocFilterTab}] 탭으로 문서를 등록해 보세요.</span>`
+                    : '검색어와 일치하는 문서가 없습니다.';
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 42px 16px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.6;">
+                        ${emptyMsg}
+                    </div>
+                `;
+                return;
+            }
+
+            filteredDocs.forEach(doc => {
+                const isChecked = state.selectedDocKeys.has(doc.key);
+                const itemEl = document.createElement('div');
+                itemEl.style.cssText = `
+                    display: flex; align-items: flex-start; gap: 11px; padding: 11px 13px;
+                    border-radius: 10px; border: 1.5px solid ${isChecked ? 'var(--accent-blue)' : 'var(--border-color)'};
+                    background: ${isChecked ? 'rgba(74, 158, 255, 0.08)' : 'var(--bg-card)'};
+                    cursor: pointer; transition: all 0.15s; user-select: none;
+                `;
+
+                const catList = Array.from(doc.categories).slice(0, 3).join(', ');
+                const kwList = Array.from(doc.keywords).slice(0, 4).join(', ');
+
+                itemEl.innerHTML = `
+                    <input type="checkbox" ${isChecked ? 'checked' : ''}
+                        style="margin-top: 3px; width: 17px; height: 17px; accent-color: var(--accent-blue); cursor: pointer; flex-shrink: 0;">
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 3px;">
+                            <div style="font-size: 0.89rem; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${doc.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                            </div>
+                            <span style="font-size: 0.7rem; font-weight: 600; color: var(--accent-blue); background: rgba(74, 158, 255, 0.14); padding: 2px 7px; border-radius: 99px; flex-shrink: 0;">
+                                ${doc.chunkCount}개 섹션
+                            </span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${catList ? `분류: ${catList.replace(/</g, '&lt;')}` : ''}${catList && kwList ? ' · ' : ''}${kwList ? `키워드: ${kwList.replace(/</g, '&lt;')}` : ''}
+                        </div>
+                    </div>
+                `;
+
+                itemEl.addEventListener('click', () => {
+                    if (state.selectedDocKeys.has(doc.key)) {
+                        state.selectedDocKeys.delete(doc.key);
+                    } else {
+                        state.selectedDocKeys.add(doc.key);
+                    }
+                    saveDocSelectionToStorage();
+                    refreshDataStatusCount();
+                    renderDocFilterList();
+                });
+
+                container.appendChild(itemEl);
+            });
+        }
+
+        function switchDocFilterTab(tabType) {
+            currentDocFilterTab = tabType;
+            const tabWork = $('tabFilterWork');
+            const tabRef = $('tabFilterRef');
+            if (tabWork && tabRef) {
+                if (tabType === '업무문서') {
+                    tabWork.style.background = 'var(--accent-blue)';
+                    tabWork.style.color = '#fff';
+                    tabRef.style.background = 'transparent';
+                    tabRef.style.color = 'var(--text-muted)';
+                } else {
+                    tabRef.style.background = 'var(--accent-blue)';
+                    tabRef.style.color = '#fff';
+                    tabWork.style.background = 'transparent';
+                    tabWork.style.color = 'var(--text-muted)';
+                }
+            }
+            renderDocFilterList();
+        }
+
+        function openDocFilterModal() {
+            if ($('inputDocFilterSearch')) $('inputDocFilterSearch').value = '';
+            renderDocFilterList();
+            $('docFilterModal').classList.add('show');
+        }
+
+        // ============================================================
         //  EVENT HANDLERS
         // ============================================================
         function init() {
@@ -3617,6 +3974,40 @@ ${recentText}
                 renderHistoryList(e.target.value);
             });
 
+            // 참조 문서 선택 (📚) 모달 이벤트
+            $('btnDocFilter').addEventListener('click', () => openDocFilterModal());
+            $('btnDocFilterClose').addEventListener('click', () => $('docFilterModal').classList.remove('show'));
+            $('docFilterModal').addEventListener('click', (e) => {
+                if (e.target === $('docFilterModal')) $('docFilterModal').classList.remove('show');
+            });
+            $('tabFilterWork').addEventListener('click', () => switchDocFilterTab('업무문서'));
+            $('tabFilterRef').addEventListener('click', () => switchDocFilterTab('참고자료'));
+            $('inputDocFilterSearch').addEventListener('input', () => renderDocFilterList());
+            $('btnDocSelectAll').addEventListener('click', () => {
+                const searchKw = ($('inputDocFilterSearch')?.value || '').trim().toLowerCase();
+                getGroupedDocuments()
+                    .filter(d => d.docType === currentDocFilterTab)
+                    .filter(d => !searchKw || d.title.toLowerCase().includes(searchKw) ||
+                        Array.from(d.categories).some(c => c.toLowerCase().includes(searchKw)) ||
+                        Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw)))
+                    .forEach(d => state.selectedDocKeys.add(d.key));
+                saveDocSelectionToStorage();
+                refreshDataStatusCount();
+                renderDocFilterList();
+            });
+            $('btnDocDeselectAll').addEventListener('click', () => {
+                const searchKw = ($('inputDocFilterSearch')?.value || '').trim().toLowerCase();
+                getGroupedDocuments()
+                    .filter(d => d.docType === currentDocFilterTab)
+                    .filter(d => !searchKw || d.title.toLowerCase().includes(searchKw) ||
+                        Array.from(d.categories).some(c => c.toLowerCase().includes(searchKw)) ||
+                        Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw)))
+                    .forEach(d => state.selectedDocKeys.delete(d.key));
+                saveDocSelectionToStorage();
+                refreshDataStatusCount();
+                renderDocFilterList();
+            });
+
             // 맥락 분석
             $('btnContext').addEventListener('click', () => analyzeContext());
 
@@ -3693,6 +4084,32 @@ ${recentText}
 
             let currentMode = 1;
             let selectedFile1 = null;
+            let selectedUploadDocType = '업무문서';
+
+            const btnDocTypeWork = $('btnDocTypeWork');
+            const btnDocTypeRef = $('btnDocTypeRef');
+
+            function setUploadDocType(docType) {
+                selectedUploadDocType = docType;
+                if (docType === '업무문서') {
+                    btnDocTypeWork.style.border = '1.5px solid var(--accent-blue)';
+                    btnDocTypeWork.style.background = 'rgba(74, 158, 255, 0.15)';
+                    btnDocTypeWork.style.color = '#fff';
+                    btnDocTypeRef.style.border = '1px solid var(--border-color)';
+                    btnDocTypeRef.style.background = 'var(--bg-card)';
+                    btnDocTypeRef.style.color = 'var(--text-muted)';
+                } else {
+                    btnDocTypeRef.style.border = '1.5px solid var(--accent-blue)';
+                    btnDocTypeRef.style.background = 'rgba(74, 158, 255, 0.15)';
+                    btnDocTypeRef.style.color = '#fff';
+                    btnDocTypeWork.style.border = '1px solid var(--border-color)';
+                    btnDocTypeWork.style.background = 'var(--bg-card)';
+                    btnDocTypeWork.style.color = 'var(--text-muted)';
+                }
+            }
+
+            btnDocTypeWork.addEventListener('click', () => setUploadDocType('업무문서'));
+            btnDocTypeRef.addEventListener('click', () => setUploadDocType('참고자료'));
 
             tabMode1.addEventListener('click', () => {
                 currentMode = 1;
@@ -3845,11 +4262,11 @@ ${text.slice(0, 30000)}`;
                         "items": {
                             "type": "OBJECT",
                             "properties": {
-                                "title": {"type": "STRING"},
-                                "category": {"type": "STRING"},
-                                "summary": {"type": "STRING"},
-                                "keywords": {"type": "ARRAY", "items": {"type": "STRING"}},
-                                "fullText": {"type": "STRING"}
+                                "title": { "type": "STRING" },
+                                "category": { "type": "STRING" },
+                                "summary": { "type": "STRING" },
+                                "keywords": { "type": "ARRAY", "items": { "type": "STRING" } },
+                                "fullText": { "type": "STRING" }
                             },
                             "required": ["title", "category", "summary", "keywords", "fullText"]
                         }
@@ -3862,7 +4279,7 @@ ${text.slice(0, 30000)}`;
                             'x-goog-api-key': settings.apiKey
                         },
                         body: JSON.stringify({
-                            "contents": [{"parts": [{"text": prompt}]}],
+                            "contents": [{ "parts": [{ "text": prompt }] }],
                             "generationConfig": {
                                 "temperature": 0.2,
                                 "responseMimeType": "application/json",
@@ -3896,6 +4313,7 @@ ${text.slice(0, 30000)}`;
                     const currentPin = _runtimePin || '';
                     const payloadData = {
                         pin: currentPin,
+                        docType: selectedUploadDocType,
                         items: payloadItems
                     };
 
@@ -3905,9 +4323,9 @@ ${text.slice(0, 30000)}`;
                         body: JSON.stringify(payloadData)
                     });
 
-                    uploadStatusText.textContent = '지식 DB 직통 등록 완료!';
-                    uploadDetailText.textContent = `[${title}] ${chunks.length}개 세부 주제 항목이 구글 시트에 즉시 등록되었습니다.`;
-                    showToast(`[${title}] ${chunks.length}개 항목 구글 시트 저장 완료!`);
+                    uploadStatusText.textContent = `[${selectedUploadDocType}] 지식 DB 직통 등록 완료!`;
+                    uploadDetailText.textContent = `[${title}] ${chunks.length}개 세부 주제 항목이 구글 시트(${selectedUploadDocType} 탭)에 즉시 등록되었습니다.`;
+                    showToast(`[${selectedUploadDocType}] ${title} (${chunks.length}개 항목) 저장 완료!`);
 
                     setTimeout(() => {
                         loadSheetData(settings.sheetUrl || '');
@@ -3945,6 +4363,7 @@ ${text.slice(0, 30000)}`;
                 formData.append('apiKey', settings.apiKey || '');
                 formData.append('webhookUrl', settings.webhookUrl);
                 formData.append('pin', currentPin);
+                formData.append('docType', selectedUploadDocType);
 
                 try {
                     uploadStatusText.textContent = 'Gemini AI 분석 및 구글 시트 저장 중...';
@@ -3966,7 +4385,7 @@ ${text.slice(0, 30000)}`;
                                 method: 'POST',
                                 body: formData
                             });
-                        } catch(errFetch) {
+                        } catch (errFetch) {
                             const altServerUrl = serverUrl.includes('localhost') ? serverUrl.replace('localhost', '127.0.0.1') : serverUrl.replace('127.0.0.1', 'localhost');
                             res = await fetch(`${altServerUrl}/upload`, {
                                 method: 'POST',
@@ -3995,10 +4414,10 @@ ${text.slice(0, 30000)}`;
                         throw new Error('서버에서 구글 시트 저장에 실패했습니다. Webhook URL 및 PIN 상태를 확인해 주세요.');
                     }
 
-                    uploadStatusText.textContent = '지식 DB 등록 완료!';
+                    uploadStatusText.textContent = `[${selectedUploadDocType}] 지식 DB 등록 완료!`;
                     const countMsg = data.chunkCount ? `${data.chunkCount}개 세부 주제 항목` : '지식 DB 항목';
-                    uploadDetailText.textContent = `[${file.name}] ${countMsg}으로 자동 분할 등록되었습니다.`;
-                    showToast(`[${file.name}] ${countMsg} 구글 시트 저장 완료!`);
+                    uploadDetailText.textContent = `[${file.name}] ${countMsg}으로 자동 분할되어 (${selectedUploadDocType} 탭)에 등록되었습니다.`;
+                    showToast(`[${selectedUploadDocType}] ${file.name} (${countMsg}) 저장 완료!`);
 
                     setTimeout(() => {
                         loadSheetData(settings.sheetUrl || '');

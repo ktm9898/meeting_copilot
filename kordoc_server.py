@@ -293,7 +293,7 @@ class KordocHandler(BaseHTTPRequestHandler):
                     payload_items = []
                     for item in chunks:
                         payload_items.append({
-                            "title": item.get("title", default_doc_title),
+                            "title": default_doc_title,
                             "category": item.get("category", "일반"),
                             "summary": item.get("summary", ""),
                             "keywords": item.get("keywords", []),

@@ -4354,9 +4354,9 @@ ${text.slice(0, 30000)}`;
                     uploadStatusText.textContent = '📊 구글 시트로 저장 중...';
                     uploadDetailText.textContent = `${chunks.length}개 세부 주제 행 구글 시트에 전송 중`;
 
-                    // 구글 앱스 스크립트 Webhook으로 저장
+                    // 구글 앱스 스크립트 Webhook으로 저장 (동일 문서의 모든 청크는 단일 원본 title로 통일)
                     const payloadItems = chunks.map(item => ({
-                        title: item.title || title,
+                        title: title,
                         category: item.category || '일반',
                         summary: item.summary || '',
                         keywords: item.keywords || [],

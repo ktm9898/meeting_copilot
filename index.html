@@ -4296,25 +4296,54 @@ ${text.slice(0, 30000)}`;
                         }
                     };
 
-                    const gRes = await fetch(geminiUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-goog-api-key': settings.apiKey
-                        },
-                        body: JSON.stringify({
-                            "contents": [{ "parts": [{ "text": prompt }] }],
-                            "generationConfig": {
-                                "temperature": 0.2,
-                                "responseMimeType": "application/json",
-                                "responseSchema": schemaJson
-                            }
-                        })
-                    });
+                    const retryDelays = [2000, 4000, 8000];
+                    let gRes = null;
+                    let lastErrMsg = '';
 
-                    if (!gRes.ok) {
-                        const errBody = await gRes.text();
-                        throw new Error(`Gemini API 오류 (HTTP ${gRes.status}): ${errBody.slice(0, 100)}`);
+                    for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+                        try {
+                            if (attempt > 0) {
+                                uploadStatusText.textContent = `🤖 구글 AI 과부하로 재시도 중... (${attempt}/${retryDelays.length}회)`;
+                                uploadDetailText.textContent = `잠시만 기다려 주세요 (${retryDelays[attempt - 1] / 1000}초 후 자동 재시도)`;
+                                await new Promise(r => setTimeout(r, retryDelays[attempt - 1]));
+                                uploadStatusText.textContent = '🤖 Gemini AI 스마트 문서 분석 중...';
+                                uploadDetailText.textContent = `${title} 텍스트 세부 주제 분할 중`;
+                            }
+
+                            gRes = await fetch(geminiUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'x-goog-api-key': settings.apiKey
+                                },
+                                body: JSON.stringify({
+                                    "contents": [{ "parts": [{ "text": prompt }] }],
+                                    "generationConfig": {
+                                        "temperature": 0.2,
+                                        "responseMimeType": "application/json",
+                                        "responseSchema": schemaJson
+                                    }
+                                })
+                            });
+
+                            if (gRes.ok) break;
+
+                            const errBody = await gRes.text();
+                            lastErrMsg = `HTTP ${gRes.status}: ${errBody.slice(0, 120)}`;
+                            console.warn(`[Gemini AI Upload Error] Attempt ${attempt + 1}: ${lastErrMsg}`);
+
+                            // 503(과부하) 또는 429(일시 쿼터) 또는 500일 때만 재시도
+                            if (![503, 429, 500].includes(gRes.status)) {
+                                break;
+                            }
+                        } catch (fetchErr) {
+                            lastErrMsg = fetchErr.message;
+                            if (attempt >= retryDelays.length) throw fetchErr;
+                        }
+                    }
+
+                    if (!gRes || !gRes.ok) {
+                        throw new Error(`Gemini AI 분석 실패 (${lastErrMsg})`);
                     }
 
                     const gData = await gRes.json();

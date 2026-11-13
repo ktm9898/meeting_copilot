@@ -194,9 +194,10 @@ class KordocHandler(BaseHTTPRequestHandler):
 
             last_ai_error = ""
             if api_key:
-                try:
-                    print("[Gemini AI] Analyzing document structure & generating semantic sub-topic chunks...")
-                    prompt = f"""당신은 공문서, 사업계획서, 성과보고서 분석 전문 수석 데이터분석가입니다.
+                max_retries = 3
+                retry_delays = [2, 4, 8]  # 지수 백오프: 2초, 4초, 8초 대기
+
+                prompt = f"""당신은 공문서, 사업계획서, 성과보고서 분석 전문 수석 데이터분석가입니다.
 아래에 제공되는 [문서 원문 텍스트]의 전체 구조와 목차(Chapter), 사업 분야를 정밀하게 분석하여, 회의 지원 지식 DB로 활용할 수 있도록 논리적 주제 단위의 지식 DB 항목 배열(JSON Array)로 분할해 주세요.
 
 [문서 원문 텍스트]
@@ -214,50 +215,68 @@ class KordocHandler(BaseHTTPRequestHandler):
    - keywords: 회의 중 음성 인식과 직접 자동 매칭될 해당 주제의 핵심 단어 4~7개 (문자열 배열)
    - fullText: 해당 세부 주제에 속하는 본문 텍스트 및 표 데이터 원문 (요약하지 말고 원문 내용 그대로 유지)"""
 
-                    gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
-                    schema_json = {
-                        "type": "ARRAY",
-                        "items": {
-                            "type": "OBJECT",
-                            "properties": {
-                                "title": {"type": "STRING"},
-                                "category": {"type": "STRING"},
-                                "summary": {"type": "STRING"},
-                                "keywords": {"type": "ARRAY", "items": {"type": "STRING"}},
-                                "fullText": {"type": "STRING"}
-                            },
-                            "required": ["title", "category", "summary", "keywords", "fullText"]
-                        }
+                gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
+                schema_json = {
+                    "type": "ARRAY",
+                    "items": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "title": {"type": "STRING"},
+                            "category": {"type": "STRING"},
+                            "summary": {"type": "STRING"},
+                            "keywords": {"type": "ARRAY", "items": {"type": "STRING"}},
+                            "fullText": {"type": "STRING"}
+                        },
+                        "required": ["title", "category", "summary", "keywords", "fullText"]
                     }
+                }
 
-                    req_data = json.dumps({
-                        "contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {
-                            "temperature": 0.2,
-                            "responseMimeType": "application/json",
-                            "responseSchema": schema_json
-                        }
-                    }).encode('utf-8')
+                req_data = json.dumps({
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "temperature": 0.2,
+                        "responseMimeType": "application/json",
+                        "responseSchema": schema_json
+                    }
+                }).encode('utf-8')
 
-                    req = urllib.request.Request(gemini_url, data=req_data, headers={'Content-Type': 'application/json'})
-                    with urllib.request.urlopen(req) as response:
-                        g_res = json.loads(response.read().decode('utf-8'))
-                        g_text = g_res['candidates'][0]['content']['parts'][0]['text']
-                        parsed_json = json.loads(g_text)
+                for attempt in range(max_retries + 1):
+                    try:
+                        print(f"[Gemini AI] Analyzing document structure (attempt {attempt + 1}/{max_retries + 1})...")
+                        req = urllib.request.Request(gemini_url, data=req_data, headers={'Content-Type': 'application/json'})
+                        with urllib.request.urlopen(req) as response:
+                            g_res = json.loads(response.read().decode('utf-8'))
+                            g_text = g_res['candidates'][0]['content']['parts'][0]['text']
+                            parsed_json = json.loads(g_text)
 
-                        if isinstance(parsed_json, list) and len(parsed_json) > 0:
-                            chunks = parsed_json
-                        elif isinstance(parsed_json, dict):
-                            chunks = [parsed_json]
-                except urllib.error.HTTPError as http_err:
-                    err_body = http_err.read().decode('utf-8', errors='ignore')
-                    last_ai_error = f"HTTP {http_err.code}: {err_body[:200]}"
-                    print(f"[Warning] Gemini API HTTP Error: {last_ai_error}")
-                except Exception as ai_err:
-                    import traceback
-                    last_ai_error = str(ai_err)
-                    print(f"[Warning] Gemini Smart Chunking failed: {ai_err}")
-                    traceback.print_exc()
+                            if isinstance(parsed_json, list) and len(parsed_json) > 0:
+                                chunks = parsed_json
+                            elif isinstance(parsed_json, dict):
+                                chunks = [parsed_json]
+                            if chunks:
+                                break
+                    except urllib.error.HTTPError as http_err:
+                        err_body = http_err.read().decode('utf-8', errors='ignore')
+                        last_ai_error = f"HTTP {http_err.code}: {err_body[:200]}"
+                        print(f"[Warning] Gemini API HTTP Error ({http_err.code}): {last_ai_error}")
+                        # 503(과부하/일시 중단) 또는 429(일시 쿼터) 발생 시 지수 백오프 대기 후 재시도
+                        if http_err.code in (503, 429, 500) and attempt < max_retries:
+                            wait_sec = retry_delays[attempt]
+                            print(f"[Retry] Server busy ({http_err.code}). Retrying in {wait_sec}s... ({attempt + 1}/{max_retries})")
+                            time.sleep(wait_sec)
+                            continue
+                        break
+                    except Exception as ai_err:
+                        import traceback
+                        last_ai_error = str(ai_err)
+                        print(f"[Warning] Gemini Smart Chunking failed: {ai_err}")
+                        traceback.print_exc()
+                        if attempt < max_retries:
+                            wait_sec = retry_delays[attempt]
+                            print(f"[Retry] Unexpected error. Retrying in {wait_sec}s... ({attempt + 1}/{max_retries})")
+                            time.sleep(wait_sec)
+                            continue
+                        break
 
             if not chunks:
                 self._send_json(500, {"error": f"Gemini AI 스마트 분할 실패 ({last_ai_error}): 설정(⚙️)의 Gemini API 키가 올바른지 확인해 주세요."})

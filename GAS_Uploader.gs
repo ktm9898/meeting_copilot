@@ -163,6 +163,37 @@ function updateSheetDocSelectionOnSheet(sheet, docTypeLabel, docStates) {
   return newBValues.length;
 }
 
+function updateSheetWorkGroupOnSheet(sheet, docTypeLabel, targetKeyMap, newWorkGroup) {
+  if (!sheet || sheet.getLastRow() < 2 || !targetKeyMap) return 0;
+  ensureSheetColumns(sheet);
+  var lastRow = sheet.getLastRow();
+  var numRows = lastRow - 1;
+  // A열(업무구분, col=1) ~ C열(문서제목, col=3) 일괄 읽기
+  var abcValues = sheet.getRange(2, 1, numRows, 3).getValues();
+  var newAValues = [];
+  var changedCount = 0;
+
+  for (var i = 0; i < abcValues.length; i++) {
+    var curA = String(abcValues[i][0] || "").trim() || "미분류";
+    var rawTitle = String(abcValues[i][2] || "");
+    var trimmedTitle = rawTitle.trim();
+    var keyExact = docTypeLabel + "|" + (rawTitle || "제목없음");
+    var keyTrim = docTypeLabel + "|" + (trimmedTitle || "제목없음");
+
+    if (targetKeyMap[keyExact] || targetKeyMap[keyTrim]) {
+      newAValues.push([newWorkGroup]);
+      if (curA !== newWorkGroup) changedCount++;
+    } else {
+      newAValues.push([curA]);
+    }
+  }
+
+  if (changedCount > 0 && newAValues.length > 0) {
+    sheet.getRange(2, 1, numRows, 1).setValues(newAValues);
+  }
+  return changedCount;
+}
+
 function appendRowsFromSheet(sheet, docTypeLabel, list) {
   if (!sheet || sheet.getLastRow() < 2) return;
   ensureSheetColumns(sheet);
@@ -352,6 +383,33 @@ function doPost(e) {
       return responseJSON({
         success: true,
         action: "saveDocSelection"
+      });
+    }
+
+    // 2-2) 선택 문서 업무구분(A열) 일괄 변경 (신규 업무구분 생성 또는 기존 업무구분으로 이동)
+    if (action === "updateWorkGroup") {
+      var docKeysArr = Array.isArray(data.docKeys) ? data.docKeys : [];
+      var cleanWorkGroup = String(data.workGroup || "").trim() || "미분류";
+      var targetKeyMap = {};
+      for (var kIdx = 0; kIdx < docKeysArr.length; kIdx++) {
+        var dk = String(docKeysArr[kIdx] || "").trim();
+        if (dk) targetKeyMap[dk] = true;
+      }
+
+      var updatedRows = 0;
+      var mainSheet2 = getMainWorkSheet(ss);
+      updatedRows += updateSheetWorkGroupOnSheet(mainSheet2, "업무문서", targetKeyMap, cleanWorkGroup);
+
+      var refSheet2 = ss.getSheetByName("참고자료");
+      if (refSheet2 && (!mainSheet2 || refSheet2.getSheetId() !== mainSheet2.getSheetId())) {
+        updatedRows += updateSheetWorkGroupOnSheet(refSheet2, "참고자료", targetKeyMap, cleanWorkGroup);
+      }
+
+      return responseJSON({
+        success: true,
+        action: "updateWorkGroup",
+        workGroup: cleanWorkGroup,
+        updatedRows: updatedRows
       });
     }
 

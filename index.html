@@ -1477,6 +1477,19 @@
                     완료</label>
             </div>
             <div class="form-group">
+                <label>문서 등록 방식</label>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" id="btnSettingEngineAi"
+                        style="flex: 1; padding: 9px 10px; border-radius: 8px; border: 1.5px solid var(--accent-blue); background: rgba(74, 158, 255, 0.14); color: var(--accent-blue); font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                        ✨ AI 직접 판독 (PDF)
+                    </button>
+                    <button type="button" id="btnSettingEngineKordoc"
+                        style="flex: 1; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-muted); font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                        🖥️ 코닥 파서 (HWP 등)
+                    </button>
+                </div>
+            </div>
+            <div class="form-group" id="kordocServerUrlGroup" style="display: none;">
                 <label>내 PC Kordoc 서버 주소 (태블릿 연결용)</label>
                 <input type="text" id="inputServerUrl" placeholder="http://localhost:5000">
                 <div class="hint">동일 Wi-Fi 접속 태블릿에서 사용 시 노트북 IP(예: http://10.140.78.1:5000)를 입력하세요</div>
@@ -1556,63 +1569,84 @@
                 </div>
             </div>
 
-            <!-- 모드 선택 탭 -->
-            <div
-                style="display: flex; background: var(--bg-card); padding: 4px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--border-color);">
-                <button id="tabMode1"
-                    style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: var(--accent-blue); color: #fff; cursor: pointer; transition: all 0.2s;">
-                    1. 원본 문서 파싱 등록
-                </button>
-                <button id="tabMode2"
-                    style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">
-                    2. 파싱 완료 텍스트 직접 등록
-                </button>
-            </div>
-
-            <!-- MODE 1: 원본 문서 파일 업로드 (Kordoc) -->
-            <div id="uploadMode1Section">
-                <!-- 서버 상태 안내 상자 -->
-                <div id="serverStatusNotice"
-                    style="padding: 10px 14px; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 8px; font-size: 0.82rem; margin-bottom: 14px; line-height: 1.5; color: var(--text-primary);">
-                    <span id="serverStatusText">
-                        <strong>서버 안내:</strong> 업로드 전 프로젝트 폴더에서 <code>run_kordoc_background.vbs</code> 파일 더블 클릭으로 백그라운드
-                        서버를 실행해 주세요.
-                    </span>
-                </div>
-
-                <div id="dropZone"
-                    style="border: 2px dashed var(--accent-blue); border-radius: 12px; padding: 24px; text-align: center; background: rgba(74, 158, 255, 0.05); cursor: pointer; transition: all 0.3s;">
+            <!-- [AI 직접 판독 모드] 섹션 (설정에서 AI 직접 판독 선택 시 표시) -->
+            <div id="uploadAiSection">
+                <div id="dropZoneAi"
+                    style="border: 2px dashed var(--accent-blue); border-radius: 12px; padding: 28px 20px; text-align: center; background: rgba(74, 158, 255, 0.05); cursor: pointer; transition: all 0.3s;">
                     <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
-                        원본 문서 드래그 앤 드롭 또는 클릭하여 선택
+                        문서 드래그 앤 드롭 또는 클릭하여 선택
                     </div>
                     <div style="font-size: 0.8rem; color: var(--text-muted);">
-                        지원 형식: HWP, HWPX, PDF, XLSX, DOCX
+                        지원 형식: PDF, PNG, JPG, WEBP (최대 20MB)
                     </div>
-                    <input type="file" id="fileInput" accept=".hwp,.hwpx,.pdf,.xlsx,.docx,.doc" style="display: none;">
+                    <input type="file" id="fileInputAi" accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/*" style="display: none;">
                 </div>
-                <div id="selectedFileInfo1"
+                <div id="selectedFileInfoAi"
                     style="display: none; margin-top: 10px; padding: 8px 12px; background: var(--bg-card); border-radius: 6px; font-size: 0.82rem; font-weight: bold; color: var(--accent-blue);">
-                    선택된 파일: <span id="fileNameDisplay1">없음</span>
+                    선택된 파일: <span id="fileNameDisplayAi">없음</span>
                 </div>
             </div>
 
-            <!-- MODE 2: 이미 파싱된 텍스트/MD 파일 또는 붙여넣기 -->
-            <div id="uploadMode2Section" style="display: none;">
-                <div
-                    style="padding: 10px 14px; background: rgba(74, 158, 255, 0.1); border-left: 4px solid var(--accent-blue); border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px; line-height: 1.5; color: var(--text-primary);">
-                    <strong>안내:</strong> 로컬 파서 서버 연결 없이 파싱된 텍스트/마크다운을 AI 분석 후 구글 시트에 바로 등록합니다.
+            <!-- [코닥 로컬 파서 모드] 탭 및 섹션 (설정에서 코닥 파서 선택 시 표시) -->
+            <div id="kordocModeWrap" style="display: none;">
+                <!-- 모드 선택 탭 -->
+                <div id="kordocModeTabs"
+                    style="display: flex; background: var(--bg-card); padding: 4px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--border-color);">
+                    <button id="tabMode1"
+                        style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: var(--accent-blue); color: #fff; cursor: pointer; transition: all 0.2s;">
+                        1. 원본 문서 파싱 등록
+                    </button>
+                    <button id="tabMode2"
+                        style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">
+                        2. 파싱 완료 텍스트 직접 등록
+                    </button>
                 </div>
-                <div style="margin-bottom: 10px;">
-                    <input type="text" id="inputParsedTitle" placeholder="문서 제목 입력 (예: 2026 사업계획서)"
-                        style="width: 100%; padding: 10px 12px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); margin-bottom: 8px;">
-                    <textarea id="inputParsedText" rows="6"
-                        placeholder="파싱된 마크다운(.md) 또는 텍스트 내용을 붙여넣거나 아래에 파일을 드래그하세요..."
-                        style="width: 100%; padding: 10px 12px; font-size: 0.82rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); resize: vertical; font-family: monospace;"></textarea>
+
+                <!-- MODE 1: 원본 문서 파일 업로드 (Kordoc) -->
+                <div id="uploadMode1Section">
+                    <!-- 서버 상태 안내 상자 -->
+                    <div id="serverStatusNotice"
+                        style="padding: 10px 14px; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 8px; font-size: 0.82rem; margin-bottom: 14px; line-height: 1.5; color: var(--text-primary);">
+                        <span id="serverStatusText">
+                            <strong>서버 안내:</strong> 업로드 전 프로젝트 폴더에서 <code>run_kordoc_background.vbs</code> 파일 더블 클릭으로 백그라운드
+                            서버를 실행해 주세요.
+                        </span>
+                    </div>
+
+                    <div id="dropZone"
+                        style="border: 2px dashed var(--accent-blue); border-radius: 12px; padding: 24px; text-align: center; background: rgba(74, 158, 255, 0.05); cursor: pointer; transition: all 0.3s;">
+                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+                            원본 문서 드래그 앤 드롭 또는 클릭하여 선택
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">
+                            지원 형식: HWP, HWPX, PDF, XLSX, DOCX
+                        </div>
+                        <input type="file" id="fileInput" accept=".hwp,.hwpx,.pdf,.xlsx,.docx,.doc" style="display: none;">
+                    </div>
+                    <div id="selectedFileInfo1"
+                        style="display: none; margin-top: 10px; padding: 8px 12px; background: var(--bg-card); border-radius: 6px; font-size: 0.82rem; font-weight: bold; color: var(--accent-blue);">
+                        선택된 파일: <span id="fileNameDisplay1">없음</span>
+                    </div>
                 </div>
-                <div id="dropZoneText"
-                    style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 8px; text-align: center; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; background: var(--bg-primary);">
-                    .md 또는 .txt 파일 드래그 앤 드롭
-                    <input type="file" id="fileInputText" accept=".md,.txt,.markdown" style="display: none;">
+
+                <!-- MODE 2: 이미 파싱된 텍스트/MD 파일 또는 붙여넣기 -->
+                <div id="uploadMode2Section" style="display: none;">
+                    <div
+                        style="padding: 10px 14px; background: rgba(74, 158, 255, 0.1); border-left: 4px solid var(--accent-blue); border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px; line-height: 1.5; color: var(--text-primary);">
+                        <strong>안내:</strong> 로컬 파서 서버 연결 없이 파싱된 텍스트/마크다운을 AI 분석 후 구글 시트에 바로 등록합니다.
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <input type="text" id="inputParsedTitle" placeholder="문서 제목 입력 (예: 2026 사업계획서)"
+                            style="width: 100%; padding: 10px 12px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); margin-bottom: 8px;">
+                        <textarea id="inputParsedText" rows="6"
+                            placeholder="파싱된 마크다운(.md) 또는 텍스트 내용을 붙여넣거나 아래에 파일을 드래그하세요..."
+                            style="width: 100%; padding: 10px 12px; font-size: 0.82rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); resize: vertical; font-family: monospace;"></textarea>
+                    </div>
+                    <div id="dropZoneText"
+                        style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 8px; text-align: center; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; background: var(--bg-primary);">
+                        .md 또는 .txt 파일 드래그 앤 드롭
+                        <input type="file" id="fileInputText" accept=".md,.txt,.markdown" style="display: none;">
+                    </div>
                 </div>
             </div>
 
@@ -2160,6 +2194,35 @@
         // ============================================================
         //  SETTINGS: LOAD / SAVE
         // ============================================================
+        let _tempSettingUploadEngine = 'ai';
+
+        function setSettingUploadEngineUI(engine) {
+            _tempSettingUploadEngine = (engine === 'kordoc') ? 'kordoc' : 'ai';
+            const btnAi = $('btnSettingEngineAi');
+            const btnKordoc = $('btnSettingEngineKordoc');
+            const srvGroup = $('kordocServerUrlGroup');
+            if (btnAi && btnKordoc) {
+                if (_tempSettingUploadEngine === 'ai') {
+                    btnAi.style.border = '1.5px solid var(--accent-blue)';
+                    btnAi.style.background = 'rgba(74, 158, 255, 0.14)';
+                    btnAi.style.color = 'var(--accent-blue)';
+                    btnKordoc.style.border = '1px solid var(--border-color)';
+                    btnKordoc.style.background = 'var(--bg-card)';
+                    btnKordoc.style.color = 'var(--text-muted)';
+                } else {
+                    btnKordoc.style.border = '1.5px solid var(--accent-blue)';
+                    btnKordoc.style.background = 'rgba(74, 158, 255, 0.14)';
+                    btnKordoc.style.color = 'var(--accent-blue)';
+                    btnAi.style.border = '1px solid var(--border-color)';
+                    btnAi.style.background = 'var(--bg-card)';
+                    btnAi.style.color = 'var(--text-muted)';
+                }
+            }
+            if (srvGroup) {
+                srvGroup.style.display = (_tempSettingUploadEngine === 'kordoc') ? 'block' : 'none';
+            }
+        }
+
         function loadSettings() {
             const rawStoredKey = localStorage.getItem('mc_apiKey') || '';
             const decryptedKey = decryptApiKeyWithPin(rawStoredKey, _runtimePin);
@@ -2168,6 +2231,7 @@
                 groqKey: state.groqKey || '',
                 sheetUrl: state.sheetUrl || '',
                 webhookUrl: GAS_WEBAPP_URL,
+                uploadEngine: localStorage.getItem('mc_uploadEngine') || 'ai',
                 serverUrl: localStorage.getItem('mc_serverUrl') || 'http://localhost:5000',
                 sensitivity: parseInt(localStorage.getItem('mc_sensitivity') || '1'),
             };
@@ -2183,6 +2247,7 @@
             sessionStorage.removeItem('mc_pin');
             sessionStorage.removeItem('mc_groqKey');
             sessionStorage.removeItem('mc_sheetUrl');
+            localStorage.setItem('mc_uploadEngine', s.uploadEngine || 'ai');
             localStorage.setItem('mc_serverUrl', s.serverUrl || 'http://localhost:5000');
             localStorage.setItem('mc_sensitivity', String(s.sensitivity));
         }
@@ -2192,6 +2257,7 @@
             $('inputApiKey').value = s.apiKey;
             $('inputServerUrl').value = s.serverUrl || 'http://localhost:5000';
             $('inputSensitivity').value = s.sensitivity;
+            setSettingUploadEngineUI(s.uploadEngine || 'ai');
         }
 
         function applyRowsFromGAS(rows, cloudDocSelection = null) {
@@ -5031,9 +5097,16 @@ ${recentText}
             const fileInputText = $('fileInputText');
             const selectedFileInfo1 = $('selectedFileInfo1');
             const fileNameDisplay1 = $('fileNameDisplay1');
+            const uploadAiSection = $('uploadAiSection');
+            const kordocModeWrap = $('kordocModeWrap');
+            const dropZoneAi = $('dropZoneAi');
+            const fileInputAi = $('fileInputAi');
+            const selectedFileInfoAi = $('selectedFileInfoAi');
+            const fileNameDisplayAi = $('fileNameDisplayAi');
 
             let currentMode = 1;
             let selectedFile1 = null;
+            let selectedFileAi = null;
             let selectedUploadDocType = '업무문서';
 
             const btnDocTypeWork = $('btnDocTypeWork');
@@ -5134,14 +5207,24 @@ ${recentText}
                 uploadProgress.style.display = 'none';
                 closeUploadWgDropdown();
                 renderUploadWorkGroupDropdown(false);
+
+                const settings = loadSettings();
+                const isAiEngine = (settings.uploadEngine || 'ai') === 'ai';
+                if (uploadAiSection) uploadAiSection.style.display = isAiEngine ? 'block' : 'none';
+                if (kordocModeWrap) kordocModeWrap.style.display = isAiEngine ? 'none' : 'block';
+
                 uploadModal.classList.add('show');
 
-                // 기본 서버 안내 표시
-                const statusBox = $('serverStatusNotice');
-                const statusText = $('serverStatusText');
-                statusBox.style.background = 'rgba(251, 191, 36, 0.1)';
-                statusBox.style.borderColor = 'var(--accent-amber)';
-                statusText.innerHTML = '<strong>서버 안내:</strong> 원본 문서(.hwp, .pdf 등) 파싱 등록 전, 백그라운드 서버(<code>run_kordoc_background.vbs</code>)가 실행 중인지 확인해 주세요. (파싱 완료 텍스트는 [2번 탭]에서 바로 등록 가능)';
+                if (!isAiEngine) {
+                    // 코닥 파서 모드일 때만 기본 서버 안내 표시
+                    const statusBox = $('serverStatusNotice');
+                    const statusText = $('serverStatusText');
+                    if (statusBox && statusText) {
+                        statusBox.style.background = 'rgba(251, 191, 36, 0.1)';
+                        statusBox.style.borderColor = 'var(--accent-amber)';
+                        statusText.innerHTML = '<strong>서버 안내:</strong> 원본 문서(.hwp, .pdf 등) 파싱 등록 전, 백그라운드 서버(<code>run_kordoc_background.vbs</code>)가 실행 중인지 확인해 주세요. (파싱 완료 텍스트는 [2번 탭]에서 바로 등록 가능)';
+                    }
+                }
             });
 
             function setUploadDocType(docType) {
@@ -5207,6 +5290,40 @@ ${recentText}
                 if (e.target === uploadModal) uploadModal.classList.remove('show');
             });
 
+            // AI 직접 판독 모드 파일 선택 처리
+            if (dropZoneAi && fileInputAi) {
+                dropZoneAi.addEventListener('click', () => fileInputAi.click());
+                dropZoneAi.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZoneAi.style.background = 'rgba(124, 58, 237, 0.14)';
+                    dropZoneAi.style.borderColor = '#6d28d9';
+                });
+                dropZoneAi.addEventListener('dragleave', () => {
+                    dropZoneAi.style.background = 'rgba(124, 58, 237, 0.05)';
+                    dropZoneAi.style.borderColor = '#7c3aed';
+                });
+                dropZoneAi.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZoneAi.style.background = 'rgba(124, 58, 237, 0.05)';
+                    dropZoneAi.style.borderColor = '#7c3aed';
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        setSelectedFileAi(e.dataTransfer.files[0]);
+                    }
+                });
+                fileInputAi.addEventListener('change', () => {
+                    if (fileInputAi.files && fileInputAi.files.length > 0) {
+                        setSelectedFileAi(fileInputAi.files[0]);
+                    }
+                });
+            }
+
+            function setSelectedFileAi(file) {
+                selectedFileAi = file;
+                if (fileNameDisplayAi) fileNameDisplayAi.textContent = file.name;
+                if (selectedFileInfoAi) selectedFileInfoAi.style.display = 'block';
+                showToast(`선택됨: ${file.name}`);
+            }
+
             // Mode 1 파일 선택 처리
             dropZone.addEventListener('click', () => fileInput.click());
             dropZone.addEventListener('dragover', (e) => {
@@ -5270,6 +5387,17 @@ ${recentText}
 
             // 통일된 [분석 및 시트 저장] 실행 버튼 클릭 이벤트
             btnSubmitUpload.addEventListener('click', () => {
+                const settings = loadSettings();
+                const isAiEngine = (settings.uploadEngine || 'ai') === 'ai';
+                if (isAiEngine) {
+                    if (!selectedFileAi) {
+                        showToast('⚠️ 먼저 AI가 직접 판독할 PDF(또는 이미지) 파일을 선택해 주세요.');
+                        return;
+                    }
+                    handleAiDirectUpload(selectedFileAi);
+                    return;
+                }
+
                 if (currentMode === 1) {
                     if (!selectedFile1) {
                         showToast('⚠️ 먼저 파싱할 원본 문서 파일을 선택해 주세요.');
@@ -5280,6 +5408,204 @@ ${recentText}
                     handleMode2Submit();
                 }
             });
+
+            // AI 직접 판독 제출 처리 (Gemini Multimodal Vision으로 PDF/이미지 1회 호출 직접 판독 + 구글 시트 저장)
+            async function handleAiDirectUpload(file) {
+                const settings = loadSettings();
+                const ext = (file.name.split('.').pop() || '').toLowerCase();
+                const mimeMap = {
+                    'pdf': 'application/pdf',
+                    'png': 'image/png',
+                    'jpg': 'image/jpeg',
+                    'jpeg': 'image/jpeg',
+                    'webp': 'image/webp'
+                };
+                const mimeType = mimeMap[ext] || file.type;
+
+                if (!mimeMap[ext]) {
+                    showToast('⚠️ AI 직접 판독은 PDF(.pdf) 또는 이미지(.png, .jpg, .webp) 파일만 지원합니다. 한글(.hwp) 파일은 PDF로 인쇄/저장 후 올려주시거나 설정에서 [코닥 파서]로 전환해 주세요.');
+                    return;
+                }
+                if (file.size > 20 * 1024 * 1024) {
+                    showToast('⚠️ 파일 용량이 20MB를 초과합니다. 20MB 이하의 PDF 파일을 업로드해 주세요.');
+                    return;
+                }
+                if (!settings.apiKey) {
+                    showToast('⚠️ Gemini API 키가 필요합니다. 설정에서 먼저 입력해 주세요.');
+                    $('btnSettings').click();
+                    return;
+                }
+                if (!settings.webhookUrl) {
+                    showToast('⚠️ 구글 시트 Webhook URL이 필요합니다. 설정에서 먼저 입력해 주세요.');
+                    $('btnSettings').click();
+                    return;
+                }
+                const currentPin = _runtimePin || '';
+                if (!currentPin) {
+                    showToast('⚠️ 구글 시트 저장 권한을 위해 먼저 접속 비밀번호(PIN)를 확인해 주세요');
+                    $('pinModal').style.display = 'flex';
+                    return;
+                }
+
+                const docTitle = file.name.replace(/\.[^/.]+$/, '');
+                uploadProgress.style.display = 'block';
+                uploadStatusText.textContent = '✨ Gemini AI가 문서를 시각적으로 직접 판독 중...';
+                uploadDetailText.textContent = `${file.name} (표·차트·그래프 정밀 판독 및 세부 주제 분할 중)`;
+
+                try {
+                    const base64Data = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const result = String(reader.result || '');
+                            const commaIdx = result.indexOf(',');
+                            resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result);
+                        };
+                        reader.onerror = () => reject(new Error('파일을 읽는 중 오류가 발생했습니다.'));
+                        reader.readAsDataURL(file);
+                    });
+
+                    const categoryGuide = selectedUploadDocType === '참고자료'
+                        ? `- category: 해당 세부 단락의 내용을 종합적으로 포괄하는 명료한 '소제목(목차)'.
+       * 단순한 단편 추출이 아니라, 해당 분할 단락에 포함된 전체 세부 내용과 요약을 모두 아우를 수 있도록 AI가 자연스러운 대표 소제목으로 작명할 것. (예: 'I. 리포트 개요 및 활용 방법', 'II. 용산구 점포 수 및 개·폐업률 현황', 'III. 용산구 유동인구 및 임대료 현황' 등)`
+                        : `- category: 사업 구분 또는 문서 분류 (예: 사업기획, 운영성과, 일반현황, 정책협력 등)`;
+
+                    const prompt = `첨부된 문서 파일 [${docTitle}]의 모든 페이지(텍스트, 표, 막대/선 그래프, 인포그래픽, 각주 등)를 시각적으로 정밀하게 판독하여, 음성 회의 중 질문이 들어왔을 때 즉시 인덱싱하여 답변 카드로 보여줄 수 있도록 세부 주제 단위로 스마트하게 분할(Chunking)해 주세요.
+
+[핵심 판독 및 작성 원칙]
+1. **시각 자료(표·차트·그래프) 완벽 복원**:
+   - 페이지 내의 막대그래프, 증감 화살표(▲/▼), 자치구별/행정동별 순위, 단위(개, %, 만명, 만원/3.3㎡ 등)를 단 하나도 누락하거나 다른 항목의 숫자와 섞지 말고 **시각적 위치 그대로 정확히 매칭**하여 읽어낼 것.
+   - 특정 페이지를 건너뛰지 말고 첫 페이지부터 마지막 페이지까지 모든 핵심 데이터를 빠짐없이 포함할 것.
+2. **스마트 분할(Chunking)**:
+   - 문서의 분량과 목차 구조에 따라 1개~12개 사이의 핵심 세부 주제(Chunk)로 자연스럽게 나눌 것.
+3. **각 세부 주제(Chunk)별 필드 작성 규칙**:
+   - title: 문서 제목 ("${docTitle}")
+   ${categoryGuide}
+   - summary: 해당 세부 주제의 핵심 수치와 결론을 2~4문장으로 명확하게 요약
+   - keywords: 해당 주제와 관련된 핵심 검색 키워드 3~7개 배열 (예: ["용산구", "점포수", "폐업률", "임대료", "이촌1동"])
+   - fullText: 해당 세부 주제에 속하는 **전체 본문 내용, 표(Markdown Table 형식), 그래프 수치 데이터를 요약·생략 없이 체계적인 마크다운 원문으로 상세히 정리**할 것.`;
+
+                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`;
+                    const schemaJson = {
+                        "type": "ARRAY",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "title": { "type": "STRING" },
+                                "category": { "type": "STRING" },
+                                "summary": { "type": "STRING" },
+                                "keywords": { "type": "ARRAY", "items": { "type": "STRING" } },
+                                "fullText": { "type": "STRING" }
+                            },
+                            "required": ["title", "category", "summary", "keywords", "fullText"]
+                        }
+                    };
+
+                    const retryDelays = [2000, 4000, 8000];
+                    let gRes = null;
+                    let lastErrMsg = '';
+
+                    for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+                        try {
+                            if (attempt > 0) {
+                                uploadStatusText.textContent = `🤖 구글 AI 과부하로 재시도 중... (${attempt}/${retryDelays.length}회)`;
+                                uploadDetailText.textContent = `잠시만 기다려 주세요 (${retryDelays[attempt - 1] / 1000}초 후 자동 재시도)`;
+                                await new Promise(r => setTimeout(r, retryDelays[attempt - 1]));
+                                uploadStatusText.textContent = '✨ Gemini AI가 문서를 시각적으로 직접 판독 중...';
+                                uploadDetailText.textContent = `${file.name} (표·차트·그래프 정밀 판독 및 세부 주제 분할 중)`;
+                            }
+
+                            gRes = await fetch(geminiUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'x-goog-api-key': settings.apiKey
+                                },
+                                body: JSON.stringify({
+                                    "contents": [{
+                                        "parts": [
+                                            {
+                                                "inlineData": {
+                                                    "mimeType": mimeType,
+                                                    "data": base64Data
+                                                }
+                                            },
+                                            { "text": prompt }
+                                        ]
+                                    }],
+                                    "generationConfig": {
+                                        "temperature": 0.15,
+                                        "responseMimeType": "application/json",
+                                        "responseSchema": schemaJson
+                                    }
+                                })
+                            });
+
+                            if (gRes.ok) break;
+
+                            const errBody = await gRes.text();
+                            lastErrMsg = `HTTP ${gRes.status}: ${errBody.slice(0, 120)}`;
+                            console.warn(`[Gemini AI Direct PDF Error] Attempt ${attempt + 1}: ${lastErrMsg}`);
+
+                            if (![503, 429, 500].includes(gRes.status)) {
+                                break;
+                            }
+                        } catch (fetchErr) {
+                            lastErrMsg = fetchErr.message;
+                            if (attempt >= retryDelays.length) throw fetchErr;
+                        }
+                    }
+
+                    if (!gRes || !gRes.ok) {
+                        throw new Error(`Gemini AI 직접 판독 실패 (${lastErrMsg})`);
+                    }
+
+                    const gData = await gRes.json();
+                    const gText = gData.candidates[0].content.parts[0].text;
+                    let chunks = JSON.parse(gText);
+                    if (!Array.isArray(chunks)) chunks = [chunks];
+
+                    uploadStatusText.textContent = '📊 구글 시트로 저장 중...';
+                    uploadDetailText.textContent = `${chunks.length}개 세부 주제 행 구글 시트에 전송 중`;
+
+                    const uploadWorkGroup = ($('inputUploadWorkGroup')?.value || '').trim() || '미분류';
+                    const payloadItems = chunks.map(item => ({
+                        workGroup: uploadWorkGroup,
+                        refState: 'Y',
+                        title: docTitle,
+                        category: item.category || '일반',
+                        summary: item.summary || '',
+                        keywords: item.keywords || [],
+                        fullText: item.fullText || ''
+                    }));
+
+                    const payloadData = {
+                        pin: currentPin,
+                        docType: selectedUploadDocType,
+                        workGroup: uploadWorkGroup,
+                        items: payloadItems
+                    };
+
+                    const gasRes = await fetch(settings.webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payloadData)
+                    });
+
+                    uploadStatusText.textContent = `✨ [${selectedUploadDocType}] AI 직접 판독 등록 완료!`;
+                    uploadDetailText.textContent = `[${docTitle}] ${chunks.length}개 세부 주제 항목이 구글 시트(${selectedUploadDocType} 탭)에 등록되었습니다.`;
+                    showToast(`✨ [${selectedUploadDocType}] ${docTitle} (${chunks.length}개 항목) 저장 완료!`);
+
+                    setTimeout(() => {
+                        loadSheetData(settings.sheetUrl || '');
+                    }, 1500);
+
+                } catch (aiErr) {
+                    console.error('AI Direct Upload error:', aiErr);
+                    uploadStatusText.textContent = 'AI 직접 판독 등록 실패';
+                    uploadDetailText.textContent = aiErr.message;
+                    showToast(`등록 실패: ${aiErr.message}`);
+                }
+            }
 
 
             // Mode 2 제출 처리 (Gemini AI 직접 분석 + 구글 시트 저장)
@@ -5540,6 +5866,9 @@ ${text.slice(0, 30000)}`;
             }
 
             // 설정 모달
+            $('btnSettingEngineAi')?.addEventListener('click', () => setSettingUploadEngineUI('ai'));
+            $('btnSettingEngineKordoc')?.addEventListener('click', () => setSettingUploadEngineUI('kordoc'));
+
             $('btnSettings').addEventListener('click', () => {
                 initSettingsUI();
                 $('settingsModal').classList.add('show');
@@ -5555,9 +5884,11 @@ ${text.slice(0, 30000)}`;
                     sheetUrl: currentSettings.sheetUrl,
                     webhookUrl: currentSettings.webhookUrl,
                     serverUrl: $('inputServerUrl').value.trim(),
+                    uploadEngine: _tempSettingUploadEngine,
                     sensitivity: parseInt($('inputSensitivity').value) || 1,
                 });
-                showToast('설정 저장됨');
+                const engineLabel = _tempSettingUploadEngine === 'ai' ? 'AI 직접 판독' : '코닥 파서';
+                showToast(`설정 저장됨 (문서 등록: ${engineLabel})`);
                 $('settingsModal').classList.remove('show');
             });
 

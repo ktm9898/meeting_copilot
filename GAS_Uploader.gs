@@ -222,10 +222,40 @@ function appendRowsFromSheet(sheet, docTypeLabel, list) {
   }
 }
 
+/**
+ * 탭 순서와 무관하게 '업무문서' 탭을 안전하게 찾는 함수
+ * ('업무문서' 탭 우선 검색 -> 없으면 'Sheet1'/'시트1' 또는 예약되지 않은 첫 시트를 찾아 '업무문서'로 자동 이름 변경)
+ */
+function getMainWorkSheet(ss) {
+  var sheet = ss.getSheetByName("업무문서");
+  if (sheet) return sheet;
+
+  sheet = ss.getSheetByName("Sheet1") || ss.getSheetByName("시트1");
+  if (!sheet) {
+    var reserved = { "참고자료": true, "분석기록": true, "STT기록": true };
+    var allSheets = ss.getSheets();
+    for (var i = 0; i < allSheets.length; i++) {
+      if (!reserved[allSheets[i].getName()]) {
+        sheet = allSheets[i];
+        break;
+      }
+    }
+  }
+  if (!sheet) {
+    sheet = ss.insertSheet("업무문서", 0);
+  } else {
+    var curName = sheet.getName();
+    if (curName === "Sheet1" || curName === "시트1") {
+      try { sheet.setName("업무문서"); } catch (e) {}
+    }
+  }
+  return sheet;
+}
+
 function readKnowledgeDBRows(ss) {
   var list = [];
-  // 1) 첫 번째 기본 시트 -> '업무문서'
-  var mainSheet = ss.getSheets()[0];
+  // 1) '업무문서' 탭 (탭 순서와 무관하게 이름으로 안전하게 탐색)
+  var mainSheet = getMainWorkSheet(ss);
   appendRowsFromSheet(mainSheet, "업무문서", list);
 
   // 2) '참고자료' 탭이 존재하면 함께 읽기 -> '참고자료'
@@ -305,7 +335,7 @@ function doPost(e) {
     // 2-1) 참조 문서 선택 상태(B열: Y/H/N) 구글 시트 셀 직접 반영 (PC / 스마트폰 / 태블릿 완전 통일 및 시트 직접 수정 완벽 호환)
     if (action === "saveDocSelection") {
       var docStates = (data && data.docStates && typeof data.docStates === "object") ? data.docStates : {};
-      var mainSheet = ss.getSheets()[0];
+      var mainSheet = getMainWorkSheet(ss);
       updateSheetDocSelectionOnSheet(mainSheet, "업무문서", docStates);
 
       var refSheet = ss.getSheetByName("참고자료");
@@ -325,7 +355,7 @@ function doPost(e) {
       });
     }
 
-    // 3) 기본 동작: 지식 DB 문서 업로드 ('업무문서'는 첫 번째 시트, '참고자료'는 참고자료 탭 자동 생성/사용)
+    // 3) 기본 동작: 지식 DB 문서 업로드 ('업무문서' 탭과 '참고자료' 탭을 탭 이름으로 직접 탐색/생성)
     // 7열 표준 구조: A:업무구분 | B:참조상태 | C:문서제목 | D:사업구분/소제목(목차) | E:핵심내용 요약 | F:주요 키워드 | G:문서원문
     var docType = (data && data.docType === "참고자료") ? "참고자료" : "업무문서";
     var topWorkGroup = (data && data.workGroup) ? String(data.workGroup).trim() : "";
@@ -333,7 +363,7 @@ function doPost(e) {
     if (docType === "참고자료") {
       sheet = getOrCreateSheetWithHeaders(ss, "참고자료", ["업무구분", "참조상태", "문서제목", "소제목(목차)", "핵심내용 요약", "주요 키워드", "문서원문"]);
     } else {
-      sheet = ss.getSheets()[0];
+      sheet = getMainWorkSheet(ss);
       if (sheet.getLastRow() === 0) {
         sheet.appendRow(["업무구분", "참조상태", "문서제목", "사업구분", "핵심내용 요약", "주요 키워드", "문서원문"]);
         var headerRange = sheet.getRange(1, 1, 1, 7);
@@ -444,7 +474,8 @@ function doGet(e) {
 
   // 기본 로그인 성공 응답: Groq 키 및 지식 DB 행 데이터 직접 반환 (시트 비공개 상태 완벽 지원)
   var sheetId = ss.getId();
-  var firstSheetGid = ss.getSheets()[0].getSheetId();
+  var mainWorkSheet = getMainWorkSheet(ss);
+  var firstSheetGid = mainWorkSheet ? mainWorkSheet.getSheetId() : ss.getSheets()[0].getSheetId();
   var sheetCsvUrl = "https://docs.google.com/spreadsheets/d/" + sheetId + "/export?format=csv&gid=" + firstSheetGid;
 
   return responseJSON({ 

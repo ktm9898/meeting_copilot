@@ -3237,21 +3237,50 @@
             // 1-1. 시스템 프롬프트 에코 문구 자동 제거 (2중 방어선)
             clean = clean.replace(/^(당신은|최고경영진 및 이사회|수석 전략데이터분석가|사내 공문서 및 사업계획)[^\n]*\n?/gm, '').trim();
 
-            // 출처 분리 헬퍼: 문장에서 [2026년 ... 기준/보고서 등] 형태의 출처를 추출하여 칩 태그로 분리
+            // 출처 분리 헬퍼: 현재 지식 DB(state.sheetData)의 실제 문서 제목 목록을 기준으로 매칭하여
+            // 문장 끝이나 본문에 인용된 [문서제목] 또는 (문서제목)을 100% 📄 출처 칩 태그로 분리
             const processSources = (lineContent) => {
                 const sources = [];
                 if (lineContent.startsWith('[시점 안내]') || lineContent.startsWith('<strong>[시점 안내]</strong>')) {
                     return { cleanText: lineContent, sourcesHtml: '' };
                 }
 
-                // [대괄호 출처] 패턴 추출
-                let cleanText = lineContent.replace(/\[([^\]]{2,120}?(?:기준|보고서|계획|신청서|평가|자료|공문|출처|시점|데이터|기여|실적|성과|목표)[^\]]*?)\]/g, (match, p1) => {
+                // 현재 로드된 모든 문서 제목 고유 Set 및 길이 역순 정렬 (긴 제목 우선 매칭)
+                const knownTitles = Array.from(new Set(
+                    (state.sheetData || []).map(r => (r.title || '').trim()).filter(Boolean)
+                )).sort((a, b) => b.length - a.length);
+
+                let cleanText = lineContent;
+
+                // 1) 실제 등록된 문서 제목 목록(Source of Truth)을 기준으로 정확히 매칭하여 분리
+                for (const title of knownTitles) {
+                    if (!title) continue;
+                    // 제목 내 특수문자 정규식 이스케이프
+                    const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+                    // [문서제목] 형태 추출
+                    const bracketRegex = new RegExp(`\\[\\s*${escaped}\\s*\\]`, 'gi');
+                    if (bracketRegex.test(cleanText)) {
+                        if (!sources.includes(title)) sources.push(title);
+                        cleanText = cleanText.replace(bracketRegex, '');
+                    }
+
+                    // 문장 끝에 붙은 (문서제목) 형태 추출 (단, 일반 설명 괄호와 구분하기 위해 등록된 문서제목과 정확히 일치할 때만)
+                    const parenRegex = new RegExp(`\\(\\s*${escaped}\\s*\\)(?=[\\s.,]|\$)`, 'gi');
+                    if (parenRegex.test(cleanText)) {
+                        if (!sources.includes(title)) sources.push(title);
+                        cleanText = cleanText.replace(parenRegex, '');
+                    }
+                }
+
+                // 2) 폴백: AI가 인용한 [대괄호 출처] 중 일반적인 문서/보고서 패턴도 포괄
+                cleanText = cleanText.replace(/\[([^\]]{2,100}?(?:보고서|리포트|계획|현황|자료|공문|출처|시점|데이터|분석|조사)[^\]]*?)\]/g, (match, p1) => {
                     const trimmed = p1.trim();
-                    if (trimmed) sources.push(trimmed);
+                    if (trimmed && !sources.includes(trimmed)) sources.push(trimmed);
                     return '';
                 });
 
-                // [공백 교정] 마침표/쉼표 앞 공백 및 다중 공백 제거 (예: "있습니다 ." -> "있습니다.")
+                // [공백 및 문장부호 정제] 마침표/쉼표 앞 불필요한 공백 제거 (예: "감소했습니다 ." -> "감소했습니다.")
                 cleanText = cleanText
                     .replace(/\s+\./g, '.')
                     .replace(/\s+,/g, ',')

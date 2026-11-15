@@ -41,14 +41,16 @@ if %errorlevel% neq 0 (
 
 :: 3. 바탕화면에 [Meeting Copilot] 바로가기 생성
 echo [*] 바탕화면에 [Meeting Copilot] 바로가기 아이콘을 생성합니다...
-wscript.exe "%~dp0create_shortcut.vbs"
+cscript.exe //NoLogo "%~dp0create_shortcut.vbs"
 echo [V] 바탕화면 바로가기 생성 완료!
 
 echo.
 echo ========================================================
 echo   축하합니다! 모든 설정이 완료되었습니다.
-echo   미팅앱 서버 및 브라우저를 지금 즉시 시작합니다!
+echo   바탕화면에 생성된 [Meeting Copilot] 아이콘을 확인하세요!
+echo.
+echo   [안내] 창이 닫히면 미팅앱 서버 및 브라우저가 자동 실행됩니다.
 echo ========================================================
 echo.
+pause
 wscript.exe "%~dp0run_kordoc_background.vbs"
-timeout /t 3 >nul

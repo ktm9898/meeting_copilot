@@ -5585,11 +5585,16 @@ ${recentText}
                         items: payloadItems
                     };
 
+                    // GAS 웹앱은 OPTIONS Preflight를 지원하지 않으므로 Content-Type 헤더 없이 Simple Request(text/plain)로 전송하여 CORS 완벽 우회
                     const gasRes = await fetch(settings.webhookUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        redirect: 'follow',
                         body: JSON.stringify(payloadData)
                     });
+                    const gasData = await gasRes.json().catch(() => null);
+                    if (gasData && gasData.success === false) {
+                        throw new Error(gasData.message || gasData.error || '구글 시트 저장에 실패했습니다.');
+                    }
 
                     uploadStatusText.textContent = `✨ [${selectedUploadDocType}] AI 직접 판독 등록 완료!`;
                     uploadDetailText.textContent = `[${docTitle}] ${chunks.length}개 세부 주제 항목이 구글 시트(${selectedUploadDocType} 탭)에 등록되었습니다.`;
@@ -5749,11 +5754,16 @@ ${text.slice(0, 30000)}`;
                         items: payloadItems
                     };
 
+                    // GAS 웹앱은 OPTIONS Preflight를 지원하지 않으므로 Content-Type 헤더 없이 Simple Request(text/plain)로 전송하여 CORS 완벽 우회
                     const gasRes = await fetch(settings.webhookUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        redirect: 'follow',
                         body: JSON.stringify(payloadData)
                     });
+                    const gasData = await gasRes.json().catch(() => null);
+                    if (gasData && gasData.success === false) {
+                        throw new Error(gasData.message || gasData.error || '구글 시트 저장에 실패했습니다.');
+                    }
 
                     uploadStatusText.textContent = `[${selectedUploadDocType}] 지식 DB 직통 등록 완료!`;
                     uploadDetailText.textContent = `[${title}] ${chunks.length}개 세부 주제 항목이 구글 시트(${selectedUploadDocType} 탭)에 즉시 등록되었습니다.`;

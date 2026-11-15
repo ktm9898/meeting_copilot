@@ -48,6 +48,8 @@
             width: 100%;
             overflow-x: hidden;
             max-width: 100vw;
+            overscroll-behavior: none;
+            overscroll-behavior-y: none;
         }
 
         body {
@@ -1468,7 +1470,6 @@
             <div class="form-group">
                 <label>Gemini API 키</label>
                 <input type="password" id="inputApiKey" placeholder="AIzaSy...">
-                <div class="hint">Gemini 2.5 Flash 모델을 사용합니다</div>
             </div>
             <div class="form-group"
                 style="background: rgba(74, 158, 255, 0.06); padding: 12px 14px; border-radius: 10px; border: 1px dashed var(--accent-blue);">
@@ -1718,14 +1719,55 @@
         </div>
     </div>
 
-    <!-- WORKGROUP BATCH CHANGE (업무구분 일괄 변경 - 필드포토 스타일) MODAL -->
+    <!-- WORKGROUP BATCH CHANGE STEP 1 (업무구분 변경할 대상 문서 선택 - 아코디언 폴더 구조) MODAL -->
     <div class="modal-overlay" id="workGroupModal" style="z-index: 1200;">
         <div class="modal"
-            style="max-width: 440px; width: 92%; max-height: 86vh; display: flex; flex-direction: column; padding: 20px 18px;">
+            style="max-width: 540px; width: 92%; max-height: 84vh; display: flex; flex-direction: column; padding: 22px 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h2 style="margin: 0; font-size: 1.05rem;">업무구분 일괄 변경</h2>
+                <span id="workGroupTargetCount"
+                    style="font-size: 0.76rem; color: #7c3aed; font-weight: 700;">0개 문서 선택</span>
+            </div>
+
+            <!-- 검색 + 전체선택/해제 아이콘 툴바 -->
+            <div class="doc-filter-toolbar">
+                <input type="text" id="inputWgDocSearch" placeholder="문서 제목 검색..." class="doc-filter-search-input">
+                <div class="doc-filter-btn-group">
+                    <button type="button" id="btnWgTargetAll" class="doc-filter-action-btn" title="전체 선택">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 11 12 14 22 4"></polyline>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        </svg>
+                    </button>
+                    <button type="button" id="btnWgTargetNone" class="doc-filter-action-btn" title="전체 해제">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 아코디언 폴더 & 문서 체크박스 목록 (참조 문서 선택과 동일한 시원한 구조) -->
+            <div id="workGroupDocList"
+                style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 7px; min-height: 200px; max-height: 52vh; padding-right: 4px;">
+            </div>
+
+            <div class="modal-actions" style="margin-top: 14px;">
+                <button type="button" class="ctrl-btn" id="btnWorkGroupCancel" style="flex: 1; justify-content: center;">취소</button>
+                <button type="button" class="ctrl-btn primary" id="btnWorkGroupNext"
+                    style="flex: 2; justify-content: center; background: #7c3aed; border-color: #7c3aed;">업무구분 변경</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WORKGROUP BATCH CHANGE STEP 2 (이동할 업무구분 선택 / 신규 입력 - 필드포토 스타일) MODAL -->
+    <div class="modal-overlay" id="workGroupDestModal" style="z-index: 1250;">
+        <div class="modal"
+            style="max-width: 440px; width: 92%; max-height: 84vh; display: flex; flex-direction: column; padding: 20px 18px;">
             <!-- Header -->
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-                    <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(167, 139, 250, 0.16); color: var(--accent-purple); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(124, 58, 237, 0.14); color: #7c3aed; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
                             <circle cx="12" cy="13" r="2.2"></circle>
@@ -1738,59 +1780,37 @@
                         </svg>
                     </div>
                     <div style="min-width: 0;">
-                        <h2 style="margin: 0; font-size: 0.98rem; font-weight: 800; color: var(--text-primary);">업무구분 일괄 변경</h2>
+                        <h2 style="margin: 0; font-size: 0.98rem; font-weight: 800; color: var(--text-primary);">이동할 업무구분 선택</h2>
                         <div id="workGroupModalSubText" style="font-size: 0.74rem; color: var(--text-secondary); margin-top: 2px;">
-                            이동할 문서와 업무구분을 선택해 주세요
+                            이동할 업무구분을 선택해 주세요
                         </div>
                     </div>
                 </div>
-                <button type="button" id="btnWorkGroupCloseTop"
+                <button type="button" id="btnWorkGroupDestCloseTop"
                     style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; font-size: 1.1rem; line-height: 1;">✕</button>
             </div>
 
             <!-- Body -->
-            <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 2px;">
-                <!-- 1. 대상 문서 선택 영역 -->
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary);">
-                            1. 변경할 대상 문서 <span id="workGroupTargetCount" style="color: var(--accent-purple); font-weight: 800;">(0개 선택)</span>
-                        </span>
-                        <div style="display: flex; gap: 8px;">
-                            <button type="button" id="btnWgTargetAll" style="background: none; border: none; color: var(--accent-blue); font-size: 0.72rem; font-weight: 700; cursor: pointer; padding: 0;">전체선택</button>
-                            <button type="button" id="btnWgTargetNone" style="background: none; border: none; color: var(--text-muted); font-size: 0.72rem; font-weight: 700; cursor: pointer; padding: 0;">전체해제</button>
-                        </div>
-                    </div>
-                    <div id="workGroupDocList"
-                        style="display: flex; flex-direction: column; gap: 5px; max-height: 145px; overflow-y: auto; padding: 6px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-color);">
-                    </div>
+            <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 2px;">
+                <div id="workGroupOptionList"
+                    style="display: flex; flex-direction: column; gap: 7px; max-height: 46vh; overflow-y: auto; padding-right: 2px;">
                 </div>
 
-                <!-- 2. 변경할 업무구분 선택 (필드포토 스타일) -->
-                <div>
-                    <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">
-                        2. 이동할 업무구분 선택
+                <!-- 신규 업무구분 직접 입력창 -->
+                <div id="newWorkGroupInputWrap" style="display: none; margin-top: 4px;">
+                    <div style="font-size: 0.74rem; font-weight: 700; color: #7c3aed; margin-bottom: 5px;">
+                        새 업무구분명 입력 *
                     </div>
-                    <div id="workGroupOptionList"
-                        style="display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; padding-right: 2px;">
-                    </div>
-
-                    <!-- 신규 업무구분 직접 입력창 -->
-                    <div id="newWorkGroupInputWrap" style="display: none; margin-top: 10px;">
-                        <div style="font-size: 0.74rem; font-weight: 700; color: var(--accent-purple); margin-bottom: 5px;">
-                            새 업무구분명 입력 *
-                        </div>
-                        <input type="text" id="inputNewWorkGroupName" maxlength="30" placeholder="예: 2026 상반기 지원사업"
-                            style="width: 100%; padding: 10px 12px; font-size: 0.85rem; font-weight: 700; border-radius: 10px; border: 1.5px solid var(--accent-purple); background: var(--bg-card); color: var(--text-primary); outline: none; box-sizing: border-box;">
-                    </div>
+                    <input type="text" id="inputNewWorkGroupName" maxlength="30" placeholder="예: 2026 상반기 지원사업"
+                        style="width: 100%; padding: 10px 12px; font-size: 0.85rem; font-weight: 700; border-radius: 10px; border: 1.5px solid #7c3aed; background: var(--bg-card); color: var(--text-primary); outline: none; box-sizing: border-box;">
                 </div>
             </div>
 
             <!-- Footer -->
             <div class="modal-actions" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color);">
-                <button type="button" class="ctrl-btn" id="btnWorkGroupCancel">취소</button>
+                <button type="button" class="ctrl-btn" id="btnWorkGroupDestBack" style="flex: 1; justify-content: center;">이전</button>
                 <button type="button" class="ctrl-btn primary" id="btnWorkGroupApply"
-                    style="background: var(--accent-purple); border-color: var(--accent-purple);">업무구분 적용</button>
+                    style="flex: 2; justify-content: center; background: #7c3aed; border-color: #7c3aed;">업무구분 적용</button>
             </div>
         </div>
     </div>
@@ -4332,9 +4352,10 @@ ${recentText}
         }
 
         // ============================================================
-        //  WORKGROUP BATCH CHANGE (업무구분 일괄 변경 - 필드포토 스타일)
+        //  WORKGROUP BATCH CHANGE (업무구분 일괄 변경 - 2단계 모달)
         // ============================================================
         let _wgTargetDocKeys = new Set();
+        let _wgExpandedFolders = new Set();
         let _wgSelectedGroup = '미분류';
 
         function openWorkGroupModal() {
@@ -4343,15 +4364,204 @@ ${recentText}
                 showToast(`등록된 [${currentDocFilterTab}]가 없습니다.`);
                 return;
             }
-            // 기본값: 현재 탭에서 체크되어 있는 문서들을 자동 선택 (하나라도 없으면 전체 선택)
-            _wgTargetDocKeys = new Set();
-            tabDocs.forEach(d => {
-                if (state.selectedDocKeys.has(d.key)) _wgTargetDocKeys.add(d.key);
-            });
-            if (_wgTargetDocKeys.size === 0) {
-                tabDocs.forEach(d => _wgTargetDocKeys.add(d.key));
+            // 요청사항 반영: 모달 열릴 때 항상 0개 선택된 상태로 시작
+            _wgTargetDocKeys.clear();
+
+            // 아코디언 펼침 상태 초기화 (참조문서 모달에서 펼쳐둔 폴더가 있으면 그대로, 없으면 전체 펼침)
+            _wgExpandedFolders = new Set(state.expandedFolders);
+            const hasExpandedInTab = Array.from(_wgExpandedFolders).some(k => k.startsWith(`${currentDocFilterTab}|`));
+            if (!hasExpandedInTab) {
+                tabDocs.forEach(d => {
+                    _wgExpandedFolders.add(`${currentDocFilterTab}|${d.workGroup || '미분류'}`);
+                });
             }
 
+            const searchInput = $('inputWgDocSearch');
+            if (searchInput) searchInput.value = '';
+
+            renderWorkGroupModal();
+            $('workGroupModal').classList.add('show');
+        }
+
+        function renderWorkGroupModal() {
+            const docListEl = $('workGroupDocList');
+            const summaryBar = $('workGroupSummaryBar');
+            const subTextEl = $('workGroupModalSubText');
+            const nextBtn = $('btnWorkGroupNext');
+            if (!docListEl) return;
+
+            const searchKw = ($('inputWgDocSearch')?.value || '').trim().toLowerCase();
+            const tabDocs = getGroupedDocuments().filter(d => d.docType === currentDocFilterTab);
+
+            const filteredDocs = tabDocs.filter(d => {
+                if (!searchKw) return true;
+                if ((d.workGroup || '').toLowerCase().includes(searchKw)) return true;
+                if (d.title.toLowerCase().includes(searchKw)) return true;
+                if (Array.from(d.categories).some(c => c.toLowerCase().includes(searchKw))) return true;
+                if (Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw))) return true;
+                return false;
+            });
+
+            if (subTextEl) {
+                subTextEl.textContent = `[${currentDocFilterTab}] 변경할 문서를 체크한 뒤 하단의 [업무구분 변경]을 눌러주세요`;
+            }
+            if (summaryBar) {
+                summaryBar.innerHTML = `
+                    <span>[${currentDocFilterTab}] 변경 대상 선택: <strong style="color: var(--accent-purple);">${_wgTargetDocKeys.size}</strong> / ${tabDocs.length}개</span>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);">폴더 체크 시 내부 문서 일괄 체크</span>
+                `;
+            }
+            if (nextBtn) {
+                nextBtn.textContent = _wgTargetDocKeys.size > 0
+                    ? `업무구분 변경 (${_wgTargetDocKeys.size}개)`
+                    : '업무구분 변경';
+            }
+
+            if (filteredDocs.length === 0) {
+                docListEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px 10px;">
+                    ${tabDocs.length === 0 ? `등록된 ${currentDocFilterTab}가 없습니다.` : '검색 조건과 일치하는 문서가 없습니다.'}
+                </div>`;
+                return;
+            }
+
+            // 업무구분(폴더)별 그룹화
+            const folderMap = new Map();
+            filteredDocs.forEach(doc => {
+                const gName = doc.workGroup || '미분류';
+                if (!folderMap.has(gName)) folderMap.set(gName, []);
+                folderMap.get(gName).push(doc);
+            });
+
+            docListEl.innerHTML = '';
+
+            folderMap.forEach((docsInFolder, gName) => {
+                const folderKey = `${currentDocFilterTab}|${gName}`;
+                const isSearching = searchKw.length > 0;
+                const isExpanded = isSearching || _wgExpandedFolders.has(folderKey);
+
+                const allDocsInThisFolder = tabDocs.filter(d => (d.workGroup || '미분류') === gName);
+                const selectedInFolder = allDocsInThisFolder.filter(d => _wgTargetDocKeys.has(d.key));
+                const isFolderChecked = selectedInFolder.length > 0 && selectedInFolder.length === allDocsInThisFolder.length;
+                const isFolderPartial = selectedInFolder.length > 0 && selectedInFolder.length < allDocsInThisFolder.length;
+
+                const folderWrap = document.createElement('div');
+                folderWrap.style.cssText = `
+                    border: 1.5px solid ${(isFolderChecked || isFolderPartial) ? 'rgba(124, 58, 237, 0.45)' : 'var(--border-color)'};
+                    border-radius: 12px;
+                    background: var(--bg-secondary);
+                    overflow: hidden;
+                    transition: border-color 0.15s ease;
+                `;
+
+                const folderHeader = document.createElement('div');
+                folderHeader.style.cssText = `
+                    display: flex; align-items: center; justify-content: space-between;
+                    padding: 10px 12px; cursor: pointer; user-select: none;
+                    background: ${(isFolderChecked || isFolderPartial) ? 'rgba(124, 58, 237, 0.08)' : 'var(--bg-card)'};
+                    border-bottom: ${isExpanded ? '1px solid var(--border-color)' : 'none'};
+                `;
+
+                const safeFolderName = gName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                folderHeader.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1;">
+                        <input type="checkbox" class="wg-folder-cb" ${isFolderChecked ? 'checked' : ''}
+                            style="width: 17px; height: 17px; accent-color: var(--accent-purple); cursor: pointer; flex-shrink: 0;">
+                        <span style="font-size: 0.78rem; color: var(--text-muted); width: 14px; text-align: center; flex-shrink: 0;">
+                            ${isExpanded ? '▾' : '▸'}
+                        </span>
+                        <span style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary); word-break: keep-all; overflow-wrap: anywhere;">
+                            ${safeFolderName}
+                        </span>
+                    </div>
+                    <span style="font-size: 0.74rem; font-weight: 600; color: ${(selectedInFolder.length > 0) ? '#6d28d9' : 'var(--text-muted)'}; background: var(--bg-secondary); padding: 2px 8px; border-radius: 999px; flex-shrink: 0; margin-left: 8px;">
+                        ${selectedInFolder.length}/${allDocsInThisFolder.length}개 문서
+                    </span>
+                `;
+
+                const folderCb = folderHeader.querySelector('.wg-folder-cb');
+                if (folderCb) {
+                    folderCb.indeterminate = isFolderPartial;
+                    folderCb.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (folderCb.checked) {
+                            allDocsInThisFolder.forEach(d => _wgTargetDocKeys.add(d.key));
+                        } else {
+                            allDocsInThisFolder.forEach(d => _wgTargetDocKeys.delete(d.key));
+                        }
+                        renderWorkGroupModal();
+                    });
+                }
+
+                folderHeader.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('wg-folder-cb')) return;
+                    if (_wgExpandedFolders.has(folderKey)) {
+                        _wgExpandedFolders.delete(folderKey);
+                    } else {
+                        _wgExpandedFolders.add(folderKey);
+                    }
+                    renderWorkGroupModal();
+                });
+
+                folderWrap.appendChild(folderHeader);
+
+                if (isExpanded) {
+                    const childrenWrap = document.createElement('div');
+                    childrenWrap.style.cssText = 'display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: var(--bg-primary);';
+
+                    docsInFolder.forEach(doc => {
+                        const isSelected = _wgTargetDocKeys.has(doc.key);
+                        const card = document.createElement('div');
+                        card.style.cssText = `
+                            display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px;
+                            border-radius: 9px; border: 1px solid ${isSelected ? 'rgba(124, 58, 237, 0.5)' : 'var(--border-color)'};
+                            background: ${isSelected ? 'rgba(124, 58, 237, 0.08)' : 'var(--bg-card)'};
+                            cursor: pointer; transition: all 0.15s ease;
+                        `;
+
+                        const cats = Array.from(doc.categories).slice(0, 6).join(' · ');
+                        const safeTitle = doc.title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const safeCats = cats.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                        card.innerHTML = `
+                            <input type="checkbox" ${isSelected ? 'checked' : ''}
+                                style="margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent-purple); cursor: pointer; flex-shrink: 0;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                                    <span style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); word-break: keep-all; overflow-wrap: anywhere;">
+                                        ${safeTitle}
+                                    </span>
+                                    <span style="font-size: 0.7rem; color: var(--text-muted); background: var(--bg-secondary); padding: 2px 7px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;">
+                                        ${doc.rowCount}개 항목
+                                    </span>
+                                </div>
+                                ${safeCats ? `<div style="font-size: 0.73rem; color: var(--text-secondary); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">분류: ${safeCats}</div>` : ''}
+                            </div>
+                        `;
+
+                        card.addEventListener('click', () => {
+                            if (_wgTargetDocKeys.has(doc.key)) {
+                                _wgTargetDocKeys.delete(doc.key);
+                            } else {
+                                _wgTargetDocKeys.add(doc.key);
+                            }
+                            renderWorkGroupModal();
+                        });
+
+                        childrenWrap.appendChild(card);
+                    });
+
+                    folderWrap.appendChild(childrenWrap);
+                }
+
+                docListEl.appendChild(folderWrap);
+            });
+        }
+
+        function openWorkGroupDestModal() {
+            if (_wgTargetDocKeys.size === 0) {
+                showToast('먼저 업무구분을 변경할 문서를 1개 이상 선택해 주세요.');
+                return;
+            }
             const existingGroups = Array.from(new Set([
                 '미분류',
                 ...(state.sheetData || []).map(r => (r.workGroup || '').trim() || '미분류')
@@ -4361,54 +4571,17 @@ ${recentText}
             const newInput = $('inputNewWorkGroupName');
             if (newInput) newInput.value = '';
 
-            renderWorkGroupModal();
-            $('workGroupModal').classList.add('show');
+            renderWorkGroupDestModal();
+            $('workGroupDestModal').classList.add('show');
         }
 
-        function renderWorkGroupModal() {
-            const tabDocs = getGroupedDocuments().filter(d => d.docType === currentDocFilterTab);
-            const docListEl = $('workGroupDocList');
+        function renderWorkGroupDestModal() {
             const optListEl = $('workGroupOptionList');
-            const targetCountEl = $('workGroupTargetCount');
-            const subTextEl = $('workGroupModalSubText');
+            const subTextEl = $('workGroupDestSubText');
             const newWrapEl = $('newWorkGroupInputWrap');
 
-            if (targetCountEl) targetCountEl.textContent = `(${_wgTargetDocKeys.size}/${tabDocs.length}개 선택)`;
-            if (subTextEl) subTextEl.textContent = `[${currentDocFilterTab}] 선택 문서 ${_wgTargetDocKeys.size}개의 업무구분 변경`;
-
-            if (docListEl) {
-                docListEl.innerHTML = '';
-                tabDocs.forEach(doc => {
-                    const isSel = _wgTargetDocKeys.has(doc.key);
-                    const rowEl = document.createElement('div');
-                    rowEl.style.cssText = `
-                        display: flex; align-items: center; justify-content: space-between; gap: 8px;
-                        padding: 7px 10px; border-radius: 8px; cursor: pointer; user-select: none;
-                        border: 1px solid ${isSel ? 'rgba(167, 139, 250, 0.5)' : 'var(--border-color)'};
-                        background: ${isSel ? 'rgba(167, 139, 250, 0.1)' : 'var(--bg-card)'};
-                        transition: all 0.15s;
-                    `;
-                    const safeTitle = doc.title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    const safeGroup = (doc.workGroup || '미분류').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    rowEl.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
-                            <input type="checkbox" ${isSel ? 'checked' : ''}
-                                style="width: 15px; height: 15px; accent-color: var(--accent-purple); cursor: pointer; flex-shrink: 0;">
-                            <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                ${safeTitle}
-                            </span>
-                        </div>
-                        <span style="font-size: 0.69rem; font-weight: 600; color: var(--text-muted); background: var(--bg-secondary); padding: 2px 7px; border-radius: 6px; flex-shrink: 0; white-space: nowrap;">
-                            ${safeGroup}
-                        </span>
-                    `;
-                    rowEl.addEventListener('click', () => {
-                        if (_wgTargetDocKeys.has(doc.key)) _wgTargetDocKeys.delete(doc.key);
-                        else _wgTargetDocKeys.add(doc.key);
-                        renderWorkGroupModal();
-                    });
-                    docListEl.appendChild(rowEl);
-                });
+            if (subTextEl) {
+                subTextEl.textContent = `[${currentDocFilterTab}] 선택된 문서 ${_wgTargetDocKeys.size}개를 이동할 업무구분 선택`;
             }
 
             if (optListEl) {
@@ -4424,25 +4597,25 @@ ${recentText}
                     btn.type = 'button';
                     btn.style.cssText = `
                         width: 100%; display: flex; align-items: center; justify-content: space-between;
-                        padding: 10px 12px; border-radius: 10px; cursor: pointer; text-align: left;
-                        font-family: inherit; font-size: 0.83rem; font-weight: 700; transition: all 0.15s;
-                        border: 1.5px solid ${isSelected ? 'var(--accent-purple)' : 'var(--border-color)'};
-                        background: ${isSelected ? 'rgba(167, 139, 250, 0.14)' : 'var(--bg-card)'};
-                        color: ${isSelected ? '#fff' : 'var(--text-primary)'};
+                        padding: 11px 14px; border-radius: 10px; cursor: pointer; text-align: left;
+                        font-family: inherit; font-size: 0.86rem; font-weight: 700; transition: all 0.15s;
+                        border: 1.5px solid ${isSelected ? '#7c3aed' : 'var(--border-color)'};
+                        background: ${isSelected ? 'rgba(124, 58, 237, 0.12)' : 'var(--bg-card)'};
+                        color: ${isSelected ? '#6d28d9' : 'var(--text-primary)'};
                     `;
                     const safeG = gName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     btn.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${isSelected ? 'var(--accent-purple)' : 'var(--text-muted)'}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                        <div style="display: flex; align-items: center; gap: 9px; min-width: 0;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${isSelected ? '#7c3aed' : 'var(--text-muted)'}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
                                 <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
                             </svg>
                             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeG}</span>
                         </div>
-                        ${isSelected ? `<span style="width: 18px; height: 18px; border-radius: 50%; background: var(--accent-purple); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0;">✓</span>` : ''}
+                        ${isSelected ? `<span style="width: 19px; height: 19px; border-radius: 50%; background: #7c3aed; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; flex-shrink: 0;">✓</span>` : ''}
                     `;
                     btn.addEventListener('click', () => {
                         _wgSelectedGroup = gName;
-                        renderWorkGroupModal();
+                        renderWorkGroupDestModal();
                     });
                     optListEl.appendChild(btn);
                 });
@@ -4453,26 +4626,26 @@ ${recentText}
                 newBtn.type = 'button';
                 newBtn.style.cssText = `
                     width: 100%; display: flex; align-items: center; justify-content: space-between;
-                    padding: 10px 12px; border-radius: 10px; cursor: pointer; text-align: left;
-                    font-family: inherit; font-size: 0.83rem; font-weight: 700; transition: all 0.15s;
-                    border: 1.5px ${isNewSelected ? 'solid var(--accent-purple)' : 'dashed rgba(167, 139, 250, 0.45)'};
-                    background: ${isNewSelected ? 'rgba(167, 139, 250, 0.14)' : 'rgba(167, 139, 250, 0.05)'};
-                    color: var(--accent-purple);
+                    padding: 11px 14px; border-radius: 10px; cursor: pointer; text-align: left;
+                    font-family: inherit; font-size: 0.86rem; font-weight: 700; transition: all 0.15s;
+                    border: 1.5px ${isNewSelected ? 'solid #7c3aed' : 'dashed rgba(124, 58, 237, 0.45)'};
+                    background: ${isNewSelected ? 'rgba(124, 58, 237, 0.12)' : 'rgba(124, 58, 237, 0.05)'};
+                    color: #6d28d9;
                 `;
                 newBtn.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                    <div style="display: flex; align-items: center; gap: 9px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
                             <circle cx="12" cy="12" r="10"></circle>
                             <line x1="12" y1="8" x2="12" y2="16"></line>
                             <line x1="8" y1="12" x2="16" y2="12"></line>
                         </svg>
                         <span>새 업무구분 직접 입력</span>
                     </div>
-                    ${isNewSelected ? `<span style="width: 18px; height: 18px; border-radius: 50%; background: var(--accent-purple); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0;">✓</span>` : ''}
+                    ${isNewSelected ? `<span style="width: 19px; height: 19px; border-radius: 50%; background: #7c3aed; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; flex-shrink: 0;">✓</span>` : ''}
                 `;
                 newBtn.addEventListener('click', () => {
                     _wgSelectedGroup = '__NEW__';
-                    renderWorkGroupModal();
+                    renderWorkGroupDestModal();
                     setTimeout(() => $('inputNewWorkGroupName')?.focus(), 50);
                 });
                 optListEl.appendChild(newBtn);
@@ -4516,7 +4689,8 @@ ${recentText}
                 state.expandedFolders.add(`${currentDocFilterTab}|${finalWorkGroup}`);
 
                 renderDocFilterList();
-                $('workGroupModal').classList.remove('show');
+                $('workGroupDestModal')?.classList.remove('show');
+                $('workGroupModal')?.classList.remove('show');
                 showToast(`${targetKeysArr.length}개 문서가 '${finalWorkGroup}'(으)로 이동되었습니다.`);
 
                 // 2) 구글 시트 A열(업무구분) 백그라운드 일괄 업데이트
@@ -4713,22 +4887,45 @@ ${recentText}
                 renderDocFilterList();
             });
 
-            // 업무구분 일괄 변경 모달 이벤트 (필드포토 스타일)
+            // 업무구분 일괄 변경 모달 이벤트 (1단계: 대상 문서 선택 / 2단계: 이동할 업무구분 선택)
             $('btnDocWorkGroupEdit').addEventListener('click', () => openWorkGroupModal());
             $('btnWorkGroupCloseTop').addEventListener('click', () => $('workGroupModal').classList.remove('show'));
             $('btnWorkGroupCancel').addEventListener('click', () => $('workGroupModal').classList.remove('show'));
             $('workGroupModal').addEventListener('click', (e) => {
                 if (e.target === $('workGroupModal')) $('workGroupModal').classList.remove('show');
             });
+            $('inputWgDocSearch').addEventListener('input', () => renderWorkGroupModal());
             $('btnWgTargetAll').addEventListener('click', () => {
+                const searchKw = ($('inputWgDocSearch')?.value || '').trim().toLowerCase();
                 getGroupedDocuments()
                     .filter(d => d.docType === currentDocFilterTab)
+                    .filter(d => !searchKw || (d.workGroup || '').toLowerCase().includes(searchKw) ||
+                        d.title.toLowerCase().includes(searchKw) ||
+                        Array.from(d.categories).some(c => c.toLowerCase().includes(searchKw)) ||
+                        Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw)))
                     .forEach(d => _wgTargetDocKeys.add(d.key));
                 renderWorkGroupModal();
             });
             $('btnWgTargetNone').addEventListener('click', () => {
-                _wgTargetDocKeys.clear();
+                const searchKw = ($('inputWgDocSearch')?.value || '').trim().toLowerCase();
+                if (!searchKw) {
+                    _wgTargetDocKeys.clear();
+                } else {
+                    getGroupedDocuments()
+                        .filter(d => d.docType === currentDocFilterTab)
+                        .filter(d => (d.workGroup || '').toLowerCase().includes(searchKw) ||
+                            d.title.toLowerCase().includes(searchKw) ||
+                            Array.from(d.categories).some(c => c.toLowerCase().includes(searchKw)) ||
+                            Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw)))
+                        .forEach(d => _wgTargetDocKeys.delete(d.key));
+                }
                 renderWorkGroupModal();
+            });
+            $('btnWorkGroupNext').addEventListener('click', () => openWorkGroupDestModal());
+            $('btnWorkGroupDestCloseTop').addEventListener('click', () => $('workGroupDestModal').classList.remove('show'));
+            $('btnWorkGroupDestBack').addEventListener('click', () => $('workGroupDestModal').classList.remove('show'));
+            $('workGroupDestModal').addEventListener('click', (e) => {
+                if (e.target === $('workGroupDestModal')) $('workGroupDestModal').classList.remove('show');
             });
             $('btnWorkGroupApply').addEventListener('click', () => applyWorkGroupChange());
             $('inputNewWorkGroupName').addEventListener('keydown', (e) => {

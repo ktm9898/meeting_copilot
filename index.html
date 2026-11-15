@@ -46,6 +46,8 @@
         body {
             height: 100%;
             width: 100%;
+            overflow-x: hidden;
+            max-width: 100vw;
         }
 
         body {
@@ -992,10 +994,83 @@
             transform: translateX(-50%) translateY(0);
         }
 
+        /* ===== DOC FILTER COMPONENTS ===== */
+        .doc-filter-toolbar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .doc-filter-search-input {
+            flex: 1;
+            min-width: 0;
+            padding: 8px 11px;
+            font-size: 0.83rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        .doc-filter-btn-group {
+            display: flex;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+
+        .doc-filter-action-btn {
+            padding: 7px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 7px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+
+        .doc-filter-action-btn:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .doc-chunk-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            background: rgba(74, 158, 255, 0.14);
+            padding: 2px 7px;
+            border-radius: 99px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
+            .modal {
+                padding: 18px 14px !important;
+                width: 94% !important;
+                max-width: 94vw !important;
+                overflow-x: hidden !important;
+            }
+
+            .doc-chunk-badge {
+                padding: 2px 6px;
+                border-radius: 6px;
+                font-size: 0.68rem;
+            }
+
+            .doc-chunk-badge .chunk-unit {
+                display: none !important;
+            }
+
             .header {
                 padding: 6px 12px;
+                overflow: hidden;
+                max-width: 100vw;
             }
 
             .header-logo {
@@ -1005,6 +1080,10 @@
             .header-status {
                 font-size: 0.65rem;
                 padding: 2px 6px;
+                max-width: 110px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
             .icon-btn {
@@ -1244,6 +1323,22 @@
             .ai-answer {
                 font-size: 0.82rem;
                 padding: 6px 10px;
+                max-width: 100%;
+                overflow-wrap: break-word;
+                word-break: keep-all;
+            }
+
+            .ai-query-header {
+                max-width: 100%;
+                overflow-wrap: break-word;
+                word-break: keep-all;
+            }
+
+            .bottom-data-status {
+                max-width: 120px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
             .flash-empty-icon {
@@ -1252,6 +1347,30 @@
 
             .flash-empty-text {
                 font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .doc-filter-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+            }
+
+            .doc-filter-search-input {
+                width: 100%;
+            }
+
+            .doc-filter-btn-group {
+                width: 100%;
+                display: flex;
+                gap: 6px;
+            }
+
+            .doc-filter-action-btn {
+                flex: 1;
+                text-align: center;
+                padding: 7px 8px;
             }
         }
     </style>
@@ -1536,7 +1655,7 @@
         <div class="modal"
             style="max-width: 540px; width: 92%; max-height: 84vh; display: flex; flex-direction: column; padding: 22px 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h2 style="margin: 0; font-size: 1.05rem;">📚 참조 문서 선택</h2>
+                <h2 style="margin: 0; font-size: 1.05rem;">참조 문서 선택</h2>
                 <span id="docFilterSummaryText"
                     style="font-size: 0.76rem; color: var(--accent-blue); font-weight: 700;"></span>
             </div>
@@ -1546,24 +1665,21 @@
                 style="display: flex; background: var(--bg-card); padding: 4px; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--border-color);">
                 <button type="button" id="tabFilterWork"
                     style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: var(--accent-blue); color: #fff; cursor: pointer; transition: all 0.2s;">
-                    📂 업무문서 <span id="badgeCountWork" style="font-size: 0.74rem; opacity: 0.9;">(0)</span>
+                    업무문서 <span id="badgeCountWork" style="font-size: 0.74rem; opacity: 0.9;">(0)</span>
                 </button>
                 <button type="button" id="tabFilterRef"
                     style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">
-                    📑 참고자료 <span id="badgeCountRef" style="font-size: 0.74rem; opacity: 0.9;">(0)</span>
+                    참고자료 <span id="badgeCountRef" style="font-size: 0.74rem; opacity: 0.9;">(0)</span>
                 </button>
             </div>
 
             <!-- 검색 + 전체선택/해제 툴바 -->
-            <div style="display: flex; gap: 6px; margin-bottom: 10px; align-items: center;">
-                <input type="text" id="inputDocFilterSearch" placeholder="문서 제목 검색..."
-                    style="flex: 1; padding: 8px 11px; font-size: 0.83rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); outline: none;">
-                <button type="button" id="btnDocSelectAll"
-                    style="padding: 7px 10px; font-size: 0.75rem; font-weight: 600; border-radius: 7px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); cursor: pointer; white-space: nowrap;">전체
-                    선택</button>
-                <button type="button" id="btnDocDeselectAll"
-                    style="padding: 7px 10px; font-size: 0.75rem; font-weight: 600; border-radius: 7px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">전체
-                    해제</button>
+            <div class="doc-filter-toolbar">
+                <input type="text" id="inputDocFilterSearch" placeholder="문서 제목 검색..." class="doc-filter-search-input">
+                <div class="doc-filter-btn-group">
+                    <button type="button" id="btnDocSelectAll" class="doc-filter-action-btn">전체 선택</button>
+                    <button type="button" id="btnDocDeselectAll" class="doc-filter-action-btn">전체 해제</button>
+                </div>
             </div>
 
             <!-- 문서 체크박스 목록 -->
@@ -2792,6 +2908,231 @@
         }
 
         // ============================================================
+        //  AI RESPONSE FORMATTER (GLOBAL RENDERER)
+        // ============================================================
+        function formatAIResponse(text) {
+            if (!text) return '(응답 없음)';
+
+            // 1. 불필요한 이모지 제거 (🤖, 💡, ⚠️, 📌 등 비즈니스 문서에 부적합한 이모지 정제)
+            let clean = text.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+
+            // 1-1. 시스템 프롬프트 에코 문구 자동 제거 (2중 방어선)
+            clean = clean.replace(/^(당신은|최고경영진 및 이사회|수석 전략데이터분석가|사내 공문서 및 사업계획)[^\n]*\n?/gm, '').trim();
+
+            // 출처 분리 헬퍼: 문장에서 [2026년 ... 기준/보고서 등] 형태의 출처를 추출하여 칩 태그로 분리
+            const processSources = (lineContent) => {
+                const sources = [];
+                if (lineContent.startsWith('[시점 안내]') || lineContent.startsWith('<strong>[시점 안내]</strong>')) {
+                    return { cleanText: lineContent, sourcesHtml: '' };
+                }
+
+                // [대괄호 출처] 패턴 추출
+                let cleanText = lineContent.replace(/\[([^\]]{2,120}?(?:기준|보고서|계획|신청서|평가|자료|공문|출처|시점|데이터|기여|실적|성과|목표)[^\]]*?)\]/g, (match, p1) => {
+                    const trimmed = p1.trim();
+                    if (trimmed) sources.push(trimmed);
+                    return '';
+                });
+
+                // [공백 교정] 마침표/쉼표 앞 공백 및 다중 공백 제거 (예: "있습니다 ." -> "있습니다.")
+                cleanText = cleanText
+                    .replace(/\s+\./g, '.')
+                    .replace(/\s+,/g, ',')
+                    .replace(/\s{2,}/g, ' ')
+                    .trim();
+
+                let sourcesHtml = '';
+                if (sources.length > 0) {
+                    sourcesHtml = `<div class="source-chip-container">` +
+                        sources.map(s => `<span class="source-chip"><span class="source-icon">📄</span>${s}</span>`).join('') +
+                        `</div>`;
+                }
+                return { cleanText: cleanText || lineContent, sourcesHtml };
+            };
+
+            // 라인 포맷 헬퍼 (소제목 감지, 콜론 앞 키워드 강조, 마크다운 변환)
+            const formatSingleLine = (rawLine) => {
+                let line = rawLine.trim();
+                if (!line) return '<div style="height: 4px;"></div>';
+
+                if (/^[-*=]{3,}$/.test(line)) {
+                    return '<hr class="ai-divider">';
+                }
+
+                // [소제목 계층화 1] 3.1. 소제목 / 2.1. 소제목 형태 감지
+                const subHeadingMatch = line.match(/^[-*•]?\s*(\d+\.\d+\.?)\s*(.*)/);
+                if (subHeadingMatch) {
+                    const subNum = subHeadingMatch[1].replace(/\.$/, ''); // '3.1'
+                    const subTitleRaw = subHeadingMatch[2].replace(/\*\*/g, '').trim();
+                    const { cleanText, sourcesHtml } = processSources(subTitleRaw);
+                    return `<div class="ai-subheading"><span class="subheading-num">${subNum}.</span><span class="subheading-title">${cleanText}</span></div>${sourcesHtml}`;
+                }
+
+                // [소제목 계층화 2] #### 마크다운 헤딩 형태 감지
+                if (/^#{2,4}\s*(.*)/.test(line)) {
+                    const title = line.replace(/^#{2,4}\s*/, '').replace(/\*\*/g, '').trim();
+                    const { cleanText, sourcesHtml } = processSources(title);
+                    return `<div class="ai-subheading"><span class="subheading-title">${cleanText}</span></div>${sourcesHtml}`;
+                }
+
+                // [소제목 계층화 3] 불릿(•, -)으로 시작하지만 본문 서술(콜론 또는 종결어미)이 없는 단독 소제목 명사구 자동 승격!
+                if (/^[-*•]\s+([^\n\r]+)$/.test(line)) {
+                    const bulletContent = line.replace(/^[-*•]\s+/, '').trim();
+                    const isTitleOnly = !bulletContent.includes(':') &&
+                        !/[.!?]$/.test(bulletContent) &&
+                        !/(습니다|합니다|됩니다|추진함|기록함|달성함)/.test(bulletContent) &&
+                        bulletContent.length <= 45;
+
+                    if (isTitleOnly) {
+                        const { cleanText, sourcesHtml } = processSources(bulletContent);
+                        return `<div class="ai-subheading"><span class="subheading-title">${cleanText.replace(/\*\*/g, '')}</span></div>${sourcesHtml}`;
+                    }
+                }
+
+                // 볼드 강조 치환 (문장 끝 미완성 ** 까지 안전 처리)
+                line = line.replace(/\*\*(.*?)(?:\*\*|$)/g, (m, p1) => p1.trim() ? `<strong>${p1}</strong>` : '');
+
+                // 불릿포인트 파싱 (* 항목, - 항목, • 항목)
+                if (/^[-*•]\s+(.*)/.test(line)) {
+                    let bulletContent = line.replace(/^[-*•]\s+/, '').trim();
+                    const { cleanText, sourcesHtml } = processSources(bulletContent);
+
+                    // 항목 앞머리 콜론(:) 키워드 강조 (예: "현안 대응형 정책금융 지원: 내용...")
+                    let formattedContent = cleanText;
+                    const colonMatch = cleanText.match(/^([^:]{2,35}):\s*(.*)$/);
+                    if (colonMatch) {
+                        const keyTitle = colonMatch[1].replace(/<\/?strong>/g, '').trim();
+                        const restText = colonMatch[2];
+                        formattedContent = `<strong class="item-title">${keyTitle}</strong><span class="item-sep">:</span> ${restText}`;
+                    }
+
+                    return `<div class="ai-bullet"><span class="bullet-dot">•</span><div class="bullet-text"><div>${formattedContent}</div>${sourcesHtml}</div></div>`;
+                }
+
+                // 일반 문단 라인
+                const { cleanText, sourcesHtml } = processSources(line);
+                return `<div><div>${cleanText}</div>${sourcesHtml}</div>`;
+            };
+
+            // 섹션 내부 라인들 중 마크다운 테이블 블록 감지 및 변환 헬퍼
+            const parseSectionBody = (secLines) => {
+                const outputHtml = [];
+                let idx = 0;
+
+                while (idx < secLines.length) {
+                    const rawLine = secLines[idx];
+                    const trimmed = rawLine.trim();
+
+                    // 마크다운 표 감지 (| 로 시작하고 | 로 끝나는 라인)
+                    if (trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length > 2) {
+                        const tableRows = [];
+                        while (idx < secLines.length && secLines[idx].trim().startsWith('|') && secLines[idx].trim().endsWith('|')) {
+                            tableRows.push(secLines[idx].trim());
+                            idx++;
+                        }
+
+                        if (tableRows.length >= 2) {
+                            let tableHtml = '<div class="ai-table-container"><table class="ai-table">';
+                            const parseRow = (rowStr) => rowStr.slice(1, -1).split('|').map(c => c.trim());
+
+                            // Header
+                            const headers = parseRow(tableRows[0]);
+                            tableHtml += '<thead><tr>' + headers.map(h => `<th>${h.replace(/\*\*/g, '')}</th>`).join('') + '</tr></thead>';
+
+                            // Body (구분선 |---|---| 제외)
+                            tableHtml += '<tbody>';
+                            for (let r = 1; r < tableRows.length; r++) {
+                                const rowText = tableRows[r];
+                                if (/^\|[\s\-:|]+\|$/.test(rowText)) continue; // 구분선 스킵
+                                const cells = parseRow(rowText);
+                                tableHtml += '<tr>' + cells.map(c => {
+                                    let formattedCell = c.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                    return `<td>${formattedCell}</td>`;
+                                }).join('') + '</tr>';
+                            }
+                            tableHtml += '</tbody></table></div>';
+                            outputHtml.push(tableHtml);
+                            continue;
+                        } else {
+                            outputHtml.push(formatSingleLine(tableRows[0]));
+                            continue;
+                        }
+                    }
+
+                    // 일반 라인
+                    outputHtml.push(formatSingleLine(rawLine));
+                    idx++;
+                }
+
+                return outputHtml.join('');
+            };
+
+            // 2. 줄 단위 파싱 및 섹션 감지 (### 1. 제목 또는 1. 제목 모두 감지)
+            const lines = clean.split('\n');
+
+            const getNumberedHeading = (lineStr) => {
+                const stripped = lineStr.replace(/^#{1,4}\s*/, '').trim();
+                // 1. 제목 (단, 1.1 같은 하위 소제목은 제외)
+                const match = stripped.match(/^([1-9])\.(?!\d)\s*(.*)/);
+                if (match) {
+                    return { num: parseInt(match[1], 10), title: match[2].replace(/\*\*/g, '').trim() };
+                }
+                return null;
+            };
+
+            const hasNumberedSections = lines.some(l => getNumberedHeading(l.trim()) !== null);
+
+            // 번호 매겨진 섹션이 없는 경우: 테이블 포함 바디 파서 직접 적용
+            if (!hasNumberedSections) {
+                return parseSectionBody(lines);
+            }
+
+            // 번호 매겨진 대주제 구조화 (1. 핵심 요약, 2. 전략 목표..., 3. 실적...)
+            const sections = [];
+            let currentSection = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const numInfo = getNumberedHeading(line);
+
+                if (numInfo) {
+                    if (currentSection) sections.push(currentSection);
+                    currentSection = {
+                        num: numInfo.num,
+                        title: numInfo.title,
+                        lines: []
+                    };
+                } else {
+                    if (!currentSection) {
+                        currentSection = { num: 0, title: '', lines: [] };
+                    }
+                    currentSection.lines.push(line);
+                }
+            }
+            if (currentSection) sections.push(currentSection);
+
+            const htmlParts = [];
+
+            for (const sec of sections) {
+                const bodyHtml = parseSectionBody(sec.lines);
+
+                // 1번, 2번, 3번 대제목 모두 일체화된 세련된 배지 헤더로 렌더링
+                htmlParts.push(`
+                    <div class="ai-flat-section">
+                        <div class="flat-section-title">
+                            <span class="section-badge">${sec.num}</span>
+                            <span class="section-title-text">${sec.title}</span>
+                        </div>
+                        <div class="flat-body">${bodyHtml}</div>
+                    </div>
+                `);
+            }
+
+            return htmlParts.join('');
+        }
+
+        // ============================================================
         //  GEMINI API (MANUAL CONTEXT ANALYSIS)
         // ============================================================
         async function analyzeContext(manualQuery = null) {
@@ -3099,232 +3440,9 @@ ${recentText}
                     throw new Error(`API ${response ? response.status : '오프라인'}`);
                 }
 
-                // 가독성 높은 AI 응답 렌더러 (계층 구조, 테이블 파싱, 서브헤딩 분리, 콜론 키워드 볼드, 출처 미니멀화)
-                const formatAIResponse = (text) => {
-                    if (!text) return '(응답 없음)';
-
-                    // 1. 불필요한 이모지 제거 (🤖, 💡, ⚠️, 📌 등 비즈니스 문서에 부적합한 이모지 정제)
-                    let clean = text.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
-
-                    // 1-1. 시스템 프롬프트 에코 문구 자동 제거 (2중 방어선)
-                    clean = clean.replace(/^(당신은|최고경영진 및 이사회|수석 전략데이터분석가|사내 공문서 및 사업계획)[^\n]*\n?/gm, '').trim();
-
-                    // 출처 분리 헬퍼: 문장에서 [2026년 ... 기준/보고서 등] 형태의 출처를 추출하여 칩 태그로 분리
-                    const processSources = (lineContent) => {
-                        const sources = [];
-                        if (lineContent.startsWith('[시점 안내]') || lineContent.startsWith('<strong>[시점 안내]</strong>')) {
-                            return { cleanText: lineContent, sourcesHtml: '' };
-                        }
-
-                        // [대괄호 출처] 패턴 추출
-                        let cleanText = lineContent.replace(/\[([^\]]{2,120}?(?:기준|보고서|계획|신청서|평가|자료|공문|출처|시점|데이터|기여|실적|성과|목표)[^\]]*?)\]/g, (match, p1) => {
-                            const trimmed = p1.trim();
-                            if (trimmed) sources.push(trimmed);
-                            return '';
-                        });
-
-                        // [공백 교정] 마침표/쉼표 앞 공백 및 다중 공백 제거 (예: "있습니다 ." -> "있습니다.")
-                        cleanText = cleanText
-                            .replace(/\s+\./g, '.')
-                            .replace(/\s+,/g, ',')
-                            .replace(/\s{2,}/g, ' ')
-                            .trim();
-
-                        let sourcesHtml = '';
-                        if (sources.length > 0) {
-                            sourcesHtml = `<div class="source-chip-container">` +
-                                sources.map(s => `<span class="source-chip"><span class="source-icon">📄</span>${s}</span>`).join('') +
-                                `</div>`;
-                        }
-                        return { cleanText: cleanText || lineContent, sourcesHtml };
-                    };
-
-                    // 라인 포맷 헬퍼 (소제목 감지, 콜론 앞 키워드 강조, 마크다운 변환)
-                    const formatSingleLine = (rawLine) => {
-                        let line = rawLine.trim();
-                        if (!line) return '<div style="height: 4px;"></div>';
-
-                        if (/^[-*=]{3,}$/.test(line)) {
-                            return '<hr class="ai-divider">';
-                        }
-
-                        // [소제목 계층화 1] 3.1. 소제목 / 2.1. 소제목 형태 감지
-                        const subHeadingMatch = line.match(/^[-*•]?\s*(\d+\.\d+\.?)\s*(.*)/);
-                        if (subHeadingMatch) {
-                            const subNum = subHeadingMatch[1].replace(/\.$/, ''); // '3.1'
-                            const subTitleRaw = subHeadingMatch[2].replace(/\*\*/g, '').trim();
-                            const { cleanText, sourcesHtml } = processSources(subTitleRaw);
-                            return `<div class="ai-subheading"><span class="subheading-num">${subNum}.</span><span class="subheading-title">${cleanText}</span></div>${sourcesHtml}`;
-                        }
-
-                        // [소제목 계층화 2] #### 마크다운 헤딩 형태 감지
-                        if (/^#{2,4}\s*(.*)/.test(line)) {
-                            const title = line.replace(/^#{2,4}\s*/, '').replace(/\*\*/g, '').trim();
-                            const { cleanText, sourcesHtml } = processSources(title);
-                            return `<div class="ai-subheading"><span class="subheading-title">${cleanText}</span></div>${sourcesHtml}`;
-                        }
-
-                        // [소제목 계층화 3] 불릿(•, -)으로 시작하지만 본문 서술(콜론 또는 종결어미)이 없는 단독 소제목 명사구 자동 승격!
-                        // 예: • [비금융 지원 실적] 또는 • 비금융 지원 실적 (기관 사업 실적)
-                        if (/^[-*•]\s+([^\n\r]+)$/.test(line)) {
-                            const bulletContent = line.replace(/^[-*•]\s+/, '').trim();
-                            const isTitleOnly = !bulletContent.includes(':') &&
-                                !/[.!?]$/.test(bulletContent) &&
-                                !/(습니다|합니다|됩니다|추진함|기록함|달성함)/.test(bulletContent) &&
-                                bulletContent.length <= 45;
-
-                            if (isTitleOnly) {
-                                const { cleanText, sourcesHtml } = processSources(bulletContent);
-                                return `<div class="ai-subheading"><span class="subheading-title">${cleanText.replace(/\*\*/g, '')}</span></div>${sourcesHtml}`;
-                            }
-                        }
-
-                        // 볼드 강조 치환 (문장 끝 미완성 ** 까지 안전 처리)
-                        line = line.replace(/\*\*(.*?)(?:\*\*|$)/g, (m, p1) => p1.trim() ? `<strong>${p1}</strong>` : '');
-
-                        // 불릿포인트 파싱 (* 항목, - 항목, • 항목)
-                        if (/^[-*•]\s+(.*)/.test(line)) {
-                            let bulletContent = line.replace(/^[-*•]\s+/, '').trim();
-                            const { cleanText, sourcesHtml } = processSources(bulletContent);
-
-                            // 항목 앞머리 콜론(:) 키워드 강조 (예: "현안 대응형 정책금융 지원: 내용...")
-                            let formattedContent = cleanText;
-                            const colonMatch = cleanText.match(/^([^:]{2,35}):\s*(.*)$/);
-                            if (colonMatch) {
-                                const keyTitle = colonMatch[1].replace(/<\/?strong>/g, '').trim();
-                                const restText = colonMatch[2];
-                                formattedContent = `<strong class="item-title">${keyTitle}</strong><span class="item-sep">:</span> ${restText}`;
-                            }
-
-                            return `<div class="ai-bullet"><span class="bullet-dot">•</span><div class="bullet-text"><div>${formattedContent}</div>${sourcesHtml}</div></div>`;
-                        }
-
-                        // 일반 문단 라인
-                        const { cleanText, sourcesHtml } = processSources(line);
-                        return `<div><div>${cleanText}</div>${sourcesHtml}</div>`;
-                    };
-
-                    // 섹션 내부 라인들 중 마크다운 테이블 블록 감지 및 변환 헬퍼
-                    const parseSectionBody = (secLines) => {
-                        const outputHtml = [];
-                        let idx = 0;
-
-                        while (idx < secLines.length) {
-                            const rawLine = secLines[idx];
-                            const trimmed = rawLine.trim();
-
-                            // 마크다운 표 감지 (| 로 시작하고 | 로 끝나는 라인)
-                            if (trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length > 2) {
-                                const tableRows = [];
-                                while (idx < secLines.length && secLines[idx].trim().startsWith('|') && secLines[idx].trim().endsWith('|')) {
-                                    tableRows.push(secLines[idx].trim());
-                                    idx++;
-                                }
-
-                                if (tableRows.length >= 2) {
-                                    let tableHtml = '<div class="ai-table-container"><table class="ai-table">';
-                                    const parseRow = (rowStr) => rowStr.slice(1, -1).split('|').map(c => c.trim());
-
-                                    // Header
-                                    const headers = parseRow(tableRows[0]);
-                                    tableHtml += '<thead><tr>' + headers.map(h => `<th>${h.replace(/\*\*/g, '')}</th>`).join('') + '</tr></thead>';
-
-                                    // Body (구분선 |---|---| 제외)
-                                    tableHtml += '<tbody>';
-                                    for (let r = 1; r < tableRows.length; r++) {
-                                        const rowText = tableRows[r];
-                                        if (/^\|[\s\-:|]+\|$/.test(rowText)) continue; // 구분선 스킵
-                                        const cells = parseRow(rowText);
-                                        tableHtml += '<tr>' + cells.map(c => {
-                                            let formattedCell = c.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                                            return `<td>${formattedCell}</td>`;
-                                        }).join('') + '</tr>';
-                                    }
-                                    tableHtml += '</tbody></table></div>';
-                                    outputHtml.push(tableHtml);
-                                    continue;
-                                } else {
-                                    outputHtml.push(formatSingleLine(tableRows[0]));
-                                    continue;
-                                }
-                            }
-
-                            // 일반 라인
-                            outputHtml.push(formatSingleLine(rawLine));
-                            idx++;
-                        }
-
-                        return outputHtml.join('');
-                    };
-
-                    // 2. 줄 단위 파싱 및 섹션 감지 (### 1. 제목 또는 1. 제목 모두 감지)
-                    const lines = clean.split('\n');
-
-                    const getNumberedHeading = (lineStr) => {
-                        const stripped = lineStr.replace(/^#{1,4}\s*/, '').trim();
-                        // 1. 제목 (단, 1.1 같은 하위 소제목은 제외)
-                        const match = stripped.match(/^([1-9])\.(?!\d)\s*(.*)/);
-                        if (match) {
-                            return { num: parseInt(match[1], 10), title: match[2].replace(/\*\*/g, '').trim() };
-                        }
-                        return null;
-                    };
-
-                    const hasNumberedSections = lines.some(l => getNumberedHeading(l.trim()) !== null);
-
-                    // 번호 매겨진 섹션이 없는 경우: 테이블 포함 바디 파서 직접 적용
-                    if (!hasNumberedSections) {
-                        return parseSectionBody(lines);
-                    }
-
-                    // 번호 매겨진 대주제 구조화 (1. 핵심 요약, 2. 전략 목표..., 3. 실적...)
-                    const sections = [];
-                    let currentSection = null;
-
-                    for (let i = 0; i < lines.length; i++) {
-                        const line = lines[i].trim();
-                        if (!line) continue;
-
-                        const numInfo = getNumberedHeading(line);
-
-                        if (numInfo) {
-                            if (currentSection) sections.push(currentSection);
-                            currentSection = {
-                                num: numInfo.num,
-                                title: numInfo.title,
-                                lines: []
-                            };
-                        } else {
-                            if (!currentSection) {
-                                currentSection = { num: 0, title: '', lines: [] };
-                            }
-                            currentSection.lines.push(line);
-                        }
-                    }
-                    if (currentSection) sections.push(currentSection);
-
-                    const htmlParts = [];
-
-                    for (const sec of sections) {
-                        const bodyHtml = parseSectionBody(sec.lines);
-
-                        // 1번, 2번, 3번 대제목 모두 일체화된 세련된 배지 헤더로 렌더링
-                        htmlParts.push(`
-                            <div class="ai-flat-section">
-                                <div class="flat-section-title">
-                                    <span class="section-badge">${sec.num}</span>
-                                    <span class="section-title-text">${sec.title}</span>
-                                </div>
-                                <div class="flat-body">${bodyHtml}</div>
-                            </div>
-                        `);
-                    }
-
-                    return htmlParts.join('');
-                };
-
                 // AI 블록 및 질문 헤더 생성
-                flashEmpty.style.display = 'none';
+                const emptyEl = $('flashEmpty');
+                if (emptyEl) emptyEl.style.display = 'none';
 
                 // 질문(Q)이 있을 경우: 상단에 독립된 세련된 질문 바(Q Header)로 표시
                 if (manualQuery) {
@@ -3611,6 +3729,7 @@ ${recentText}
                         </div>
                     `;
                     card.onclick = () => {
+                        if (typeof switchMobileTab === 'function') switchMobileTab('stt');
                         sttStream.innerHTML = '';
                         const span = document.createElement('span');
                         span.className = 'stt-word';
@@ -3619,7 +3738,7 @@ ${recentText}
                         sttStream.scrollTop = sttStream.scrollHeight;
                         state.speechBuffer = [{ time: Date.now(), text: item.content, final: true }];
                         $('historyModal').classList.remove('show');
-                        showToast('📂 음성 인식 내용을 불러왔습니다');
+                        showToast('음성 인식 내용을 불러왔습니다');
                     };
                 } else {
                     const qText = (item.question || '').trim();
@@ -3645,7 +3764,7 @@ ${recentText}
                     card.onclick = () => {
                         const emptyEl = $('flashEmpty');
                         if (emptyEl) emptyEl.style.display = 'none';
-                        flashEmpty.style.display = 'none';
+                        if (typeof switchMobileTab === 'function') switchMobileTab('cards');
                         if (!isContext) {
                             const queryHeader = document.createElement('div');
                             queryHeader.className = 'ai-query-header';
@@ -3671,7 +3790,7 @@ ${recentText}
                         if (state.qaHistory.length > 5) state.qaHistory.shift();
 
                         $('historyModal').classList.remove('show');
-                        showToast('📂 저장된 답변 카드를 불러왔습니다');
+                        showToast('저장된 답변 카드를 불러왔습니다');
                     };
                 }
 
@@ -3795,7 +3914,7 @@ ${recentText}
 
             if (filteredDocs.length === 0) {
                 const emptyMsg = tabDocs.length === 0
-                    ? `등록된 [${currentDocFilterTab}]가 없습니다.<br><span style="font-size:0.76rem; opacity:0.8;">우측 상단 📁 아이콘에서 [${currentDocFilterTab}] 탭으로 문서를 등록해 보세요.</span>`
+                    ? `등록된 [${currentDocFilterTab}]가 없습니다.<br><span style="font-size:0.76rem; opacity:0.8;">우측 상단 파일 업로드 아이콘에서 [${currentDocFilterTab}] 탭으로 문서를 등록해 보세요.</span>`
                     : '검색어와 일치하는 문서가 없습니다.';
                 container.innerHTML = `
                     <div style="text-align: center; padding: 42px 16px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.6;">
@@ -3815,8 +3934,7 @@ ${recentText}
                     cursor: pointer; transition: all 0.15s; user-select: none;
                 `;
 
-                const catList = Array.from(doc.categories).slice(0, 3).join(', ');
-                const kwList = Array.from(doc.keywords).slice(0, 4).join(', ');
+                const catList = Array.from(doc.categories).join(', ');
 
                 itemEl.innerHTML = `
                     <input type="checkbox" ${isChecked ? 'checked' : ''}
@@ -3826,12 +3944,12 @@ ${recentText}
                             <div style="font-size: 0.89rem; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                 ${doc.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
                             </div>
-                            <span style="font-size: 0.7rem; font-weight: 600; color: var(--accent-blue); background: rgba(74, 158, 255, 0.14); padding: 2px 7px; border-radius: 99px; flex-shrink: 0;">
-                                ${doc.chunkCount}개 섹션
+                            <span class="doc-chunk-badge">
+                                <span class="chunk-num">${doc.chunkCount}</span><span class="chunk-unit">개 섹션</span>
                             </span>
                         </div>
                         <div style="font-size: 0.75rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            ${catList ? `분류: ${catList.replace(/</g, '&lt;')}` : ''}${catList && kwList ? ' · ' : ''}${kwList ? `키워드: ${kwList.replace(/</g, '&lt;')}` : ''}
+                            ${catList ? `분류: ${catList.replace(/</g, '&lt;').replace(/>/g, '&gt;')}` : '분류: 미지정'}
                         </div>
                     </div>
                 `;

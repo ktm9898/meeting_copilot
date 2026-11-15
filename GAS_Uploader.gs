@@ -83,20 +83,142 @@ function verifyPinWithRateLimit(inputPin) {
   return { ok: true };
 }
 
+function normalizeRefState(val) {
+  var s = String(val || "").trim().toUpperCase();
+  if (s === "N" || s === "제외" || s === "FALSE" || s === "X" || s === "0") return "N";
+  if (s === "H" || s === "보류" || s === "대기" || s === "기억" || s === "HOLD") return "H";
+  return "Y";
+}
+
+/**
+ * 기존 5열(A:문서제목...) 또는 6열(A:업무구분, B:문서제목...) 시트를
+ * 7열 표준 구조(A:업무구분 | B:참조상태 | C:문서제목 | D:사업구분 | E:핵심내용 요약 | F:주요 키워드 | G:문서원문)로 자동 보정
+ */
+function ensureSheetColumns(sheet) {
+  if (!sheet || sheet.getLastRow() < 1) return;
+  try {
+    var maxCols = Math.max(sheet.getLastColumn(), 3);
+    var headerRow = sheet.getRange(1, 1, 1, maxCols).getValues()[0];
+    var h0 = String(headerRow[0] || "").trim();
+    var h1 = String(headerRow[1] || "").trim();
+    var lastRow = sheet.getLastRow();
+
+    if (h0 === "문서제목") {
+      // 기존 5열 구조 -> 맨 앞에 A열(업무구분), B열(참조상태) 2개 열 자동 추가
+      sheet.insertColumnsBefore(1, 2);
+      sheet.getRange(1, 1, 1, 2).setValues([["업무구분", "참조상태"]])
+        .setBackground("#1a1a2e").setFontColor("#ffffff").setFontWeight("bold");
+      if (lastRow >= 2) {
+        var defaultRows = [];
+        for (var r = 2; r <= lastRow; r++) defaultRows.push(["미분류", "Y"]);
+        sheet.getRange(2, 1, lastRow - 1, 2).setValues(defaultRows);
+      }
+    } else if ((h0 === "업무구분" || h0 === "구분") && h1 === "문서제목") {
+      // 6열 구조(A:업무구분, B:문서제목) -> B열 위치에 '참조상태' 열 자동 추가
+      sheet.insertColumnBefore(2);
+      sheet.getRange(1, 2).setValue("참조상태")
+        .setBackground("#1a1a2e").setFontColor("#ffffff").setFontWeight("bold");
+      if (lastRow >= 2) {
+        var defaultStates = [];
+        for (var r2 = 2; r2 <= lastRow; r2++) defaultStates.push(["Y"]);
+        sheet.getRange(2, 2, lastRow - 1, 1).setValues(defaultStates);
+      }
+    }
+  } catch (e) {
+    // 권한 제한 등 예외 시 무시하고 열 개수에 맞춰 읽기 수행
+  }
+}
+
+function updateSheetDocSelectionOnSheet(sheet, docTypeLabel, docStates) {
+  if (!sheet || sheet.getLastRow() < 2 || !docStates) return 0;
+  ensureSheetColumns(sheet);
+  var lastRow = sheet.getLastRow();
+  var numRows = lastRow - 1;
+  // B열(참조상태, col=2)과 C열(문서제목, col=3) 일괄 읽기
+  var bcValues = sheet.getRange(2, 2, numRows, 2).getValues();
+  var newBValues = [];
+  var changed = false;
+
+  for (var i = 0; i < bcValues.length; i++) {
+    var curB = String(bcValues[i][0] || "").trim();
+    var rawTitle = String(bcValues[i][1] || "");
+    var trimmedTitle = rawTitle.trim();
+    var keyExact = docTypeLabel + "|" + (rawTitle || "제목없음");
+    var keyTrim = docTypeLabel + "|" + (trimmedTitle || "제목없음");
+    var targetState = docStates[keyExact] || docStates[keyTrim];
+
+    if (targetState === "Y" || targetState === "H" || targetState === "N") {
+      newBValues.push([targetState]);
+      if (curB !== targetState) changed = true;
+    } else {
+      var fallback = normalizeRefState(curB);
+      newBValues.push([fallback]);
+      if (curB !== fallback) changed = true;
+    }
+  }
+
+  if (changed && newBValues.length > 0) {
+    sheet.getRange(2, 2, numRows, 1).setValues(newBValues);
+  }
+  return newBValues.length;
+}
+
 function appendRowsFromSheet(sheet, docTypeLabel, list) {
   if (!sheet || sheet.getLastRow() < 2) return;
-  var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5).getValues();
+  ensureSheetColumns(sheet);
+
+  var maxCols = Math.max(sheet.getLastColumn(), 7);
+  var headerRow = sheet.getRange(1, 1, 1, maxCols).getValues()[0];
+  var h0 = String(headerRow[0] || "").trim();
+  var h1 = String(headerRow[1] || "").trim();
+  var h2 = String(headerRow[2] || "").trim();
+
+  // 7열 구조: A:업무구분 | B:참조상태 | C:문서제목 | D:사업구분/소제목 | E:핵심내용 요약 | F:주요 키워드 | G:문서원문
+  var is7Col = (h1 === "참조상태" || h1 === "선택" || h2 === "문서제목");
+  // 6열 구조 호환: A:업무구분 | B:문서제목 | C:사업구분 | D:요약 | E:키워드 | F:문서원문
+  var is6Col = (!is7Col && (h0 === "업무구분" || h0 === "구분" || h1 === "문서제목"));
+
+  var numCols = is7Col ? 7 : (is6Col ? 6 : 5);
+  var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, numCols).getValues();
   for (var i = 0; i < values.length; i++) {
     var row = values[i];
-    if (!row[0] && !row[2] && !row[4]) continue;
-    list.push({
-      docType: docTypeLabel,
-      title: String(row[0] || ""),
-      category: String(row[1] || ""),
-      summary: String(row[2] || ""),
-      keywords: String(row[3] || ""),
-      fullText: String(row[4] || "")
-    });
+    if (is7Col) {
+      if (!row[2] && !row[4] && !row[6]) continue;
+      list.push({
+        docType: docTypeLabel,
+        workGroup: String(row[0] || "").trim() || "미분류",
+        refState: normalizeRefState(row[1]),
+        title: String(row[2] || ""),
+        category: String(row[3] || ""),
+        summary: String(row[4] || ""),
+        keywords: String(row[5] || ""),
+        fullText: String(row[6] || "")
+      });
+    } else if (is6Col) {
+      if (!row[1] && !row[3] && !row[5]) continue;
+      list.push({
+        docType: docTypeLabel,
+        workGroup: String(row[0] || "").trim() || "미분류",
+        refState: "Y",
+        title: String(row[1] || ""),
+        category: String(row[2] || ""),
+        summary: String(row[3] || ""),
+        keywords: String(row[4] || ""),
+        fullText: String(row[5] || "")
+      });
+    } else {
+      if (!row[0] && !row[2] && !row[4]) continue;
+      list.push({
+        docType: docTypeLabel,
+        workGroup: "미분류",
+        refState: "Y",
+        title: String(row[0] || ""),
+        category: String(row[1] || ""),
+        summary: String(row[2] || ""),
+        keywords: String(row[3] || ""),
+        fullText: String(row[4] || "")
+      });
+    }
   }
 }
 
@@ -180,11 +302,21 @@ function doPost(e) {
       });
     }
 
-    // 2-1) 참조 문서 선택 상태 클라우드 동기화 저장 (다른 PC / 스마트폰 연동용)
+    // 2-1) 참조 문서 선택 상태(B열: Y/H/N) 구글 시트 셀 직접 반영 (PC / 스마트폰 / 태블릿 완전 통일 및 시트 직접 수정 완벽 호환)
     if (action === "saveDocSelection") {
+      var docStates = (data && data.docStates && typeof data.docStates === "object") ? data.docStates : {};
+      var mainSheet = ss.getSheets()[0];
+      updateSheetDocSelectionOnSheet(mainSheet, "업무문서", docStates);
+
+      var refSheet = ss.getSheetByName("참고자료");
+      if (refSheet && (!mainSheet || refSheet.getSheetId() !== mainSheet.getSheetId())) {
+        updateSheetDocSelectionOnSheet(refSheet, "참고자료", docStates);
+      }
+
       var selectionObj = {
         selected: Array.isArray(data.selected) ? data.selected : [],
-        known: Array.isArray(data.known) ? data.known : []
+        known: Array.isArray(data.known) ? data.known : [],
+        remembered: Array.isArray(data.remembered) ? data.remembered : []
       };
       PropertiesService.getScriptProperties().setProperty("DOC_SELECTION_STATE", JSON.stringify(selectionObj));
       return responseJSON({
@@ -194,33 +326,40 @@ function doPost(e) {
     }
 
     // 3) 기본 동작: 지식 DB 문서 업로드 ('업무문서'는 첫 번째 시트, '참고자료'는 참고자료 탭 자동 생성/사용)
+    // 7열 표준 구조: A:업무구분 | B:참조상태 | C:문서제목 | D:사업구분/소제목(목차) | E:핵심내용 요약 | F:주요 키워드 | G:문서원문
     var docType = (data && data.docType === "참고자료") ? "참고자료" : "업무문서";
+    var topWorkGroup = (data && data.workGroup) ? String(data.workGroup).trim() : "";
     var sheet;
     if (docType === "참고자료") {
-      sheet = getOrCreateSheetWithHeaders(ss, "참고자료", ["문서제목", "소제목(목차)", "핵심내용 요약", "주요 키워드", "문서원문"]);
+      sheet = getOrCreateSheetWithHeaders(ss, "참고자료", ["업무구분", "참조상태", "문서제목", "소제목(목차)", "핵심내용 요약", "주요 키워드", "문서원문"]);
     } else {
       sheet = ss.getSheets()[0];
       if (sheet.getLastRow() === 0) {
-        sheet.appendRow(["문서제목", "사업구분", "핵심내용 요약", "주요 키워드", "문서원문"]);
-        var headerRange = sheet.getRange(1, 1, 1, 5);
+        sheet.appendRow(["업무구분", "참조상태", "문서제목", "사업구분", "핵심내용 요약", "주요 키워드", "문서원문"]);
+        var headerRange = sheet.getRange(1, 1, 1, 7);
         headerRange.setBackground("#1a1a2e");
         headerRange.setFontColor("#ffffff");
         headerRange.setFontWeight("bold");
       }
     }
 
+    // 기존 시트가 5열 또는 6열 구조라면 7열 표준 구조(A:업무구분, B:참조상태)로 자동 보정
+    ensureSheetColumns(sheet);
+
     var items = Array.isArray(data) ? data : (data.items || [data]);
     var insertedCount = 0;
 
     for (var i = 0; i < items.length; i++) {
       var item = items[i];
+      var workGroup = String(item.workGroup || topWorkGroup || "").trim() || "미분류";
+      var refState = normalizeRefState(item.refState || "Y");
       var title = item.title || "제목 없음";
       var category = item.category || "일반";
       var summary = item.summary || "";
       var keywords = Array.isArray(item.keywords) ? item.keywords.join(", ") : (item.keywords || "");
       var fullText = item.fullText || "";
 
-      sheet.appendRow([title, category, summary, keywords, fullText]);
+      sheet.appendRow([workGroup, refState, title, category, summary, keywords, fullText]);
       insertedCount++;
     }
 

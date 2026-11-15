@@ -1527,6 +1527,14 @@
                 </div>
             </div>
 
+            <!-- 업무구분 (폴더명) 지정 -->
+            <div style="margin-bottom: 12px;">
+                <div style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">업무구분 (폴더명 · 시트 A열)</div>
+                <input type="text" id="inputUploadWorkGroup" list="workGroupSuggestions" placeholder="예: 용산구 지원사업, 2026 업무계획 (미입력 시 '미분류')"
+                    style="width: 100%; padding: 8px 11px; font-size: 0.83rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); outline: none;">
+                <datalist id="workGroupSuggestions"></datalist>
+            </div>
+
             <!-- 모드 선택 탭 -->
             <div
                 style="display: flex; background: var(--bg-card); padding: 4px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--border-color);">
@@ -1712,6 +1720,8 @@
             lastMatchedRows: [],     // 직전 질문 시 매칭된 문서 행들 (후속/추가 질문 컨텍스트 계승용)
             selectedDocKeys: new Set(), // 현재 참조 활성화된 문서 키 Set ("업무문서|문서제목" 또는 "참고자료|문서제목")
             knownDocKeys: new Set(),    // 시트에서 한 번이라도 로드된 문서 키 Set
+            rememberedDocKeys: new Set(), // 폴더 해제 전 선택되어 있던 문서 키 로컬 스냅샷 Set (문서제목 기준, 시트 충돌 없음)
+            expandedFolders: new Set(),   // 아코디언에서 현재 펼쳐진 폴더 키 Set ("업무문서|업무구분")
         };
 
         // 보안 메모리 변수 (F12 Application 스토리지에 절대 노출되지 않는 런타임 전용)
@@ -1839,6 +1849,13 @@
             return `${row.docType || '업무문서'}|${row.title || '제목없음'}`;
         }
 
+        function normalizeRefState(val) {
+            const s = String(val || '').trim().toUpperCase();
+            if (s === 'N' || s === '제외' || s === 'FALSE' || s === 'X' || s === '0') return 'N';
+            if (s === 'H' || s === '보류' || s === '대기' || s === '기억' || s === 'HOLD') return 'H';
+            return 'Y';
+        }
+
         function getActiveSheetData() {
             if (!state.sheetData || state.sheetData.length === 0) return [];
             return state.sheetData.filter(r => state.selectedDocKeys.has(getDocKey(r)));
@@ -1851,15 +1868,38 @@
             try {
                 const selectedArr = Array.from(state.selectedDocKeys);
                 const knownArr = Array.from(state.knownDocKeys);
+                const rememberedArr = Array.from(state.rememberedDocKeys);
+
+                // 각 문서별 B열(참조상태) 셀 값 산출: Y(참조중), H(폴더해제 스냅샷 보류), N(개별 제외)
+                const allKeys = new Set([
+                    ...knownArr,
+                    ...(state.sheetData || []).map(r => getDocKey(r))
+                ]);
+                const docStates = {};
+                allKeys.forEach(k => {
+                    if (state.selectedDocKeys.has(k)) {
+                        docStates[k] = 'Y';
+                    } else if (state.rememberedDocKeys.has(k)) {
+                        docStates[k] = 'H';
+                    } else {
+                        docStates[k] = 'N';
+                    }
+                });
+                (state.sheetData || []).forEach(r => {
+                    const k = getDocKey(r);
+                    if (docStates[k]) r.refState = docStates[k];
+                });
+
                 const payload = JSON.stringify({
                     selected: selectedArr,
-                    known: knownArr
+                    known: knownArr,
+                    remembered: rememberedArr
                 });
                 const asciiPayload = encodeURIComponent(payload);
                 const storedVal = _runtimePin ? encryptApiKeyWithPin(asciiPayload, _runtimePin) : asciiPayload;
                 localStorage.setItem('mc_docFilterState', storedVal);
 
-                // 다른 PC / 스마트폰에서도 동일하게 유지되도록 구글 앱스 스크립트 클라우드에 동기화
+                // 구글 시트 B열(참조상태: Y/H/N) 셀에 직접 반영하여 모든 기기 통일 및 시트 직접 수정과 완벽 호환
                 if (syncToCloud && _runtimePin) {
                     if (_cloudSyncTimer) clearTimeout(_cloudSyncTimer);
                     _cloudSyncTimer = setTimeout(() => {
@@ -1868,8 +1908,10 @@
                             body: JSON.stringify({
                                 action: 'saveDocSelection',
                                 pin: _runtimePin,
+                                docStates: docStates,
                                 selected: selectedArr,
-                                known: knownArr
+                                known: knownArr,
+                                remembered: rememberedArr
                             })
                         }).catch(() => {});
                     }, 300);
@@ -1892,6 +1934,7 @@
                 if (parsed && Array.isArray(parsed.known) && Array.isArray(parsed.selected)) {
                     state.knownDocKeys = new Set(parsed.known);
                     state.selectedDocKeys = new Set(parsed.selected);
+                    state.rememberedDocKeys = new Set(Array.isArray(parsed.remembered) ? parsed.remembered : parsed.selected);
                     _docSelectionLoadedFromStorage = true;
                 }
             } catch (e) {
@@ -1899,7 +1942,34 @@
             }
         }
 
-        function syncDocSelectionWithRows(rows) {
+        function syncDocSelectionWithRows(rows, hasSheetRefState = false) {
+            if (hasSheetRefState && Array.isArray(rows) && rows.length > 0) {
+                // 구글 시트 B열(참조상태: Y / H / N) 값을 최우선 단일 기준(Single Source of Truth)으로 적용
+                const docRefMap = new Map();
+                rows.forEach(r => {
+                    const k = getDocKey(r);
+                    if (!docRefMap.has(k)) {
+                        docRefMap.set(k, normalizeRefState(r.refState));
+                    }
+                });
+                state.knownDocKeys.clear();
+                state.selectedDocKeys.clear();
+                state.rememberedDocKeys.clear();
+
+                docRefMap.forEach((refState, k) => {
+                    state.knownDocKeys.add(k);
+                    if (refState === 'Y') {
+                        state.selectedDocKeys.add(k);
+                        state.rememberedDocKeys.add(k);
+                    } else if (refState === 'H') {
+                        state.rememberedDocKeys.add(k);
+                    }
+                });
+                _docSelectionLoadedFromStorage = true;
+                saveDocSelectionToStorage(false);
+                return;
+            }
+
             loadDocSelectionFromStorage();
             const currentKeys = new Set();
             (rows || []).forEach(r => {
@@ -1908,15 +1978,22 @@
                 if (!state.knownDocKeys.has(k)) {
                     state.knownDocKeys.add(k);
                     state.selectedDocKeys.add(k);
+                    state.rememberedDocKeys.add(k);
                 }
             });
             Array.from(state.knownDocKeys).forEach(k => {
                 if (!currentKeys.has(k)) {
                     state.knownDocKeys.delete(k);
                     state.selectedDocKeys.delete(k);
+                    state.rememberedDocKeys.delete(k);
                 }
             });
-            saveDocSelectionToStorage();
+            Array.from(state.rememberedDocKeys).forEach(k => {
+                if (!currentKeys.has(k)) {
+                    state.rememberedDocKeys.delete(k);
+                }
+            });
+            saveDocSelectionToStorage(false);
         }
 
         function refreshDataStatusCount() {
@@ -1979,13 +2056,22 @@
 
         function applyRowsFromGAS(rows, cloudDocSelection = null) {
             if (!Array.isArray(rows)) return false;
-            if (cloudDocSelection && Array.isArray(cloudDocSelection.known) && Array.isArray(cloudDocSelection.selected)) {
-                state.knownDocKeys = new Set(cloudDocSelection.known);
-                state.selectedDocKeys = new Set(cloudDocSelection.selected);
-                _docSelectionLoadedFromStorage = true;
+            const hasSheetRefState = rows.some(r => r && r.refState !== undefined);
+            if (!hasSheetRefState) {
+                loadDocSelectionFromStorage();
+                if (cloudDocSelection && Array.isArray(cloudDocSelection.known) && Array.isArray(cloudDocSelection.selected)) {
+                    state.knownDocKeys = new Set(cloudDocSelection.known);
+                    state.selectedDocKeys = new Set(cloudDocSelection.selected);
+                    state.rememberedDocKeys = new Set(
+                        Array.isArray(cloudDocSelection.remembered) ? cloudDocSelection.remembered : cloudDocSelection.selected
+                    );
+                    _docSelectionLoadedFromStorage = true;
+                }
             }
             state.sheetData = rows.map(r => ({
                 docType: r.docType === '참고자료' ? '참고자료' : '업무문서',
+                workGroup: (r.workGroup || '').trim() || '미분류',
+                refState: normalizeRefState(r.refState),
                 title: r.title || '',
                 category: r.category || '',
                 summary: r.summary || '',
@@ -1994,7 +2080,7 @@
                     : String(r.keywords || '').split(/[,，]/).map(k => k.trim()).filter(Boolean),
                 fullText: r.fullText || ''
             }));
-            syncDocSelectionWithRows(state.sheetData);
+            syncDocSelectionWithRows(state.sheetData, hasSheetRefState);
             const dotEl = $('dataDot');
             if (dotEl) dotEl.classList.add('loaded');
             refreshDataStatusCount();
@@ -2142,8 +2228,8 @@
                 const res = await fetch(fetchUrl, { redirect: 'follow', cache: 'no-store' });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const text = await res.text();
-                parseCSV(text);
-                syncDocSelectionWithRows(state.sheetData);
+                const hasSheetRefState = parseCSV(text);
+                syncDocSelectionWithRows(state.sheetData, hasSheetRefState);
                 if (dotEl) dotEl.classList.add('loaded');
                 refreshDataStatusCount();
                 showToast(`시트 연결 완료 (${state.sheetData.length}건)`);
@@ -2195,23 +2281,63 @@
                 rows.push(currentRow);
             }
 
-            if (rows.length < 2) { state.sheetData = []; return; }
+            if (rows.length < 2) { state.sheetData = []; return false; }
 
-            // 첫 행(헤더) 제외하고 데이터 저장
-            state.sheetData = rows.slice(1).filter(cols => cols.length >= 5).map(cols => {
-                const keywords = cols[3].split(/[,，]/)
-                    .map(k => k.trim())
-                    .filter(k => k.length > 0);
+            // 첫 행(헤더) 확인하여 7열(A:업무구분, B:참조상태, C:문서제목...), 6열(A:업무구분, B:문서제목...) 또는 기존 5열 구조 자동 판별
+            const headerCols = rows[0] || [];
+            const h0 = (headerCols[0] || '').trim();
+            const h1 = (headerCols[1] || '').trim();
+            const h2 = (headerCols[2] || '').trim();
+            const is7Col = (h1 === '참조상태' || h1 === '선택' || h2 === '문서제목');
+            const is6Col = (!is7Col && (h0 === '업무구분' || h0 === '구분' || h1 === '문서제목'));
+            const minCols = is7Col ? 7 : (is6Col ? 6 : 5);
 
-                return {
-                    docType: '업무문서',
-                    title: cols[0],
-                    category: cols[1],
-                    summary: cols[2],
-                    keywords: keywords,
-                    fullText: cols[4] || '',
-                };
+            state.sheetData = rows.slice(1).filter(cols => cols.length >= minCols).map(cols => {
+                if (is7Col) {
+                    const keywords = (cols[5] || '').split(/[,，]/)
+                        .map(k => k.trim())
+                        .filter(k => k.length > 0);
+                    return {
+                        docType: '업무문서',
+                        workGroup: (cols[0] || '').trim() || '미분류',
+                        refState: normalizeRefState(cols[1]),
+                        title: cols[2] || '',
+                        category: cols[3] || '',
+                        summary: cols[4] || '',
+                        keywords: keywords,
+                        fullText: cols[6] || '',
+                    };
+                } else if (is6Col) {
+                    const keywords = (cols[4] || '').split(/[,，]/)
+                        .map(k => k.trim())
+                        .filter(k => k.length > 0);
+                    return {
+                        docType: '업무문서',
+                        workGroup: (cols[0] || '').trim() || '미분류',
+                        refState: 'Y',
+                        title: cols[1] || '',
+                        category: cols[2] || '',
+                        summary: cols[3] || '',
+                        keywords: keywords,
+                        fullText: cols[5] || '',
+                    };
+                } else {
+                    const keywords = (cols[3] || '').split(/[,，]/)
+                        .map(k => k.trim())
+                        .filter(k => k.length > 0);
+                    return {
+                        docType: '업무문서',
+                        workGroup: '미분류',
+                        refState: 'Y',
+                        title: cols[0] || '',
+                        category: cols[1] || '',
+                        summary: cols[2] || '',
+                        keywords: keywords,
+                        fullText: cols[4] || '',
+                    };
+                }
             });
+            return is7Col;
         }
 
         // ============================================================
@@ -3840,11 +3966,13 @@ ${recentText}
             (state.sheetData || []).forEach(r => {
                 const docType = r.docType === '참고자료' ? '참고자료' : '업무문서';
                 const title = r.title || '제목없음';
+                const workGroup = (r.workGroup || '').trim() || '미분류';
                 const key = `${docType}|${title}`;
                 if (!map.has(key)) {
                     map.set(key, {
                         key,
                         docType,
+                        workGroup,
                         title,
                         chunkCount: 0,
                         categories: new Set(),
@@ -3852,6 +3980,9 @@ ${recentText}
                     });
                 }
                 const entry = map.get(key);
+                if (entry.workGroup === '미분류' && workGroup !== '미분류') {
+                    entry.workGroup = workGroup;
+                }
                 entry.chunkCount++;
                 if (r.category) entry.categories.add(r.category);
                 (r.keywords || []).forEach(kw => {
@@ -3879,6 +4010,30 @@ ${recentText}
             if (summaryEl) summaryEl.textContent = `총 ${totalSelected}/${totalAll}개 문서 참조 중`;
         }
 
+        function toggleFolderSelection(folderDocs) {
+            const checkedDocs = folderDocs.filter(d => state.selectedDocKeys.has(d.key));
+            if (checkedDocs.length > 0) {
+                // 폴더 체크 해제: 현재 폴더 내에서 선택되어 있던 문서 목록만 스냅샷으로 기억한 뒤 전체 해제
+                folderDocs.forEach(d => state.rememberedDocKeys.delete(d.key));
+                checkedDocs.forEach(d => state.rememberedDocKeys.add(d.key));
+                folderDocs.forEach(d => state.selectedDocKeys.delete(d.key));
+            } else {
+                // 폴더 다시 체크: 기억된 스냅샷 문서가 있으면 해당 문서들만 복원, 없으면 폴더 내 전체 선택
+                const rememberedInFolder = folderDocs.filter(d => state.rememberedDocKeys.has(d.key));
+                if (rememberedInFolder.length > 0) {
+                    rememberedInFolder.forEach(d => state.selectedDocKeys.add(d.key));
+                } else {
+                    folderDocs.forEach(d => {
+                        state.selectedDocKeys.add(d.key);
+                        state.rememberedDocKeys.add(d.key);
+                    });
+                }
+            }
+            saveDocSelectionToStorage(true);
+            refreshDataStatusCount();
+            renderDocFilterList();
+        }
+
         function renderDocFilterList() {
             const container = $('docFilterListContainer');
             if (!container) return;
@@ -3892,10 +4047,11 @@ ${recentText}
 
             const filteredDocs = tabDocs.filter(d => {
                 if (!searchKw) return true;
+                const inGroup = (d.workGroup || '').toLowerCase().includes(searchKw);
                 const inTitle = d.title.toLowerCase().includes(searchKw);
                 const inCat = Array.from(d.categories).some(c => c.toLowerCase().includes(searchKw));
                 const inKw = Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw));
-                return inTitle || inCat || inKw;
+                return inGroup || inTitle || inCat || inKw;
             });
 
             if (filteredDocs.length === 0) {
@@ -3910,48 +4066,135 @@ ${recentText}
                 return;
             }
 
+            // 업무구분(폴더)별로 그룹화
+            const folderMap = new Map();
             filteredDocs.forEach(doc => {
-                const isChecked = state.selectedDocKeys.has(doc.key);
-                const itemEl = document.createElement('div');
-                itemEl.style.cssText = `
-                    display: flex; align-items: flex-start; gap: 11px; padding: 11px 13px;
-                    border-radius: 10px; border: 1.5px solid ${isChecked ? 'var(--accent-blue)' : 'var(--border-color)'};
-                    background: ${isChecked ? 'rgba(74, 158, 255, 0.08)' : 'var(--bg-card)'};
+                const gName = doc.workGroup || '미분류';
+                if (!folderMap.has(gName)) {
+                    folderMap.set(gName, []);
+                }
+                folderMap.get(gName).push(doc);
+            });
+
+            folderMap.forEach((folderDocs, groupName) => {
+                const folderKey = `${currentDocFilterTab}|${groupName}`;
+                const isExpanded = searchKw ? true : state.expandedFolders.has(folderKey);
+                const checkedCount = folderDocs.filter(d => state.selectedDocKeys.has(d.key)).length;
+                const isFolderChecked = checkedCount > 0;
+
+                const folderWrapper = document.createElement('div');
+                folderWrapper.style.cssText = 'display: flex; flex-direction: column; gap: 5px;';
+
+                // 폴더 헤더 카드
+                const folderHeader = document.createElement('div');
+                folderHeader.style.cssText = `
+                    display: flex; align-items: center; gap: 10px; padding: 11px 13px;
+                    border-radius: 10px; border: 1.5px solid ${isFolderChecked ? 'var(--accent-blue)' : 'var(--border-color)'};
+                    background: ${isFolderChecked ? 'rgba(74, 158, 255, 0.1)' : 'var(--bg-card)'};
                     cursor: pointer; transition: all 0.15s; user-select: none;
                 `;
 
-                const catList = Array.from(doc.categories).join(', ');
+                const safeGroupName = groupName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const chevron = isExpanded ? '▾' : '▸';
 
-                itemEl.innerHTML = `
-                    <input type="checkbox" ${isChecked ? 'checked' : ''}
-                        style="margin-top: 3px; width: 17px; height: 17px; accent-color: var(--accent-blue); cursor: pointer; flex-shrink: 0;">
-                    <div style="flex: 1; min-width: 0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 3px;">
-                            <div style="font-size: 0.89rem; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                ${doc.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
-                            </div>
-                            <span class="doc-chunk-badge">
-                                <span class="chunk-num">${doc.chunkCount}</span><span class="chunk-unit">개 섹션</span>
+                folderHeader.innerHTML = `
+                    <input type="checkbox" class="folder-chk" ${isFolderChecked ? 'checked' : ''}
+                        style="width: 17px; height: 17px; accent-color: var(--accent-blue); cursor: pointer; flex-shrink: 0;">
+                    <div style="flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary); width: 12px; display: inline-block; text-align: center; flex-shrink: 0;">${chevron}</span>
+                            <span style="font-size: 0.91rem; font-weight: 800; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${safeGroupName}
                             </span>
                         </div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            ${catList ? `분류: ${catList.replace(/</g, '&lt;').replace(/>/g, '&gt;')}` : '분류: 미지정'}
-                        </div>
+                        <span class="doc-chunk-badge">
+                            <span class="chunk-num">${checkedCount}/${folderDocs.length}</span><span class="chunk-unit">개 문서</span>
+                        </span>
                     </div>
                 `;
 
-                itemEl.addEventListener('click', () => {
-                    if (state.selectedDocKeys.has(doc.key)) {
-                        state.selectedDocKeys.delete(doc.key);
+                const chkInput = folderHeader.querySelector('.folder-chk');
+                chkInput.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleFolderSelection(folderDocs);
+                });
+
+                folderHeader.addEventListener('click', () => {
+                    if (state.expandedFolders.has(folderKey)) {
+                        state.expandedFolders.delete(folderKey);
                     } else {
-                        state.selectedDocKeys.add(doc.key);
+                        state.expandedFolders.add(folderKey);
                     }
-                    saveDocSelectionToStorage(true);
-                    refreshDataStatusCount();
                     renderDocFilterList();
                 });
 
-                container.appendChild(itemEl);
+                folderWrapper.appendChild(folderHeader);
+
+                // 아코디언 펼쳐진 경우: 하위 개별 문서 목록 표시
+                if (isExpanded) {
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.style.cssText = `
+                        display: flex; flex-direction: column; gap: 6px;
+                        margin: 2px 0 6px 14px; padding-left: 10px;
+                        border-left: 2px solid var(--border-color);
+                    `;
+
+                    folderDocs.forEach(doc => {
+                        const isChecked = state.selectedDocKeys.has(doc.key);
+                        const itemEl = document.createElement('div');
+                        itemEl.style.cssText = `
+                            display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px;
+                            border-radius: 9px; border: 1px solid ${isChecked ? 'var(--accent-blue)' : 'var(--border-color)'};
+                            background: ${isChecked ? 'rgba(74, 158, 255, 0.05)' : 'var(--bg-secondary)'};
+                            cursor: pointer; transition: all 0.15s; user-select: none;
+                        `;
+
+                        const catList = Array.from(doc.categories).join(', ');
+
+                        itemEl.innerHTML = `
+                            <input type="checkbox" ${isChecked ? 'checked' : ''}
+                                style="margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent-blue); cursor: pointer; flex-shrink: 0;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px;">
+                                    <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        ${doc.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                                    </div>
+                                    <span class="doc-chunk-badge">
+                                        <span class="chunk-num">${doc.chunkCount}</span><span class="chunk-unit">개 섹션</span>
+                                    </span>
+                                </div>
+                                <div style="font-size: 0.73rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${catList ? `분류: ${catList.replace(/</g, '&lt;').replace(/>/g, '&gt;')}` : '분류: 미지정'}
+                                </div>
+                            </div>
+                        `;
+
+                        itemEl.addEventListener('click', () => {
+                            if (state.selectedDocKeys.has(doc.key)) {
+                                state.selectedDocKeys.delete(doc.key);
+                                state.rememberedDocKeys.delete(doc.key);
+                            } else {
+                                state.selectedDocKeys.add(doc.key);
+                                state.rememberedDocKeys.add(doc.key);
+                            }
+                            // 폴더 내에 1개 이상 선택된 문서가 있으면 선택된 문서만 Y로 두고, 개별 해제된 문서는 N으로 정리
+                            const remainingChecked = folderDocs.filter(d => state.selectedDocKeys.has(d.key));
+                            if (remainingChecked.length > 0) {
+                                folderDocs.forEach(d => state.rememberedDocKeys.delete(d.key));
+                                remainingChecked.forEach(d => state.rememberedDocKeys.add(d.key));
+                            }
+                            saveDocSelectionToStorage(true);
+                            refreshDataStatusCount();
+                            renderDocFilterList();
+                        });
+
+                        childrenContainer.appendChild(itemEl);
+                    });
+
+                    folderWrapper.appendChild(childrenContainer);
+                }
+
+                container.appendChild(folderWrapper);
             });
         }
 
@@ -4115,22 +4358,41 @@ ${recentText}
                 const searchKw = ($('inputDocFilterSearch')?.value || '').trim().toLowerCase();
                 getGroupedDocuments()
                     .filter(d => d.docType === currentDocFilterTab)
-                    .filter(d => !searchKw || d.title.toLowerCase().includes(searchKw) ||
+                    .filter(d => !searchKw || (d.workGroup || '').toLowerCase().includes(searchKw) ||
+                        d.title.toLowerCase().includes(searchKw) ||
                         Array.from(d.categories).some(c => c.toLowerCase().includes(searchKw)) ||
                         Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw)))
-                    .forEach(d => state.selectedDocKeys.add(d.key));
+                    .forEach(d => {
+                        state.selectedDocKeys.add(d.key);
+                        state.rememberedDocKeys.add(d.key);
+                    });
                 saveDocSelectionToStorage(true);
                 refreshDataStatusCount();
                 renderDocFilterList();
             });
             $('btnDocDeselectAll').addEventListener('click', () => {
                 const searchKw = ($('inputDocFilterSearch')?.value || '').trim().toLowerCase();
-                getGroupedDocuments()
+                const targetDocs = getGroupedDocuments()
                     .filter(d => d.docType === currentDocFilterTab)
-                    .filter(d => !searchKw || d.title.toLowerCase().includes(searchKw) ||
+                    .filter(d => !searchKw || (d.workGroup || '').toLowerCase().includes(searchKw) ||
+                        d.title.toLowerCase().includes(searchKw) ||
                         Array.from(d.categories).some(c => c.toLowerCase().includes(searchKw)) ||
-                        Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw)))
-                    .forEach(d => state.selectedDocKeys.delete(d.key));
+                        Array.from(d.keywords).some(k => k.toLowerCase().includes(searchKw)));
+                // 전체 해제 전, 현재 각 폴더에서 선택되어 있던 문서 상태를 스냅샷에 보존
+                const byGroup = new Map();
+                targetDocs.forEach(d => {
+                    const g = d.workGroup || '미분류';
+                    if (!byGroup.has(g)) byGroup.set(g, []);
+                    byGroup.get(g).push(d);
+                });
+                byGroup.forEach(docsInG => {
+                    const activeInG = docsInG.filter(d => state.selectedDocKeys.has(d.key));
+                    if (activeInG.length > 0) {
+                        docsInG.forEach(d => state.rememberedDocKeys.delete(d.key));
+                        activeInG.forEach(d => state.rememberedDocKeys.add(d.key));
+                    }
+                });
+                targetDocs.forEach(d => state.selectedDocKeys.delete(d.key));
                 saveDocSelectionToStorage(true);
                 refreshDataStatusCount();
                 renderDocFilterList();
@@ -4189,6 +4451,11 @@ ${recentText}
 
             $('btnUploadDoc').addEventListener('click', () => {
                 uploadProgress.style.display = 'none';
+                const datalist = $('workGroupSuggestions');
+                if (datalist) {
+                    const groups = Array.from(new Set((state.sheetData || []).map(r => (r.workGroup || '').trim()).filter(g => g && g !== '미분류')));
+                    datalist.innerHTML = groups.map(g => `<option value="${g.replace(/"/g, '&quot;')}"></option>`).join('');
+                }
                 uploadModal.classList.add('show');
 
                 // 기본 서버 안내 표시
@@ -4463,8 +4730,11 @@ ${text.slice(0, 30000)}`;
                     uploadStatusText.textContent = '📊 구글 시트로 저장 중...';
                     uploadDetailText.textContent = `${chunks.length}개 세부 주제 행 구글 시트에 전송 중`;
 
+                    const uploadWorkGroup = ($('inputUploadWorkGroup')?.value || '').trim() || '미분류';
                     // 구글 앱스 스크립트 Webhook으로 저장 (동일 문서의 모든 청크는 단일 원본 title로 통일)
                     const payloadItems = chunks.map(item => ({
+                        workGroup: uploadWorkGroup,
+                        refState: 'Y',
                         title: title,
                         category: item.category || '일반',
                         summary: item.summary || '',
@@ -4476,6 +4746,7 @@ ${text.slice(0, 30000)}`;
                     const payloadData = {
                         pin: currentPin,
                         docType: selectedUploadDocType,
+                        workGroup: uploadWorkGroup,
                         items: payloadItems
                     };
 
@@ -4524,8 +4795,10 @@ ${text.slice(0, 30000)}`;
                 formData.append('file', file);
                 formData.append('apiKey', settings.apiKey || '');
                 formData.append('webhookUrl', settings.webhookUrl);
+                const uploadWorkGroup = ($('inputUploadWorkGroup')?.value || '').trim() || '미분류';
                 formData.append('pin', currentPin);
                 formData.append('docType', selectedUploadDocType);
+                formData.append('workGroup', uploadWorkGroup);
 
                 try {
                     uploadStatusText.textContent = 'Gemini AI 분석 및 구글 시트 저장 중...';

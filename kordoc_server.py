@@ -127,6 +127,7 @@ class KordocHandler(BaseHTTPRequestHandler):
             webhook_url = ""
             pin = ""
             doc_type = "업무문서"
+            work_group = "미분류"
 
             for part in parts:
                 if b'Content-Disposition' in part:
@@ -147,6 +148,8 @@ class KordocHandler(BaseHTTPRequestHandler):
                             pin = content.decode('utf-8', errors='ignore').strip()
                         elif 'name="docType"' in headers_str:
                             doc_type = content.decode('utf-8', errors='ignore').strip() or "업무문서"
+                        elif 'name="workGroup"' in headers_str:
+                            work_group = content.decode('utf-8', errors='ignore').strip() or "미분류"
                     except Exception as p_err:
                         pass
 
@@ -301,6 +304,8 @@ class KordocHandler(BaseHTTPRequestHandler):
                     payload_items = []
                     for item in chunks:
                         payload_items.append({
+                            "workGroup": work_group,
+                            "refState": "Y",
                             "title": default_doc_title,
                             "category": item.get("category", "일반"),
                             "summary": item.get("summary", ""),
@@ -311,6 +316,7 @@ class KordocHandler(BaseHTTPRequestHandler):
                     payload_obj = {
                         "pin": pin,
                         "docType": doc_type,
+                        "workGroup": work_group,
                         "items": payload_items
                     }
                     payload = json.dumps(payload_obj).encode('utf-8')

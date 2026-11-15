@@ -1527,7 +1527,7 @@
                     시트 탭 구분</div>
                 <div style="display: flex; gap: 8px;">
                     <button type="button" id="btnDocTypeWork"
-                        style="flex: 1; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--accent-blue); background: rgba(74, 158, 255, 0.15); color: #fff; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                        style="flex: 1; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--accent-blue); background: rgba(74, 158, 255, 0.14); color: var(--accent-blue); font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
                         📂 업무문서
                     </button>
                     <button type="button" id="btnDocTypeRef"
@@ -1537,12 +1537,14 @@
                 </div>
             </div>
 
-            <!-- 업무구분 (폴더명) 지정 -->
-            <div style="margin-bottom: 12px;">
-                <div style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">업무구분 (폴더명 · 시트 A열)</div>
-                <input type="text" id="inputUploadWorkGroup" list="workGroupSuggestions" placeholder="예: 용산구 지원사업, 2026 업무계획 (미입력 시 '미분류')"
-                    style="width: 100%; padding: 8px 11px; font-size: 0.83rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); outline: none;">
-                <datalist id="workGroupSuggestions"></datalist>
+            <!-- 업무구분 지정 (커스텀 칩 선택 + 직접 입력) -->
+            <div style="margin-bottom: 14px;">
+                <div style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">업무구분</div>
+                <div id="uploadWorkGroupChips"
+                    style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
+                <input type="text" id="inputUploadWorkGroup" autocomplete="off"
+                    placeholder="위 목록에서 선택하거나 새 업무구분 직접 입력 (미입력 시 '미분류')"
+                    style="width: 100%; padding: 9px 12px; font-size: 0.83rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); outline: none; box-sizing: border-box; transition: border-color 0.15s;">
             </div>
 
             <!-- 모드 선택 탭 -->
@@ -3570,7 +3572,7 @@
    - 표 바로 아래에 회의에서 즉각 발언할 수 있는 2~3줄의 거시적 총괄 브리핑을 덧붙이세요.
 4. **지엽적 단순 나열 금지 & 3~4대 핵심 전략 축(Pillar) 중심 종합화**:
    - 미시적인 개별 사업들을 10개 이상 단순 나열하지 마세요.
-   - '2. 세부 데이터 및 배경 사실관계'에서는 반드시 기관의 3~4대 핵심 추진 축(예: '2.1. 정책금융 공급 및 리스크 관리', '2.2. 소상공인 판로개척 및 경영지원', '2.3. 디지털 전환 및 행정 혁신' 등)으로 대분류하고, 각 축별로 가장 중요한 핵심 팩트와 수치 2~3개만 선별하여 종합 보고서 형식으로 작성하세요.
+   - '2. 세부 데이터 및 사실관계'에서는 반드시 기관의 3~4대 핵심 추진 축(예: '2.1. 정책금융 공급 및 리스크 관리', '2.2. 소상공인 판로개척 및 경영지원', '2.3. 디지털 전환 및 행정 혁신' 등)으로 대분류하고, 각 축별로 가장 중요한 핵심 팩트와 수치 2~3개만 선별하여 종합 보고서 형식으로 작성하세요.
 5. **소제목과 세부 불릿의 엄격한 분리**:
    - 소제목(카테고리명) 앞에는 절대 불릿(•, -)을 붙이지 마세요.
    - 소제목은 반드시 '2.1. [소제목명]' 또는 '2.2. [소제목명]'처럼 단독 줄로 작성하세요.
@@ -3584,7 +3586,7 @@
 8. **다중 문서 교차 검증 및 복수 출처 명시**:
    - 동일 사업/과제에 대해 '당초 계획서'와 '변경계획/추경/의결서'가 함께 존재할 경우, 시간순으로 교차 검증하여 최종 확정치와 변동 내역을 종합 정리하고 복수 출처를 모두 명시하세요. (예: [2024년도 사업계획서] [2024년도 제2차 변경계획서])
 9. **이모지 및 특수 마크다운/연속 기호 금지**:
-   - 이모지(🤖, 💡, ⚠️, 📌 등)를 일체 사용하지 마세요. 소제목은 '1. 핵심 요약', '2. 세부 데이터 및 배경 사실관계'처럼 단정하게 작성하세요.
+   - 이모지(🤖, 💡, ⚠️, 📌 등)를 일체 사용하지 마세요. 소제목은 '1. 핵심 요약', '2. 세부 데이터 및 사실관계'처럼 단정하게 작성하세요.
 10. **기준 시점 및 출처 필수 명시**:
     - 모든 주요 수치나 팩트를 언급할 때는 반드시 해당 내용이 명시된 **[문서명 및 기준 시점(연도/월/분기)]**을 밝히세요.
 11. **시점 불일치 시 첫머리 안내 (필수)**:
@@ -4385,8 +4387,7 @@ ${recentText}
 
         function renderWorkGroupModal() {
             const docListEl = $('workGroupDocList');
-            const summaryBar = $('workGroupSummaryBar');
-            const subTextEl = $('workGroupModalSubText');
+            const targetCountEl = $('workGroupTargetCount');
             const nextBtn = $('btnWorkGroupNext');
             if (!docListEl) return;
 
@@ -4402,14 +4403,8 @@ ${recentText}
                 return false;
             });
 
-            if (subTextEl) {
-                subTextEl.textContent = `[${currentDocFilterTab}] 변경할 문서를 체크한 뒤 하단의 [업무구분 변경]을 눌러주세요`;
-            }
-            if (summaryBar) {
-                summaryBar.innerHTML = `
-                    <span>[${currentDocFilterTab}] 변경 대상 선택: <strong style="color: var(--accent-purple);">${_wgTargetDocKeys.size}</strong> / ${tabDocs.length}개</span>
-                    <span style="font-size: 0.72rem; color: var(--text-muted);">폴더 체크 시 내부 문서 일괄 체크</span>
-                `;
+            if (targetCountEl) {
+                targetCountEl.textContent = `${_wgTargetDocKeys.size}/${tabDocs.length}개 문서 선택`;
             }
             if (nextBtn) {
                 nextBtn.textContent = _wgTargetDocKeys.size > 0
@@ -4418,13 +4413,13 @@ ${recentText}
             }
 
             if (filteredDocs.length === 0) {
-                docListEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px 10px;">
-                    ${tabDocs.length === 0 ? `등록된 ${currentDocFilterTab}가 없습니다.` : '검색 조건과 일치하는 문서가 없습니다.'}
+                docListEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 42px 16px; font-size: 0.85rem; line-height: 1.6;">
+                    ${tabDocs.length === 0 ? `등록된 [${currentDocFilterTab}]가 없습니다.` : '검색어와 일치하는 문서가 없습니다.'}
                 </div>`;
                 return;
             }
 
-            // 업무구분(폴더)별 그룹화
+            // 업무구분(폴더)별로 그룹화 (참조 문서 선택 모달과 100% 동일한 구조)
             const folderMap = new Map();
             filteredDocs.forEach(doc => {
                 const gName = doc.workGroup || '미분류';
@@ -4434,48 +4429,44 @@ ${recentText}
 
             docListEl.innerHTML = '';
 
-            folderMap.forEach((docsInFolder, gName) => {
-                const folderKey = `${currentDocFilterTab}|${gName}`;
-                const isSearching = searchKw.length > 0;
-                const isExpanded = isSearching || _wgExpandedFolders.has(folderKey);
+            folderMap.forEach((folderDocs, groupName) => {
+                const folderKey = `${currentDocFilterTab}|${groupName}`;
+                const isExpanded = searchKw ? true : _wgExpandedFolders.has(folderKey);
 
-                const allDocsInThisFolder = tabDocs.filter(d => (d.workGroup || '미분류') === gName);
-                const selectedInFolder = allDocsInThisFolder.filter(d => _wgTargetDocKeys.has(d.key));
-                const isFolderChecked = selectedInFolder.length > 0 && selectedInFolder.length === allDocsInThisFolder.length;
-                const isFolderPartial = selectedInFolder.length > 0 && selectedInFolder.length < allDocsInThisFolder.length;
+                const allDocsInThisFolder = tabDocs.filter(d => (d.workGroup || '미분류') === groupName);
+                const checkedCount = allDocsInThisFolder.filter(d => _wgTargetDocKeys.has(d.key)).length;
+                const isFolderChecked = checkedCount > 0 && checkedCount === allDocsInThisFolder.length;
+                const isFolderPartial = checkedCount > 0 && checkedCount < allDocsInThisFolder.length;
 
-                const folderWrap = document.createElement('div');
-                folderWrap.style.cssText = `
-                    border: 1.5px solid ${(isFolderChecked || isFolderPartial) ? 'rgba(124, 58, 237, 0.45)' : 'var(--border-color)'};
-                    border-radius: 12px;
-                    background: var(--bg-secondary);
-                    overflow: hidden;
-                    transition: border-color 0.15s ease;
-                `;
+                const folderWrapper = document.createElement('div');
+                folderWrapper.style.cssText = 'display: flex; flex-direction: column; gap: 5px;';
 
+                // 폴더 헤더 카드 (참조 문서 선택 모달과 동일한 레이아웃)
                 const folderHeader = document.createElement('div');
                 folderHeader.style.cssText = `
-                    display: flex; align-items: center; justify-content: space-between;
-                    padding: 10px 12px; cursor: pointer; user-select: none;
-                    background: ${(isFolderChecked || isFolderPartial) ? 'rgba(124, 58, 237, 0.08)' : 'var(--bg-card)'};
-                    border-bottom: ${isExpanded ? '1px solid var(--border-color)' : 'none'};
+                    display: flex; align-items: center; gap: 10px; padding: 11px 13px;
+                    border-radius: 10px; border: 1.5px solid ${(isFolderChecked || isFolderPartial) ? '#7c3aed' : 'var(--border-color)'};
+                    background: ${(isFolderChecked || isFolderPartial) ? 'rgba(124, 58, 237, 0.1)' : 'var(--bg-card)'};
+                    cursor: pointer; transition: all 0.15s; user-select: none;
                 `;
 
-                const safeFolderName = gName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const safeGroupName = groupName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const chevron = isExpanded ? '▾' : '▸';
+
                 folderHeader.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1;">
-                        <input type="checkbox" class="wg-folder-cb" ${isFolderChecked ? 'checked' : ''}
-                            style="width: 17px; height: 17px; accent-color: var(--accent-purple); cursor: pointer; flex-shrink: 0;">
-                        <span style="font-size: 0.78rem; color: var(--text-muted); width: 14px; text-align: center; flex-shrink: 0;">
-                            ${isExpanded ? '▾' : '▸'}
-                        </span>
-                        <span style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary); word-break: keep-all; overflow-wrap: anywhere;">
-                            ${safeFolderName}
+                    <input type="checkbox" class="wg-folder-cb" ${isFolderChecked ? 'checked' : ''}
+                        style="width: 17px; height: 17px; accent-color: #7c3aed; cursor: pointer; flex-shrink: 0;">
+                    <div style="flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary); width: 12px; display: inline-block; text-align: center; flex-shrink: 0;">${chevron}</span>
+                            <span style="font-size: 0.91rem; font-weight: 800; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${safeGroupName}
+                            </span>
+                        </div>
+                        <span class="doc-chunk-badge">
+                            <span class="chunk-num">${checkedCount}/${allDocsInThisFolder.length}</span><span class="chunk-unit">개 문서</span>
                         </span>
                     </div>
-                    <span style="font-size: 0.74rem; font-weight: 600; color: ${(selectedInFolder.length > 0) ? '#6d28d9' : 'var(--text-muted)'}; background: var(--bg-secondary); padding: 2px 8px; border-radius: 999px; flex-shrink: 0; margin-left: 8px;">
-                        ${selectedInFolder.length}/${allDocsInThisFolder.length}개 문서
-                    </span>
                 `;
 
                 const folderCb = folderHeader.querySelector('.wg-folder-cb');
@@ -4483,10 +4474,10 @@ ${recentText}
                     folderCb.indeterminate = isFolderPartial;
                     folderCb.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        if (folderCb.checked) {
-                            allDocsInThisFolder.forEach(d => _wgTargetDocKeys.add(d.key));
-                        } else {
+                        if (checkedCount === allDocsInThisFolder.length) {
                             allDocsInThisFolder.forEach(d => _wgTargetDocKeys.delete(d.key));
+                        } else {
+                            allDocsInThisFolder.forEach(d => _wgTargetDocKeys.add(d.key));
                         }
                         renderWorkGroupModal();
                     });
@@ -4502,43 +4493,49 @@ ${recentText}
                     renderWorkGroupModal();
                 });
 
-                folderWrap.appendChild(folderHeader);
+                folderWrapper.appendChild(folderHeader);
 
                 if (isExpanded) {
-                    const childrenWrap = document.createElement('div');
-                    childrenWrap.style.cssText = 'display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: var(--bg-primary);';
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.style.cssText = `
+                        display: flex; flex-direction: column; gap: 6px;
+                        margin: 2px 0 6px 14px; padding-left: 10px;
+                        border-left: 2px solid var(--border-color);
+                    `;
 
-                    docsInFolder.forEach(doc => {
+                    folderDocs.forEach(doc => {
                         const isSelected = _wgTargetDocKeys.has(doc.key);
-                        const card = document.createElement('div');
-                        card.style.cssText = `
-                            display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px;
-                            border-radius: 9px; border: 1px solid ${isSelected ? 'rgba(124, 58, 237, 0.5)' : 'var(--border-color)'};
-                            background: ${isSelected ? 'rgba(124, 58, 237, 0.08)' : 'var(--bg-card)'};
-                            cursor: pointer; transition: all 0.15s ease;
+                        const itemEl = document.createElement('div');
+                        itemEl.style.cssText = `
+                            display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px;
+                            border-radius: 9px; border: 1px solid ${isSelected ? '#7c3aed' : 'var(--border-color)'};
+                            background: ${isSelected ? 'rgba(124, 58, 237, 0.08)' : 'var(--bg-secondary)'};
+                            cursor: pointer; transition: all 0.15s; user-select: none;
                         `;
 
-                        const cats = Array.from(doc.categories).slice(0, 6).join(' · ');
+                        const catList = Array.from(doc.categories).join(', ');
                         const safeTitle = doc.title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        const safeCats = cats.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const safeCats = catList.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-                        card.innerHTML = `
+                        itemEl.innerHTML = `
                             <input type="checkbox" ${isSelected ? 'checked' : ''}
-                                style="margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent-purple); cursor: pointer; flex-shrink: 0;">
+                                style="margin-top: 3px; width: 16px; height: 16px; accent-color: #7c3aed; cursor: pointer; flex-shrink: 0;">
                             <div style="flex: 1; min-width: 0;">
-                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
-                                    <span style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); word-break: keep-all; overflow-wrap: anywhere;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px;">
+                                    <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                         ${safeTitle}
-                                    </span>
-                                    <span style="font-size: 0.7rem; color: var(--text-muted); background: var(--bg-secondary); padding: 2px 7px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;">
-                                        ${doc.rowCount}개 항목
+                                    </div>
+                                    <span class="doc-chunk-badge">
+                                        <span class="chunk-num">${doc.chunkCount}</span><span class="chunk-unit">개 섹션</span>
                                     </span>
                                 </div>
-                                ${safeCats ? `<div style="font-size: 0.73rem; color: var(--text-secondary); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">분류: ${safeCats}</div>` : ''}
+                                <div style="font-size: 0.73rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${safeCats ? `분류: ${safeCats}` : '분류: 미지정'}
+                                </div>
                             </div>
                         `;
 
-                        card.addEventListener('click', () => {
+                        itemEl.addEventListener('click', () => {
                             if (_wgTargetDocKeys.has(doc.key)) {
                                 _wgTargetDocKeys.delete(doc.key);
                             } else {
@@ -4547,13 +4544,13 @@ ${recentText}
                             renderWorkGroupModal();
                         });
 
-                        childrenWrap.appendChild(card);
+                        childrenContainer.appendChild(itemEl);
                     });
 
-                    folderWrap.appendChild(childrenWrap);
+                    folderWrapper.appendChild(childrenContainer);
                 }
 
-                docListEl.appendChild(folderWrap);
+                docListEl.appendChild(folderWrapper);
             });
         }
 
@@ -4577,7 +4574,7 @@ ${recentText}
 
         function renderWorkGroupDestModal() {
             const optListEl = $('workGroupOptionList');
-            const subTextEl = $('workGroupDestSubText');
+            const subTextEl = $('workGroupModalSubText');
             const newWrapEl = $('newWorkGroupInputWrap');
 
             if (subTextEl) {
@@ -4888,14 +4885,13 @@ ${recentText}
             });
 
             // 업무구분 일괄 변경 모달 이벤트 (1단계: 대상 문서 선택 / 2단계: 이동할 업무구분 선택)
-            $('btnDocWorkGroupEdit').addEventListener('click', () => openWorkGroupModal());
-            $('btnWorkGroupCloseTop').addEventListener('click', () => $('workGroupModal').classList.remove('show'));
-            $('btnWorkGroupCancel').addEventListener('click', () => $('workGroupModal').classList.remove('show'));
-            $('workGroupModal').addEventListener('click', (e) => {
+            $('btnDocWorkGroupEdit')?.addEventListener('click', () => openWorkGroupModal());
+            $('btnWorkGroupCancel')?.addEventListener('click', () => $('workGroupModal').classList.remove('show'));
+            $('workGroupModal')?.addEventListener('click', (e) => {
                 if (e.target === $('workGroupModal')) $('workGroupModal').classList.remove('show');
             });
-            $('inputWgDocSearch').addEventListener('input', () => renderWorkGroupModal());
-            $('btnWgTargetAll').addEventListener('click', () => {
+            $('inputWgDocSearch')?.addEventListener('input', () => renderWorkGroupModal());
+            $('btnWgTargetAll')?.addEventListener('click', () => {
                 const searchKw = ($('inputWgDocSearch')?.value || '').trim().toLowerCase();
                 getGroupedDocuments()
                     .filter(d => d.docType === currentDocFilterTab)
@@ -4906,7 +4902,7 @@ ${recentText}
                     .forEach(d => _wgTargetDocKeys.add(d.key));
                 renderWorkGroupModal();
             });
-            $('btnWgTargetNone').addEventListener('click', () => {
+            $('btnWgTargetNone')?.addEventListener('click', () => {
                 const searchKw = ($('inputWgDocSearch')?.value || '').trim().toLowerCase();
                 if (!searchKw) {
                     _wgTargetDocKeys.clear();
@@ -4921,14 +4917,14 @@ ${recentText}
                 }
                 renderWorkGroupModal();
             });
-            $('btnWorkGroupNext').addEventListener('click', () => openWorkGroupDestModal());
-            $('btnWorkGroupDestCloseTop').addEventListener('click', () => $('workGroupDestModal').classList.remove('show'));
-            $('btnWorkGroupDestBack').addEventListener('click', () => $('workGroupDestModal').classList.remove('show'));
-            $('workGroupDestModal').addEventListener('click', (e) => {
+            $('btnWorkGroupNext')?.addEventListener('click', () => openWorkGroupDestModal());
+            $('btnWorkGroupDestCloseTop')?.addEventListener('click', () => $('workGroupDestModal').classList.remove('show'));
+            $('btnWorkGroupDestBack')?.addEventListener('click', () => $('workGroupDestModal').classList.remove('show'));
+            $('workGroupDestModal')?.addEventListener('click', (e) => {
                 if (e.target === $('workGroupDestModal')) $('workGroupDestModal').classList.remove('show');
             });
-            $('btnWorkGroupApply').addEventListener('click', () => applyWorkGroupChange());
-            $('inputNewWorkGroupName').addEventListener('keydown', (e) => {
+            $('btnWorkGroupApply')?.addEventListener('click', () => applyWorkGroupChange());
+            $('inputNewWorkGroupName')?.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     applyWorkGroupChange();
@@ -4986,13 +4982,50 @@ ${recentText}
             const uploadStatusText = $('uploadStatusText');
             const uploadDetailText = $('uploadDetailText');
 
+            function renderUploadWorkGroupChips() {
+                const chipBox = $('uploadWorkGroupChips');
+                const wgInput = $('inputUploadWorkGroup');
+                if (!chipBox || !wgInput) return;
+
+                const currentVal = wgInput.value.trim() || '미분류';
+                const groups = Array.from(new Set([
+                    '미분류',
+                    ...(state.sheetData || []).map(r => (r.workGroup || '').trim() || '미분류')
+                ]));
+
+                chipBox.innerHTML = '';
+                groups.forEach(gName => {
+                    const isSelected = (currentVal === gName);
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.style.cssText = `
+                        display: inline-flex; align-items: center; gap: 5px;
+                        padding: 5px 11px; border-radius: 999px; font-family: inherit;
+                        font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s;
+                        border: 1.5px solid ${isSelected ? '#7c3aed' : 'var(--border-color)'};
+                        background: ${isSelected ? 'rgba(124, 58, 237, 0.12)' : 'var(--bg-card)'};
+                        color: ${isSelected ? '#6d28d9' : 'var(--text-secondary)'};
+                    `;
+                    const safeG = gName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    chip.innerHTML = `
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${isSelected ? '#7c3aed' : 'currentColor'}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
+                        </svg>
+                        <span>${safeG}</span>
+                    `;
+                    chip.addEventListener('click', () => {
+                        wgInput.value = (gName === '미분류') ? '' : gName;
+                        renderUploadWorkGroupChips();
+                    });
+                    chipBox.appendChild(chip);
+                });
+            }
+
+            $('inputUploadWorkGroup')?.addEventListener('input', () => renderUploadWorkGroupChips());
+
             $('btnUploadDoc').addEventListener('click', () => {
                 uploadProgress.style.display = 'none';
-                const datalist = $('workGroupSuggestions');
-                if (datalist) {
-                    const groups = Array.from(new Set((state.sheetData || []).map(r => (r.workGroup || '').trim()).filter(g => g && g !== '미분류')));
-                    datalist.innerHTML = groups.map(g => `<option value="${g.replace(/"/g, '&quot;')}"></option>`).join('');
-                }
+                renderUploadWorkGroupChips();
                 uploadModal.classList.add('show');
 
                 // 기본 서버 안내 표시
@@ -5025,15 +5058,15 @@ ${recentText}
                 selectedUploadDocType = docType;
                 if (docType === '업무문서') {
                     btnDocTypeWork.style.border = '1.5px solid var(--accent-blue)';
-                    btnDocTypeWork.style.background = 'rgba(74, 158, 255, 0.15)';
-                    btnDocTypeWork.style.color = '#fff';
+                    btnDocTypeWork.style.background = 'rgba(74, 158, 255, 0.14)';
+                    btnDocTypeWork.style.color = 'var(--accent-blue)';
                     btnDocTypeRef.style.border = '1px solid var(--border-color)';
                     btnDocTypeRef.style.background = 'var(--bg-card)';
                     btnDocTypeRef.style.color = 'var(--text-muted)';
                 } else {
                     btnDocTypeRef.style.border = '1.5px solid var(--accent-blue)';
-                    btnDocTypeRef.style.background = 'rgba(74, 158, 255, 0.15)';
-                    btnDocTypeRef.style.color = '#fff';
+                    btnDocTypeRef.style.background = 'rgba(74, 158, 255, 0.14)';
+                    btnDocTypeRef.style.color = 'var(--accent-blue)';
                     btnDocTypeWork.style.border = '1px solid var(--border-color)';
                     btnDocTypeWork.style.background = 'var(--bg-card)';
                     btnDocTypeWork.style.color = 'var(--text-muted)';

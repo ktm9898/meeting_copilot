@@ -3746,59 +3746,89 @@ ${recentText}
                 }
 
                 const candidateModels = ['gemini-3.6-flash'];
-                const retryDelays = [2000, 4000, 8000]; // 503 과부하 스파이크 대응 지수 백오프 (2초 → 4초 → 8초)
+                const retryDelays = [1000, 2000, 4000]; // 1차 스트리밍 503 시 -> 즉시(1초) 일반 generateContent 전환 -> 필요시 2초, 4초 재시도
                 let response = null;
                 let usedModel = '';
+                let isStreamMode = true;
                 let lastErrorDetail = '';
+                const combinedPrompt = `${systemInstruction}\n\n${userPrompt}`;
 
                 for (const modelName of candidateModels) {
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
-                    for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
-                        try {
-                            if (attempt > 0) {
-                                const waitSec = retryDelays[attempt - 1] / 1000;
-                                if (manualQuery) {
-                                    $('btnManualQuery').innerHTML = `재시도(${attempt}/${retryDelays.length})...`;
-                                } else {
-                                    $('btnContext').innerHTML = `재시도(${attempt}/${retryDelays.length})...`;
+                    // [1단계] 실시간 스트리밍(:streamGenerateContent?alt=sse) 1회 우선 시도
+                    const streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
+                    try {
+                        response = await fetch(streamUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-goog-api-key': settings.apiKey
+                            },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: combinedPrompt }] }],
+                                generationConfig: {
+                                    temperature: 0.45
                                 }
-                                showToast(`⏳ 구글 AI 일시 과부하 - ${waitSec}초 후 자동 재시도 중... (${attempt}/${retryDelays.length}회)`);
-                                await new Promise(r => setTimeout(r, retryDelays[attempt - 1]));
-                            }
+                            })
+                        });
 
-                            response = await fetch(apiUrl, {
+                        if (response.ok) {
+                            usedModel = modelName;
+                            isStreamMode = true;
+                            break;
+                        }
+
+                        const errText = await response.text().catch(() => '');
+                        lastErrorDetail = errText;
+                        console.warn(`[스트리밍 503 감지 -> 일반 호출 전환] 모델: ${modelName} | 상태코드: ${response.status} | 프롬프트: ${combinedPrompt.length.toLocaleString()}자 (매칭 ${matchedRows.length}행 / 활성 ${activeSheetData.length}행)`);
+                    } catch (streamFetchErr) {
+                        console.warn(`[스트리밍 호출 오류 -> 일반 호출 전환] ${modelName}:`, streamFetchErr);
+                    }
+
+                    // [2단계] 스트리밍 실패 시 파싱 호출과 동일한 일반 일괄 호출(:generateContent)로 즉시 전환
+                    const syncUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+                    for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+                        try {
+                            const waitMs = retryDelays[attempt];
+                            if (manualQuery) {
+                                $('btnManualQuery').innerHTML = attempt === 0 ? '일괄응답 전환..' : `재시도(${attempt}/${retryDelays.length - 1})...`;
+                            } else {
+                                $('btnContext').innerHTML = attempt === 0 ? '일괄응답 전환..' : `재시도(${attempt}/${retryDelays.length - 1})...`;
+                            }
+                            if (attempt > 0) {
+                                showToast(`⏳ 구글 AI 과부하 - ${waitMs / 1000}초 후 재시도 중... (${attempt}/${retryDelays.length - 1}회)`);
+                            }
+                            await new Promise(r => setTimeout(r, waitMs));
+
+                            response = await fetch(syncUrl, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
                                     'x-goog-api-key': settings.apiKey
                                 },
                                 body: JSON.stringify({
-                                    system_instruction: { parts: [{ text: systemInstruction }] },
-                                    contents: [{ parts: [{ text: userPrompt }] }],
+                                    contents: [{ parts: [{ text: combinedPrompt }] }],
                                     generationConfig: {
-                                        temperature: 0.45,
-                                        maxOutputTokens: 8192
+                                        temperature: 0.45
                                     }
                                 })
                             });
 
                             if (response.ok) {
                                 usedModel = modelName;
+                                isStreamMode = false;
+                                console.log(`✅ [일반 generateContent 전환 성공] 모델: ${modelName} (시도 ${attempt + 1})`);
                                 break;
                             }
 
                             const errText = await response.text().catch(() => '');
                             lastErrorDetail = errText;
-                            console.error(`[Gemini API 상세 오류 응답] 모델: ${modelName} | 시도: ${attempt + 1}/${retryDelays.length + 1} | 상태코드: ${response.status} | 전송 프롬프트 길이: ${userPrompt.length.toLocaleString()}자 (매칭 ${matchedRows.length}행 / 활성 ${activeSheetData.length}행)\n응답 본문:`, errText);
+                            console.error(`[Gemini API 일반 호출 오류] 모델: ${modelName} | 시도: ${attempt + 1}/${retryDelays.length} | 상태코드: ${response.status}\n응답 본문:`, errText);
 
-                            // 503(과부하), 500(일시 서버 오류), 429(일시 분당 제한) 발생 시 지수 백오프 재시도
-                            if ([503, 500, 429].includes(response.status) && attempt < retryDelays.length) {
-                                continue;
+                            if (![503, 500, 429].includes(response.status)) {
+                                break;
                             }
-                            break;
-                        } catch (fetchErr) {
-                            console.warn(`[AI 모델 오류] ${modelName} (시도 ${attempt + 1}):`, fetchErr);
-                            if (attempt >= retryDelays.length) break;
+                        } catch (syncFetchErr) {
+                            console.warn(`[일반 호출 오류] ${modelName} (시도 ${attempt + 1}):`, syncFetchErr);
                         }
                     }
 
@@ -3841,8 +3871,6 @@ ${recentText}
                 const streamEl = aiBlock.querySelector('#aiStreamText');
                 streamEl.removeAttribute('id');
 
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
                 let fullText = '';
                 let lineBuffer = '';
                 let loopDetected = false;
@@ -3879,29 +3907,38 @@ ${recentText}
                 };
 
                 try {
-                    while (true) {
-                        if (loopDetected) {
-                            try { await reader.cancel(); } catch (cErr) { }
-                            break;
+                    if (isStreamMode) {
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        while (true) {
+                            if (loopDetected) {
+                                try { await reader.cancel(); } catch (cErr) { }
+                                break;
+                            }
+
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            const chunk = decoder.decode(value, { stream: true });
+                            lineBuffer += chunk;
+
+                            const lines = lineBuffer.split('\n');
+                            lineBuffer = lines.pop(); // 미완성 라인 대기
+
+                            for (const line of lines) {
+                                parseSSE(line);
+                                if (loopDetected) break;
+                            }
                         }
 
-                        const { done, value } = await reader.read();
-                        if (done) break;
-
-                        const chunk = decoder.decode(value, { stream: true });
-                        lineBuffer += chunk;
-
-                        const lines = lineBuffer.split('\n');
-                        lineBuffer = lines.pop(); // 미완성 라인 대기
-
-                        for (const line of lines) {
-                            parseSSE(line);
-                            if (loopDetected) break;
+                        if (lineBuffer && !loopDetected) {
+                            parseSSE(lineBuffer);
                         }
-                    }
-
-                    if (lineBuffer && !loopDetected) {
-                        parseSSE(lineBuffer);
+                    } else {
+                        // 일반 :generateContent 일괄 JSON 응답 파싱
+                        const gData = await response.json();
+                        const parts = gData?.candidates?.[0]?.content?.parts || [];
+                        fullText = parts.map(p => p.text || '').join('');
                     }
                 } catch (readErr) {
                     console.warn('Stream read exception:', readErr);

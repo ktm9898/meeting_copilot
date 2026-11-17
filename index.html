@@ -3748,6 +3748,7 @@ ${recentText}
                 const candidateModels = ['gemini-3.6-flash'];
                 let response = null;
                 let usedModel = '';
+                let lastErrorDetail = '';
 
                 for (const modelName of candidateModels) {
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
@@ -3773,6 +3774,10 @@ ${recentText}
                             break;
                         }
 
+                        const errText = await response.text().catch(() => '');
+                        lastErrorDetail = errText;
+                        console.error(`[Gemini API 상세 오류 응답] 모델: ${modelName} | 상태코드: ${response.status} | 전송 프롬프트 길이: ${userPrompt.length.toLocaleString()}자 (매칭 ${matchedRows.length}행 / 활성 ${activeSheetData.length}행)\n응답 본문:`, errText);
+
                         // 429(일일 쿼터 초과) 또는 503(과부하) 발생 시 다음 후보 모델로 자동 스위칭
                         if (response.status === 429 || response.status === 503) {
                             console.warn(`[AI 모델 전환] ${modelName} 상태코드 ${response.status} -> 다음 가용 모델로 자동 전환합니다.`);
@@ -3784,7 +3789,15 @@ ${recentText}
                 }
 
                 if (!response || !response.ok) {
-                    throw new Error(`API ${response ? response.status : '오프라인'}`);
+                    let errMsg = `API ${response ? response.status : '오프라인'}`;
+                    if (lastErrorDetail) {
+                        try {
+                            const parsedErr = JSON.parse(lastErrorDetail);
+                            const apiMessage = parsedErr?.error?.message || parsedErr?.[0]?.error?.message;
+                            if (apiMessage) errMsg += ` (${apiMessage})`;
+                        } catch (e) {}
+                    }
+                    throw new Error(errMsg);
                 }
 
                 // AI 블록 및 질문 헤더 생성

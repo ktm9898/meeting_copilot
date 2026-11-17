@@ -3746,46 +3746,63 @@ ${recentText}
                 }
 
                 const candidateModels = ['gemini-3.6-flash'];
+                const retryDelays = [2000, 4000, 8000]; // 503 과부하 스파이크 대응 지수 백오프 (2초 → 4초 → 8초)
                 let response = null;
                 let usedModel = '';
                 let lastErrorDetail = '';
 
                 for (const modelName of candidateModels) {
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
-                    try {
-                        response = await fetch(apiUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'x-goog-api-key': settings.apiKey
-                            },
-                            body: JSON.stringify({
-                                system_instruction: { parts: [{ text: systemInstruction }] },
-                                contents: [{ parts: [{ text: userPrompt }] }],
-                                generationConfig: {
-                                    temperature: 0.45,
-                                    maxOutputTokens: 8192
+                    for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+                        try {
+                            if (attempt > 0) {
+                                const waitSec = retryDelays[attempt - 1] / 1000;
+                                if (manualQuery) {
+                                    $('btnManualQuery').innerHTML = `재시도(${attempt}/${retryDelays.length})...`;
+                                } else {
+                                    $('btnContext').innerHTML = `재시도(${attempt}/${retryDelays.length})...`;
                                 }
-                            })
-                        });
+                                showToast(`⏳ 구글 AI 일시 과부하 - ${waitSec}초 후 자동 재시도 중... (${attempt}/${retryDelays.length}회)`);
+                                await new Promise(r => setTimeout(r, retryDelays[attempt - 1]));
+                            }
 
-                        if (response.ok) {
-                            usedModel = modelName;
+                            response = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'x-goog-api-key': settings.apiKey
+                                },
+                                body: JSON.stringify({
+                                    system_instruction: { parts: [{ text: systemInstruction }] },
+                                    contents: [{ parts: [{ text: userPrompt }] }],
+                                    generationConfig: {
+                                        temperature: 0.45,
+                                        maxOutputTokens: 8192
+                                    }
+                                })
+                            });
+
+                            if (response.ok) {
+                                usedModel = modelName;
+                                break;
+                            }
+
+                            const errText = await response.text().catch(() => '');
+                            lastErrorDetail = errText;
+                            console.error(`[Gemini API 상세 오류 응답] 모델: ${modelName} | 시도: ${attempt + 1}/${retryDelays.length + 1} | 상태코드: ${response.status} | 전송 프롬프트 길이: ${userPrompt.length.toLocaleString()}자 (매칭 ${matchedRows.length}행 / 활성 ${activeSheetData.length}행)\n응답 본문:`, errText);
+
+                            // 503(과부하), 500(일시 서버 오류), 429(일시 분당 제한) 발생 시 지수 백오프 재시도
+                            if ([503, 500, 429].includes(response.status) && attempt < retryDelays.length) {
+                                continue;
+                            }
                             break;
+                        } catch (fetchErr) {
+                            console.warn(`[AI 모델 오류] ${modelName} (시도 ${attempt + 1}):`, fetchErr);
+                            if (attempt >= retryDelays.length) break;
                         }
-
-                        const errText = await response.text().catch(() => '');
-                        lastErrorDetail = errText;
-                        console.error(`[Gemini API 상세 오류 응답] 모델: ${modelName} | 상태코드: ${response.status} | 전송 프롬프트 길이: ${userPrompt.length.toLocaleString()}자 (매칭 ${matchedRows.length}행 / 활성 ${activeSheetData.length}행)\n응답 본문:`, errText);
-
-                        // 429(일일 쿼터 초과) 또는 503(과부하) 발생 시 다음 후보 모델로 자동 스위칭
-                        if (response.status === 429 || response.status === 503) {
-                            console.warn(`[AI 모델 전환] ${modelName} 상태코드 ${response.status} -> 다음 가용 모델로 자동 전환합니다.`);
-                            continue;
-                        }
-                    } catch (fetchErr) {
-                        console.warn(`[AI 모델 오류] ${modelName}:`, fetchErr);
                     }
+
+                    if (response && response.ok) break;
                 }
 
                 if (!response || !response.ok) {

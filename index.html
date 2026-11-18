@@ -3237,51 +3237,48 @@
             // 1-1. 시스템 프롬프트 에코 문구 자동 제거 (2중 방어선)
             clean = clean.replace(/^(당신은|최고경영진 및 이사회|수석 전략데이터분석가|사내 공문서 및 사업계획)[^\n]*\n?/gm, '').trim();
 
-            // 출처 분리 헬퍼: 현재 지식 DB(state.sheetData)의 실제 문서 제목 목록을 기준으로 매칭하여
-            // 문장 끝이나 본문에 인용된 [문서제목] 또는 (문서제목)을 100% 📄 출처 칩 태그로 분리
+            // 출처 분리 헬퍼: 현재 지식 DB(state.sheetData)의 실제 등록된 문서 제목 목록만 엄격 매칭
+            // 본문 문장 구조를 절대 훼손하지 않고, 오직 등록된 정식 문서명만 📄 출처 칩 태그로 분리
             const processSources = (lineContent) => {
                 const sources = [];
+                if (!lineContent) return { cleanText: '', sourcesHtml: '' };
                 if (lineContent.startsWith('[시점 안내]') || lineContent.startsWith('<strong>[시점 안내]</strong>')) {
                     return { cleanText: lineContent, sourcesHtml: '' };
                 }
 
-                // 현재 로드된 모든 문서 제목 고유 Set 및 길이 역순 정렬 (긴 제목 우선 매칭)
+                // 현재 로드된 모든 실제 문서 제목 고유 Set 및 길이 역순 정렬 (긴 제목 우선 매칭)
                 const knownTitles = Array.from(new Set(
                     (state.sheetData || []).map(r => (r.title || '').trim()).filter(Boolean)
                 )).sort((a, b) => b.length - a.length);
 
                 let cleanText = lineContent;
 
-                // 1) 실제 등록된 문서 제목 목록(Source of Truth)을 기준으로 정확히 매칭하여 분리
+                // 1) 실제 등록된 문서 제목 목록(Source of Truth)에 한해서만 정확히 매칭
                 for (const title of knownTitles) {
-                    if (!title) continue;
-                    // 제목 내 특수문자 정규식 이스케이프
+                    if (!title || title.length < 2) continue;
                     const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-                    // [문서제목] 형태 추출
-                    const bracketRegex = new RegExp(`\\[\\s*${escaped}\\s*\\]`, 'gi');
+                    // 문장 뒤나 중간에 붙은 [문서제목] 또는 (문서제목) 패턴 분리
+                    // 주의: 뒤에 따라붙는 "기준,"이나 "에 따르면" 같은 문맥 단어가 잘려나가지 않도록 문서명 괄호만 정밀 제거
+                    const bracketRegex = new RegExp(`\\[\\s*${escaped}\\s*\\](?:\\s*(?:기준|에\\s*따르면|의거))?`, 'gi');
                     if (bracketRegex.test(cleanText)) {
                         if (!sources.includes(title)) sources.push(title);
                         cleanText = cleanText.replace(bracketRegex, '');
                     }
 
-                    // 문장 끝에 붙은 (문서제목) 형태 추출 (단, 일반 설명 괄호와 구분하기 위해 등록된 문서제목과 정확히 일치할 때만)
-                    const parenRegex = new RegExp(`\\(\\s*${escaped}\\s*\\)(?=[\\s.,]|\$)`, 'gi');
+                    const parenRegex = new RegExp(`\\(\\s*${escaped}\\s*\\)(?:\\s*(?:기준|에\\s*따르면|의거))?(?=[\\s.,]|$)`, 'gi');
                     if (parenRegex.test(cleanText)) {
                         if (!sources.includes(title)) sources.push(title);
                         cleanText = cleanText.replace(parenRegex, '');
                     }
                 }
 
-                // 2) 폴백: AI가 인용한 [대괄호 출처] 중 일반적인 문서/보고서 패턴도 포괄
-                cleanText = cleanText.replace(/\[([^\]]{2,100}?(?:보고서|리포트|계획|현황|자료|공문|출처|시점|데이터|분석|조사)[^\]]*?)\]/g, (match, p1) => {
-                    const trimmed = p1.trim();
-                    if (trimmed && !sources.includes(trimmed)) sources.push(trimmed);
-                    return '';
-                });
-
-                // [공백 및 문장부호 정제] 마침표/쉼표 앞 불필요한 공백 제거 (예: "감소했습니다 ." -> "감소했습니다.")
+                // 2) 출처가 잘려나가면서 남은 문장 앞뒤 찌꺼기 기호 및 공백 정제
+                // (예: ": 기준, 1단계" -> "1단계", ": 및 기준, " -> "")
                 cleanText = cleanText
+                    .replace(/^[\s:：·•\-]+(?:및\s*)?(?:기준|에\s*따르면)[,\s]*/i, '') // 불릿 앞머리에 덩그러니 남은 ': 기준, ' 또는 ': 및 기준, ' 완전 제거
+                    .replace(/\s*:\s*(?:및\s*)?(?:기준|에\s*따르면)[,\s]*/i, ': ')     // 콜론 뒤에 붙은 ': 기준, ' 정제
+                    .replace(/\[\s*(?:및\s*)?(?:기준|에\s*따르면)[^\]]*\]/gi, '')     // [기준] 잔여 괄호 제거
                     .replace(/\s+\./g, '.')
                     .replace(/\s+,/g, ',')
                     .replace(/\s{2,}/g, ' ')
@@ -3693,8 +3690,9 @@
    - 동일 사업/과제에 대해 '당초 계획서'와 '변경계획/추경/의결서'가 함께 존재할 경우, 시간순으로 교차 검증하여 최종 확정치와 변동 내역을 종합 정리하고 복수 출처를 모두 명시하세요. (예: [2024년도 사업계획서] [2024년도 제2차 변경계획서])
 9. **이모지 및 특수 마크다운/연속 기호 금지**:
    - 이모지(🤖, 💡, ⚠️, 📌 등)를 일체 사용하지 마세요. 소제목은 '1. 핵심 요약', '2. 세부 데이터 및 사실관계'처럼 단정하게 작성하세요.
-10. **기준 시점 및 출처 필수 명시**:
-    - 모든 주요 수치나 팩트를 언급할 때는 반드시 해당 내용이 명시된 **[문서명 및 기준 시점(연도/월/분기)]**을 밝히세요.
+10. **기준 시점 및 출처 필수 명시 (연도/시점 왜곡 절대 금지)**:
+    - 모든 주요 수치를 언급할 때는 반드시 해당 내용이 명시된 **[실제 원본 문서명]**과 **[정확한 조사/기준 시점(연도/월/분기)]**을 밝히세요. 임의로 가상의 문서명을 창작하지 마세요.
+    - **[과거 실적 vs 미래 목표 엄격 구분]**: 현재 시점(${currentDateStr}) 기준으로 아직 조사되지 않은 미래 시점(예: 2026년 2분기 등)을 '확정 실적'이나 '현황'으로 기술하지 마세요. 미래 연도는 반드시 **'2026년 추진 목표/계획치'**로 표기하고, 과거 통계 데이터는 **'2024년 결산 실적'** 또는 **'2024년 실태조사 기준'**처럼 시점을 팩트에 맞게 명확히 분리하세요.
 11. **시점 불일치 시 첫머리 안내 (필수)**:
     - 사용자가 '올해', '최근', '현재' 실적/수치를 물었으나 보유 자료가 과거(예: 작년) 수치인 경우, 답변 맨 첫 줄에 오해가 없도록 명확히 고지하세요.
     - 예: "[시점 안내]: 등록된 최신 자료는 **'2023년 성과보고서'**이며, ${now.getFullYear()}년(올해) 자료는 등록되어 있지 않아 **2023년 결산 수치** 기준으로 안내드립니다."

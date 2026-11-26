@@ -82,6 +82,8 @@
         .header-logo {
             font-size: 1.3rem;
             font-weight: 900;
+            white-space: nowrap;
+            flex-shrink: 0;
             background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -1120,16 +1122,28 @@
             }
 
             .header-logo {
-                font-size: 1rem;
+                font-size: 1.05rem;
+                white-space: nowrap;
             }
 
             .header-status {
-                font-size: 0.65rem;
-                padding: 2px 6px;
-                max-width: 110px;
+                width: 10px;
+                height: 10px;
+                min-width: 10px;
+                padding: 0;
+                font-size: 0;
+                color: transparent;
                 overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
+                border-radius: 50%;
+                background: #9ca3af;
+                flex-shrink: 0;
+                transition: background 0.2s ease, box-shadow 0.2s ease;
+            }
+
+            .header-status.listening {
+                background: #ef4444;
+                box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+                animation: pulse 1.6s infinite;
             }
 
             .icon-btn {
@@ -2643,6 +2657,7 @@
                 micDot.classList.add('active');
                 micStatus.textContent = '듣는 중';
                 headerStatus.textContent = '🔴 듣는 중';
+                headerStatus.classList.add('listening');
                 $('btnListen').innerHTML = '중지';
                 $('btnListen').classList.add('danger');
                 $('btnListen').classList.remove('primary');
@@ -2668,6 +2683,7 @@
                     micDot.classList.remove('active');
                     micStatus.textContent = '중지';
                     headerStatus.textContent = '대기';
+                    headerStatus.classList.remove('listening');
                     $('btnListen').innerHTML = '듣기';
                     $('btnListen').classList.remove('danger');
                 }
@@ -3019,12 +3035,26 @@
         // ============================================================
         let recorderMimeType = '';
         let recordInterval = null;
+        let vadAudioCtx = null;
+        let vadInterval = null;
+        let vadEnabled = false;
+        let chunkPeakRms = 0;
 
         function stopAudioRecording() {
             if (recordInterval) {
                 clearInterval(recordInterval);
                 recordInterval = null;
             }
+            if (vadInterval) {
+                clearInterval(vadInterval);
+                vadInterval = null;
+            }
+            if (vadAudioCtx) {
+                try { vadAudioCtx.close(); } catch (e) { }
+                vadAudioCtx = null;
+            }
+            vadEnabled = false;
+            chunkPeakRms = 0;
             if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
                 state.mediaRecorder.stop();
             }
@@ -3050,6 +3080,37 @@
                 state.audioChunks = [];
                 state.lastTranscript = "";
                 state.lastChunkText = "";
+                chunkPeakRms = 0;
+                vadEnabled = false;
+
+                // 브라우저 측 무음 감지(VAD) 초기화: 침묵 구간의 Whisper 환각 원천 차단
+                if (useWhisperChunks) {
+                    try {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) {
+                            vadAudioCtx = new AudioCtx();
+                            const source = vadAudioCtx.createMediaStreamSource(state.audioStream);
+                            const analyser = vadAudioCtx.createAnalyser();
+                            analyser.fftSize = 2048;
+                            source.connect(analyser);
+                            const dataArr = new Float32Array(analyser.fftSize);
+                            vadEnabled = true;
+                            vadInterval = setInterval(() => {
+                                if (!state.listening) return;
+                                analyser.getFloatTimeDomainData(dataArr);
+                                let sumSq = 0;
+                                for (let i = 0; i < dataArr.length; i++) {
+                                    sumSq += dataArr[i] * dataArr[i];
+                                }
+                                const rms = Math.sqrt(sumSq / dataArr.length);
+                                if (rms > chunkPeakRms) chunkPeakRms = rms;
+                            }, 150);
+                        }
+                    } catch (vadErr) {
+                        console.warn('VAD init skipped:', vadErr);
+                        vadEnabled = false;
+                    }
+                }
 
                 function createRecorder() {
                     const rec = recorderMimeType
@@ -3058,6 +3119,9 @@
 
                     rec.ondataavailable = e => {
                         if (e.data && e.data.size > 0) {
+                            const peakForThisChunk = chunkPeakRms;
+                            chunkPeakRms = 0;
+
                             const chunkObj = {
                                 time: Date.now(),
                                 blob: e.data
@@ -3066,9 +3130,13 @@
                             const cutoff = Date.now() - state.maxBufferSec * 1000;
                             state.audioChunks = state.audioChunks.filter(c => c.time > cutoff);
 
-                            // 실시간 위스퍼 변환 (최신 단독 청크 전송으로 중복 전사 원천 차단)
+                            // 실시간 위스퍼 변환 (무음 구간은 전송 스킵하여 환각 및 불필요한 호출 차단)
                             const settings = loadSettings();
                             if (settings.groqKey && state.listening && useWhisperChunks) {
+                                if (vadEnabled && peakForThisChunk < 0.012) {
+                                    console.log(`Skipped silent chunk (peak RMS: ${peakForThisChunk.toFixed(4)})`);
+                                    return;
+                                }
                                 const latestChunk = state.audioChunks[state.audioChunks.length - 1];
                                 if (latestChunk) {
                                     transcribeAudioWithGroq(settings.groqKey, [latestChunk], recorderMimeType)
@@ -3166,10 +3234,10 @@
                 return state.lastTranscript ? state.lastTranscript.slice(-100) : '';
             }
 
-            // 2. 라운드 로빈 방식으로 150자가 찰 때까지 골고루 수집 (문서가 적으면 한 문서당 여러 개 자동 수집)
+            // 2. 라운드 로빈 방식으로 95자 이내 순수 핵심 고유명사만 짧게 수집 (프롬프트 누출 방지)
             const selectedWords = [];
             const usedWordSet = new Set();
-            const MAX_DICT_CHARS = 140;
+            const MAX_DICT_CHARS = 95;
             let currentLength = 0;
             let round = 0;
             let addedInRound = true;
@@ -3192,16 +3260,8 @@
                 round++;
             }
 
-            // 3. 사전 지식 1순위 보장 + 남는 여유 버퍼(안전 한도 200자 중 남은 공간)에 최근 발화 문맥 덧붙임
-            const dictText = selectedWords.length > 0 ? '회의 주요 어휘: ' + selectedWords.join(', ') : '';
-            const remainingChars = Math.max(0, 200 - dictText.length);
-            let contextTail = '';
-            if (state.lastTranscript && remainingChars >= 20) {
-                contextTail = '. ' + state.lastTranscript.trim().slice(-remainingChars);
-            }
-
-            const finalPrompt = (dictText + contextTail).trim();
-            return finalPrompt;
+            // 3. 라벨 접두어('회의 주요 어휘:') 및 lastTranscript 피드백 완전 제거 (프롬프트 누출·환각 증폭 루프 차단)
+            return selectedWords.join(', ').trim();
         }
 
         async function transcribeAudioWithGroq(apiKey, audioChunks, mimeType) {
@@ -3221,44 +3281,16 @@
             const file = new File([finalBlob], `audio.${extension}`, { type: blobType });
             const formData = new FormData();
             formData.append('file', file);
-            // 정밀 원본 모델 사용 (터보 대비 한국어 어휘 정확도 대폭 향상)
+            // 정밀 원본 모델 사용 + verbose_json(신뢰도/무음확률 필터) + temperature=0(창작 환각 억제)
             formData.append('model', 'whisper-large-v3');
-            formData.append('response_format', 'text');
+            formData.append('response_format', 'verbose_json');
+            formData.append('temperature', '0');
             formData.append('language', 'ko');
 
-            // 위스퍼 스마트 사전 프롬프트 주입 (불용어 제외 + 고유명사 점수제 + 라운드로빈 150자 풀)
+            // 순수 고유명사 사전 프롬프트 주입 (접두어·이전문장 피드백 없음)
             const promptText = buildWhisperPrompt();
             if (promptText) {
                 formData.append('prompt', promptText);
-            }
-
-            /* 이전 프롬프트 로직 비활성화 */
-            if (false) {
-                let kwHints = [];
-                if (state.sheetData && state.sheetData.length > 0) {
-                    const kwSet = new Set();
-                    state.sheetData.forEach(r => {
-                        if (Array.isArray(r.keywords)) {
-                            r.keywords.forEach(k => {
-                                if (k && typeof k === 'string' && k.trim().length > 1) {
-                                    kwSet.add(k.trim());
-                                }
-                            });
-                        }
-                    });
-                    kwHints = Array.from(kwSet).slice(0, 35);
-                }
-
-                let promptParts = [];
-                if (kwHints.length > 0) {
-                    promptParts.push("회의 주요 키워드: " + kwHints.join(", "));
-                }
-                if (state.lastTranscript) {
-                    promptParts.push(state.lastTranscript);
-                }
-                if (promptParts.length > 0) {
-                    formData.append('prompt', promptParts.join(". ").slice(-350));
-                }
             }
 
             try {
@@ -3271,28 +3303,51 @@
                     const errorObj = await res.json();
                     throw new Error(errorObj.error?.message || `HTTP ${res.status}`);
                 }
-                let resultText = (await res.text()).trim();
+                const resJson = await res.json();
+                let resultText = '';
+
+                // 1) Whisper 공식 신뢰도 지표 기반 환각 세그먼트 정밀 폐기
+                if (Array.isArray(resJson.segments) && resJson.segments.length > 0) {
+                    const validSegments = resJson.segments.filter(seg => {
+                        const noSpeech = typeof seg.no_speech_prob === 'number' ? seg.no_speech_prob : 0;
+                        const compRatio = typeof seg.compression_ratio === 'number' ? seg.compression_ratio : 1;
+                        const avgLogProb = typeof seg.avg_logprob === 'number' ? seg.avg_logprob : 0;
+                        if (noSpeech > 0.6) return false;
+                        if (compRatio > 2.4) return false;
+                        if (avgLogProb < -1.0 && noSpeech > 0.35) return false;
+                        return true;
+                    });
+                    resultText = validSegments.map(s => (s.text || '').trim()).filter(Boolean).join(' ').trim();
+                } else {
+                    resultText = (resJson.text || '').trim();
+                }
 
                 // 문장 끝에 붙는 뉴스/방송 환각 꼬리표 정규식 제거 (예: "이 시각 세계였습니다.")
                 resultText = resultText
                     .replace(/\s*(이\s*시각\s*세계였습니다|이\s*시각\s*세계|뉴스였습니다|기자였습니다|날씨였습니다|시청해\s*주셔서\s*감사합니다|감사합니다|구독과\s*좋아요)\s*[.?!]*$/gi, '')
                     .trim();
 
-                // ✨ Whisper 한국어 환각(Hallucination) 필터링 강화
+                // 2) 기계적 반복 구절 환각 감지 (동일 4자 이상 구절 3회 이상 연속 반복)
+                if (/(.{4,25}?)\s*(?:\1\s*){2,}/.test(resultText)) {
+                    console.log('Filtered repetitive Whisper hallucination:', resultText);
+                    return null;
+                }
+
+                // 3) ✨ Whisper 한국어 환각(Hallucination) 및 프롬프트 누출 필터링 강화
                 const cleanText = resultText.replace(/[.,!?'"~`\s]/g, '');
                 const hallucinations = [
                     '감사합니다', '시청해주셔서감사합니다', '이번영상은여기까지입니다',
                     '구독과좋아요', '구독좋아요', 'MBC뉴스', 'KBS뉴스', 'SBS뉴스',
                     '안녕히계세요', '다음영상에서만나요', '끝까지시청해주셔서감사합니다',
                     '좋은하루되세요', '수고하셨습니다', '이시각세계였습니다', '이시각세계',
-                    '뉴스였습니다', '날씨였습니다', '기자였습니다', '뉴스특보'
+                    '뉴스였습니다', '날씨였습니다', '기자였습니다', '뉴스특보',
+                    '회의주요어휘', '주요어휘'
                 ];
                 if (!cleanText || hallucinations.some(h => cleanText === h || (cleanText.startsWith(h) && cleanText.length < h.length + 5))) {
                     console.log('Filtered Whisper hallucination:', resultText);
                     return null;
                 }
 
-                state.lastTranscript = (resultText || "").slice(-60);
                 return resultText;
             } catch (e) {
                 console.error('Groq API Error:', e);
@@ -5087,6 +5142,7 @@ ${recentText}
                         micDot.classList.remove('active');
                         micStatus.textContent = '중지';
                         headerStatus.textContent = '대기 중';
+                        headerStatus.classList.remove('listening');
                         $('btnListen').innerHTML = '듣기';
                         $('btnListen').classList.remove('danger');
                     }
@@ -5102,6 +5158,7 @@ ${recentText}
                         micDot.classList.add('active');
                         micStatus.textContent = '듣는 중';
                         headerStatus.textContent = useWhisper ? '🔴 위스퍼(5초 간격)' : '🔴 듣는 중';
+                        headerStatus.classList.add('listening');
                         $('btnListen').innerHTML = '중지';
                         $('btnListen').classList.add('danger');
                         $('btnListen').classList.remove('primary');
@@ -5140,6 +5197,7 @@ ${recentText}
                         micDot.classList.remove('active');
                         micStatus.textContent = '중지';
                         headerStatus.textContent = '대기 중';
+                        headerStatus.classList.remove('listening');
                         $('btnListen').innerHTML = '듣기';
                         $('btnListen').classList.remove('danger');
                         showToast('❌ 마이크를 시작할 수 없습니다');

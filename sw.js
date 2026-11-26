@@ -1,5 +1,5 @@
 // Meeting Copilot Service Worker
-const CACHE_NAME = 'meeting-copilot-v32';
+const CACHE_NAME = 'meeting-copilot-v33';
 const ASSETS = [
   './',
   './index.html',
@@ -27,7 +27,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: cache-first for assets, network-first for API calls
+// Fetch: network-first for HTML/navigation, cache-first for static assets, native for API calls
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -36,7 +36,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Everything else: cache-first
+  // HTML / page navigation: network-first so updates take effect immediately without stale cache
+  if (event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(res => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Static assets (icons, fonts, manifest): cache-first
   event.respondWith(
     caches.match(event.request).then(cached => cached || fetch(event.request))
   );

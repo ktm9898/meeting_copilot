@@ -1070,6 +1070,31 @@
         }
 
         /* ===== RESPONSIVE ===== */
+        .panel-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+        }
+
+        .panel-action-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+
+        .panel-action-btn .btn-icon {
+            display: none;
+        }
+
         @media (max-width: 768px) {
             .modal {
                 padding: 18px 14px !important;
@@ -1111,6 +1136,23 @@
                 width: 30px;
                 height: 30px;
                 font-size: 0.85rem;
+            }
+
+            .panel-action-btn {
+                width: 30px;
+                height: 30px;
+                padding: 0;
+                border-radius: 7px;
+            }
+
+            .panel-action-btn .btn-icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .panel-action-btn .btn-label {
+                display: none;
             }
 
             .pc-only-title {
@@ -1406,10 +1448,24 @@
                         <span class="data-dot" id="dataDot"></span>
                         <span class="data-status-text" id="dataStatusText">시트 미연결</span>
                     </span>
-                    <button id="btnSaveSTT" title="현재 음성 인식 내용 시트에 저장"
-                        style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">저장</button>
-                    <button id="btnLoadSTT" title="저장된 음성 인식 불러오기"
-                        style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">불러오기</button>
+                    <button id="btnSaveSTT" class="panel-action-btn" title="현재 음성 인식 내용 시트에 저장" aria-label="음성 인식 저장">
+                        <span class="btn-icon" aria-hidden="true">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        </span>
+                        <span class="btn-label">저장</span>
+                    </button>
+                    <button id="btnLoadSTT" class="panel-action-btn" title="저장된 음성 인식 불러오기" aria-label="음성 인식 불러오기">
+                        <span class="btn-icon" aria-hidden="true">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M12 11v6"></path><path d="m9 14 3-3 3 3"></path></svg>
+                        </span>
+                        <span class="btn-label">불러오기</span>
+                    </button>
+                    <button id="btnClearSTT" class="panel-action-btn" title="음성 인식 내용 지우기" aria-label="음성 인식 지우기">
+                        <span class="btn-icon" aria-hidden="true">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </span>
+                        <span class="btn-label">지우기</span>
+                    </button>
                 </div>
             </div>
             <div class="stt-stream" id="sttStream"></div>
@@ -1426,10 +1482,18 @@
                         답변카드</button>
                 </div>
                 <div style="display: flex; align-items: center; gap: 6px;">
-                    <button id="btnLoadCards" title="저장된 분석/자료확인 불러오기"
-                        style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">불러오기</button>
-                    <button id="btnClearCards" title="카드 모두 지우기"
-                        style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; white-space: nowrap;">지우기</button>
+                    <button id="btnLoadCards" class="panel-action-btn" title="저장된 분석/자료확인 불러오기" aria-label="답변 카드 불러오기">
+                        <span class="btn-icon" aria-hidden="true">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M12 11v6"></path><path d="m9 14 3-3 3 3"></path></svg>
+                        </span>
+                        <span class="btn-label">불러오기</span>
+                    </button>
+                    <button id="btnClearCards" class="panel-action-btn" title="카드 모두 지우기" aria-label="답변 카드 지우기">
+                        <span class="btn-icon" aria-hidden="true">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </span>
+                        <span class="btn-label">지우기</span>
+                    </button>
                 </div>
             </div>
             <div class="flash-area" id="flashArea">
@@ -4117,9 +4181,12 @@ ${recentText}
             saveMemoryHistory('stt', record, 100);
 
             const btn = $('btnSaveSTT');
-            const origText = btn.textContent;
-            btn.textContent = '저장중..';
+            const labelEl = btn.querySelector('.btn-label');
+            const origText = labelEl ? labelEl.textContent : btn.textContent;
+            if (labelEl) labelEl.textContent = '저장중..';
+            else btn.textContent = '저장중..';
             btn.disabled = true;
+            btn.style.opacity = '0.55';
 
             try {
                 const settings = loadSettings();
@@ -4143,8 +4210,10 @@ ${recentText}
             } catch (err) {
                 showToast('💾 음성 인식 내용이 임시 저장되었습니다');
             } finally {
-                btn.textContent = origText;
+                if (labelEl) labelEl.textContent = origText;
+                else btn.textContent = origText;
                 btn.disabled = false;
+                btn.style.opacity = '';
             }
         }
 
@@ -5094,9 +5163,18 @@ ${recentText}
                 showToast('🧹 답변 카드 및 이전 대화 기억이 초기화되었습니다');
             });
 
-            // STT 저장 / 불러오기 및 답변카드 불러오기 이벤트
+            // STT 저장 / 불러오기 / 지우기 및 답변카드 불러오기 이벤트
             $('btnSaveSTT').addEventListener('click', () => saveSTTRecord());
             $('btnLoadSTT').addEventListener('click', () => openHistoryModal('stt'));
+            $('btnClearSTT').addEventListener('click', () => {
+                sttStream.innerHTML = '';
+                state.speechBuffer = [];
+                state.audioChunks = [];
+                state.lastTranscript = '';
+                lastFinalText = '';
+                currentSpan = null;
+                showToast('🧹 음성 인식 내용이 초기화되었습니다');
+            });
             $('btnLoadCards').addEventListener('click', () => openHistoryModal('analysis'));
             $('btnHistoryClose').addEventListener('click', () => $('historyModal').classList.remove('show'));
             $('historyModal').addEventListener('click', (e) => {

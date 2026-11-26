@@ -285,8 +285,9 @@
 
         .accordion-header-left {
             display: flex;
-            align-items: center;
-            gap: 6px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 3px;
             flex: 1;
             min-width: 0;
         }
@@ -304,19 +305,24 @@
         }
 
         .accordion-title {
+            width: 100%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             color: var(--text-primary);
             font-weight: 700;
+            line-height: 1.3;
         }
 
         .accordion-kw {
             font-size: 0.72rem;
             color: var(--text-muted);
             font-weight: normal;
-            flex-shrink: 0;
-            margin-left: 4px;
+            line-height: 1.25;
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .accordion-arrow {
@@ -2969,8 +2975,8 @@
             const acc = document.createElement('div');
             acc.className = 'keyword-accordion';
 
-            // 키워드 태그
-            const kwTag = matchedKws.length > 0 ? `<span class="accordion-kw">(키워드: ${matchedKws.join(', ')})</span>` : '';
+            // 키워드 태그 (2줄 레이아웃용 깔끔한 표기)
+            const kwTag = matchedKws.length > 0 ? `<span class="accordion-kw">키워드: ${matchedKws.join(', ')}</span>` : '';
 
             // 본문 문장 단위 줄바꿈 및 불필요한 들여쓰기/공백 완벽 제거
             const formatted = text
@@ -2992,9 +2998,7 @@
                     </div>
                     <span class="accordion-arrow">▼</span>
                 </button>
-                <div class="keyword-accordion-body">
-                    ${formatted}
-                </div>
+                <div class="keyword-accordion-body">${formatted}</div>
             `;
 
             const btn = acc.querySelector('.keyword-accordion-header');
@@ -3814,6 +3818,11 @@
                     matchedRows = [...matchedRows, ...relatedRows];
                 }
 
+                // 맥락분석(실시간 회의 보조)은 긴 대화로 전체 문서가 과다 매칭되는 것을 방지해 상위 10개 청크로 정예화 (응답 속도 대폭 향상)
+                if (!manualQuery && matchedRows.length > 10) {
+                    matchedRows = matchedRows.slice(0, 10);
+                }
+
                 // 직전 매칭 행으로 보존 (후속 질문 컨텍스트 계승용)
                 state.lastMatchedRows = matchedRows.slice(0, 10);
 
@@ -3951,11 +3960,21 @@ ${recentText}
                 let lastErrorDetail = '';
                 const combinedPrompt = `${systemInstruction}\n\n${userPrompt}`;
 
+                const fetchWithTimeout = async (url, options, timeoutMs) => {
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), timeoutMs);
+                    try {
+                        return await fetch(url, { ...options, signal: controller.signal });
+                    } finally {
+                        clearTimeout(timer);
+                    }
+                };
+
                 for (const modelName of candidateModels) {
-                    // [1단계] 실시간 스트리밍(:streamGenerateContent?alt=sse) 1회 우선 시도
+                    // [1단계] 실시간 스트리밍(:streamGenerateContent?alt=sse) 1회 우선 시도 (25초 타임아웃)
                     const streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
                     try {
-                        response = await fetch(streamUrl, {
+                        response = await fetchWithTimeout(streamUrl, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -3967,7 +3986,7 @@ ${recentText}
                                     temperature: 0.45
                                 }
                             })
-                        });
+                        }, 25000);
 
                         if (response.ok) {
                             usedModel = modelName;
@@ -3979,10 +3998,10 @@ ${recentText}
                         lastErrorDetail = errText;
                         console.warn(`[스트리밍 503 감지 -> 일반 호출 전환] 모델: ${modelName} | 상태코드: ${response.status} | 프롬프트: ${combinedPrompt.length.toLocaleString()}자 (매칭 ${matchedRows.length}행 / 활성 ${activeSheetData.length}행)`);
                     } catch (streamFetchErr) {
-                        console.warn(`[스트리밍 호출 오류 -> 일반 호출 전환] ${modelName}:`, streamFetchErr);
+                        console.warn(`[스트리밍 호출 오류/타임아웃 -> 일반 호출 전환] ${modelName}:`, streamFetchErr);
                     }
 
-                    // [2단계] 스트리밍 실패 시 파싱 호출과 동일한 일반 일괄 호출(:generateContent)로 즉시 전환
+                    // [2단계] 스트리밍 실패/지연 시 일반 일괄 호출(:generateContent)로 즉시 전환 (35초 타임아웃)
                     const syncUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
                     for (let attempt = 0; attempt < retryDelays.length; attempt++) {
                         try {
@@ -3997,7 +4016,7 @@ ${recentText}
                             }
                             await new Promise(r => setTimeout(r, waitMs));
 
-                            response = await fetch(syncUrl, {
+                            response = await fetchWithTimeout(syncUrl, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -4009,7 +4028,7 @@ ${recentText}
                                         temperature: 0.45
                                     }
                                 })
-                            });
+                            }, 35000);
 
                             if (response.ok) {
                                 usedModel = modelName;

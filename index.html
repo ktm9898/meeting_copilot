@@ -3901,10 +3901,10 @@ ${recentText}
                 }
 
                 const candidateModels = ['gemini-3.6-flash'];
-                const retryDelays = [1000, 2000, 4000]; // 1차 스트리밍 503 시 -> 즉시(1초) 일반 generateContent 전환 -> 필요시 2초, 4초 재시도
+                const retryDelays = [0, 2000]; // 일반 호출 직행(1회) -> 503/500 일시 과부하 시에만 2초 후 딱 1회 재시도 (최대 2회)
                 let response = null;
                 let usedModel = '';
-                let isStreamMode = true;
+                let isStreamMode = false;
                 let lastErrorDetail = '';
                 const combinedPrompt = `${systemInstruction}\n\n${userPrompt}`;
 
@@ -3919,50 +3919,19 @@ ${recentText}
                 };
 
                 for (const modelName of candidateModels) {
-                    // [1단계] 실시간 스트리밍(:streamGenerateContent?alt=sse) 1회 우선 시도 (25초 타임아웃)
-                    const streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
-                    try {
-                        response = await fetchWithTimeout(streamUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'x-goog-api-key': settings.apiKey
-                            },
-                            body: JSON.stringify({
-                                contents: [{ parts: [{ text: combinedPrompt }] }],
-                                generationConfig: {
-                                    temperature: 0.45
-                                }
-                            })
-                        }, 25000);
-
-                        if (response.ok) {
-                            usedModel = modelName;
-                            isStreamMode = true;
-                            break;
-                        }
-
-                        const errText = await response.text().catch(() => '');
-                        lastErrorDetail = errText;
-                        console.warn(`[스트리밍 503 감지 -> 일반 호출 전환] 모델: ${modelName} | 상태코드: ${response.status} | 프롬프트: ${combinedPrompt.length.toLocaleString()}자 (매칭 ${matchedRows.length}행 / 활성 ${activeSheetData.length}행)`);
-                    } catch (streamFetchErr) {
-                        console.warn(`[스트리밍 호출 오류/타임아웃 -> 일반 호출 전환] ${modelName}:`, streamFetchErr);
-                    }
-
-                    // [2단계] 스트리밍 실패/지연 시 일반 일괄 호출(:generateContent)로 즉시 전환 (35초 타임아웃)
                     const syncUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
                     for (let attempt = 0; attempt < retryDelays.length; attempt++) {
                         try {
                             const waitMs = retryDelays[attempt];
-                            if (manualQuery) {
-                                $('btnManualQuery').innerHTML = attempt === 0 ? '일괄응답 전환..' : `재시도(${attempt}/${retryDelays.length - 1})...`;
-                            } else {
-                                $('btnContext').innerHTML = attempt === 0 ? '일괄응답 전환..' : `재시도(${attempt}/${retryDelays.length - 1})...`;
-                            }
                             if (attempt > 0) {
-                                showToast(`⏳ 구글 AI 과부하 - ${waitMs / 1000}초 후 재시도 중... (${attempt}/${retryDelays.length - 1}회)`);
+                                if (manualQuery) {
+                                    $('btnManualQuery').innerHTML = '재시도 중...';
+                                } else {
+                                    $('btnContext').innerHTML = '재시도 중...';
+                                }
+                                showToast(`⏳ 구글 AI 일시 과부하 - ${waitMs / 1000}초 후 1회 재시도 중...`);
+                                await new Promise(r => setTimeout(r, waitMs));
                             }
-                            await new Promise(r => setTimeout(r, waitMs));
 
                             response = await fetchWithTimeout(syncUrl, {
                                 method: 'POST',
@@ -3976,24 +3945,24 @@ ${recentText}
                                         temperature: 0.45
                                     }
                                 })
-                            }, 35000);
+                            }, 40000);
 
                             if (response.ok) {
                                 usedModel = modelName;
                                 isStreamMode = false;
-                                console.log(`✅ [일반 generateContent 전환 성공] 모델: ${modelName} (시도 ${attempt + 1})`);
                                 break;
                             }
 
                             const errText = await response.text().catch(() => '');
                             lastErrorDetail = errText;
-                            console.error(`[Gemini API 일반 호출 오류] 모델: ${modelName} | 시도: ${attempt + 1}/${retryDelays.length} | 상태코드: ${response.status}\n응답 본문:`, errText);
+                            console.error(`[Gemini API 오류] 모델: ${modelName} | 시도: ${attempt + 1}/${retryDelays.length} | 상태코드: ${response.status} | 프롬프트: ${combinedPrompt.length.toLocaleString()}자 (활성 ${activeSheetData.length}행)\n응답 본문:`, errText);
 
-                            if (![503, 500, 429].includes(response.status)) {
+                            // 429(한도 초과)는 재시도해도 무의미하고 한도만 낭비하므로 즉시 중단, 503/500만 1회 재시도 허용
+                            if (![503, 500].includes(response.status)) {
                                 break;
                             }
                         } catch (syncFetchErr) {
-                            console.warn(`[일반 호출 오류] ${modelName} (시도 ${attempt + 1}):`, syncFetchErr);
+                            console.warn(`[Gemini API 호출 오류/타임아웃] ${modelName} (시도 ${attempt + 1}):`, syncFetchErr);
                         }
                     }
 
@@ -4002,7 +3971,9 @@ ${recentText}
 
                 if (!response || !response.ok) {
                     let errMsg = `API ${response ? response.status : '오프라인'}`;
-                    if (lastErrorDetail) {
+                    if (response && response.status === 429) {
+                        errMsg = 'API 429 (무료 일일 호출 한도 초과 - ai.dev/rate-limit 확인)';
+                    } else if (lastErrorDetail) {
                         try {
                             const parsedErr = JSON.parse(lastErrorDetail);
                             const apiMessage = parsedErr?.error?.message || parsedErr?.[0]?.error?.message;

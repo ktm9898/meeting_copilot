@@ -3818,11 +3818,6 @@
                     matchedRows = [...matchedRows, ...relatedRows];
                 }
 
-                // 맥락분석(실시간 회의 보조)은 긴 대화로 전체 문서가 과다 매칭되는 것을 방지해 상위 10개 청크로 정예화 (응답 속도 대폭 향상)
-                if (!manualQuery && matchedRows.length > 10) {
-                    matchedRows = matchedRows.slice(0, 10);
-                }
-
                 // 직전 매칭 행으로 보존 (후속 질문 컨텍스트 계승용)
                 state.lastMatchedRows = matchedRows.slice(0, 10);
 

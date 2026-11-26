@@ -3718,116 +3718,68 @@
                 .map(t => t.replace(/(들의|에서|으로|관련|대한|에는|까지|부터|은|는|이|가|을|를|의|와|과|도|만)$/, ''))
                 .filter(t => t.length >= 2 && !stopWords.includes(t));
 
-            // 1) 선택된 문서(activeSheetData) 내에서 정밀 연관도 점수 기반 매칭
-            const scoredRows = activeSheetData.map(row => {
-                const titleLower = row.title.toLowerCase();
-                const catLower = row.category.toLowerCase();
+            // 1) 선택된(체크된) 모든 문서를 탈락 없이 포함하되, 문서 단위 연관도 우선순위 정렬 + 문서 내 원래 목차 순서 유지
+            const docGroupMap = new Map();
+            activeSheetData.forEach((row, origIdx) => {
+                const docKey = getDocKey(row);
+                if (!docGroupMap.has(docKey)) {
+                    docGroupMap.set(docKey, {
+                        key: docKey,
+                        title: row.title,
+                        order: origIdx,
+                        rows: [],
+                        maxScore: 0,
+                        hitRowCount: 0
+                    });
+                }
+                const group = docGroupMap.get(docKey);
+                group.rows.push(row);
+
+                const titleLower = (row.title || '').toLowerCase();
+                const catLower = (row.category || '').toLowerCase();
                 const summaryLower = (row.summary || '').toLowerCase();
                 const fullTextLower = (row.fullText || '').toLowerCase();
 
                 let score = 0;
-                let directMatch = false;
-                let contentHits = 0;
-
-                if (normalizedText.includes(titleLower) && titleLower.length >= 2) {
+                if (titleLower.length >= 2 && normalizedText.includes(titleLower)) {
                     score += 15;
-                    directMatch = true;
                 }
-
                 for (const token of queryTokens) {
-                    if (titleLower.includes(token)) {
-                        score += 10;
-                        directMatch = true;
-                    }
-                    if (catLower.includes(token)) {
-                        score += 4;
-                        directMatch = true;
-                    }
-                    if (summaryLower.includes(token) || fullTextLower.includes(token)) {
-                        score += 1;
-                        contentHits++;
-                    }
+                    if (titleLower.includes(token)) score += 10;
+                    if (catLower.includes(token)) score += 4;
+                    if (summaryLower.includes(token) || fullTextLower.includes(token)) score += 1;
                 }
-
                 for (const kw of (row.keywords || [])) {
                     const kwLower = (kw || '').toLowerCase();
                     if (!kwLower || kwLower.length < 2 || stopWords.includes(kwLower)) continue;
                     if (normalizedText.includes(kwLower) || queryTokens.includes(kwLower)) {
                         score += 6;
-                        directMatch = true;
                     }
                 }
 
-                return { row, score, directMatch, contentHits };
+                if (score > 0) group.hitRowCount++;
+                if (score > group.maxScore) group.maxScore = score;
             });
 
-            const minContentHits = queryTokens.length >= 2 ? 2 : 1;
-            let matchedRows = scoredRows
-                .filter(item => item.directMatch || item.contentHits >= minContentHits)
-                .sort((a, b) => b.score - a.score)
-                .map(item => item.row);
+            const sortedDocGroups = Array.from(docGroupMap.values()).sort((a, b) => {
+                const scoreA = a.maxScore + Math.min(a.hitRowCount * 2, 10);
+                const scoreB = b.maxScore + Math.min(b.hitRowCount * 2, 10);
+                if (scoreB !== scoreA) return scoreB - scoreA;
+                return a.order - b.order;
+            });
 
-            // 정밀 필터 결과가 0건인 경우에만 완화 폴백 적용
-            if (matchedRows.length === 0) {
-                matchedRows = scoredRows
-                    .filter(item => item.score > 0)
-                    .sort((a, b) => b.score - a.score)
-                    .map(item => item.row);
-            }
-
-            // 1-1) 후속/추가 질문 지원: 명시적인 후속 질의 표현이 있거나 신규 매칭이 없을 때만 직전 참조 문서 계승
-            const isFollowUpQuery = manualQuery && (
-                matchedRows.length === 0 ||
-                /(보완|누락|추가로|더\s*자세|자세히|이유|왜|방금|아까|이전|앞선|위\s*내용|해당|이\s*부분|그\s*부분|연관성|연계해서|다시\s*정리)/.test(manualQuery)
-            );
-            if (isFollowUpQuery && state.lastMatchedRows && state.lastMatchedRows.length > 0) {
-                for (const prevRow of state.lastMatchedRows) {
-                    if (state.selectedDocKeys.has(getDocKey(prevRow)) && !matchedRows.includes(prevRow)) {
-                        matchedRows.push(prevRow);
-                    }
-                }
-            }
+            // 체크된 문서 전체를 문서 단위 우선순위 순서대로 평탄화 (각 문서 내부는 시트 원래 목차 순서 100% 보존)
+            const matchedRows = sortedDocGroups.flatMap(g => g.rows);
 
             // 문서 원문 내 비정상적인 연속 장식선(----, ===== 등) 사전 정제 헬퍼
             const sanitizeSymbols = (str) => (str || '').replace(/[-=_*~]{4,}/g, '---');
 
-            // 2) 다중 문서 교차검증을 위한 연관 변경/수정/추경 문서 자동 연계 수집 (선택된 문서 범위 내)
             if (matchedRows.length > 0) {
-                const changeKeywords = ['변경', '수정', '추경', '추가', '최종', '의결', '개정', '결산'];
-                const genericTopicWords = ['소상공인', '서울시', '서울', '지원', '사업', '현황', '계획', '관리', '운영', '추진', '재단'];
-
-                // 이미 매칭된 문서와 구체적 핵심 주제를 공유하면서 변경 이력을 담은 추가 청크만 선별 검색
-                const relatedRows = activeSheetData.filter(row => {
-                    if (matchedRows.includes(row)) return false;
-                    const rowTitle = row.title.toLowerCase();
-                    const rowKeywords = (row.keywords || []).map(k => k.toLowerCase());
-
-                    const sharesSpecificTopic = matchedRows.some(mr =>
-                        (mr.keywords || []).some(mk => {
-                            const mkLower = (mk || '').toLowerCase();
-                            if (mkLower.length < 2 || genericTopicWords.includes(mkLower)) return false;
-                            return rowKeywords.includes(mkLower) || rowTitle.includes(mkLower);
-                        })
-                    );
-                    const isChangeDoc = changeKeywords.some(ck => rowTitle.includes(ck) || rowKeywords.some(rk => rk.includes(ck)));
-
-                    return sharesSpecificTopic && isChangeDoc;
-                });
-
-                if (relatedRows.length > 0) {
-                    matchedRows = [...matchedRows, ...relatedRows];
-                }
-
-                // 직전 매칭 행으로 보존 (후속 질문 컨텍스트 계승용)
-                state.lastMatchedRows = matchedRows.slice(0, 10);
-
-                contextData = matchedRows.map(r =>
-                    `[문서명: ${r.title}] (세부분류: ${r.category})\n${sanitizeSymbols(r.fullText || r.summary)}`
+                contextData = sortedDocGroups.map(group =>
+                    group.rows.map(r =>
+                        `[문서명: ${r.title}] (세부분류: ${r.category})\n${sanitizeSymbols(r.fullText || r.summary)}`
+                    ).join('\n\n')
                 ).join('\n\n[문서 구분]\n\n');
-            } else if (activeSheetData.length > 0) {
-                contextData = activeSheetData.map(r =>
-                    `[문서명: ${r.title}] (세부분류: ${r.category}) ${sanitizeSymbols(r.summary)}`
-                ).join('\n');
             }
 
             try {
@@ -3921,8 +3873,9 @@ ${manualQuery}
 회의 참석자가 발언을 놓치지 않고 3초 안에 스캔할 수 있도록, [참고 자료]와 [최근 회의 대화 기록]을 대조하여 가장 중요한 팩트를 빠르고 정확하게 브리핑하세요.
 
 절대 준수 규칙:
-0. **첫 줄 대화내용 요약 필수**:
+0. **첫 줄 대화내용 요약 및 관련 문서 엄선 (최우선)**:
    - 답변의 맨 첫 번째 줄에는 반드시 '[대화요약]: (최근 회의 대화의 핵심 주제를 1줄 이내로 명료하게 요약)' 형식으로 작성하고 줄바꿈한 뒤, 그 아래에 팩트체크 불릿포인트를 작성하세요.
+   - [참고 자료]는 후보 문서 풀일 뿐이므로, **최근 회의 대화 주제와 직접 관련된 문서만 선별해 인용하고 무관한 문서는 과감히 무시**하세요.
 1. **수치 팩트 최우선 & 추상적 서술 금지**:
    - 두루뭉술한 수식어를 배제하고, 구체적인 수치(금액, 건수, 달성률 등) 위주로 작성하세요.
 2. **다중 문서 교차 및 최종 현황 반영**:

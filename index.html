@@ -2338,6 +2338,17 @@
                         if (rawStored && !rawStored.startsWith('enc1:')) {
                             localStorage.setItem('mc_apiKey', encryptApiKeyWithPin(rawStored, _runtimePin));
                         }
+
+                        // 클라우드 동기화 설정(자동 매칭 민감도 등) 반영
+                        if (data.appSettings && typeof data.appSettings === 'object') {
+                            const cloudSens = parseInt(data.appSettings.sensitivity, 10);
+                            if (!isNaN(cloudSens) && cloudSens >= 1 && cloudSens <= 5) {
+                                localStorage.setItem('mc_sensitivity', String(cloudSens));
+                            }
+                            if (data.appSettings.uploadEngine === 'ai' || data.appSettings.uploadEngine === 'kordoc') {
+                                localStorage.setItem('mc_uploadEngine', data.appSettings.uploadEngine);
+                            }
+                        }
                         initSettingsUI();
 
                         if (data.groqApiKey) {
@@ -6042,6 +6053,8 @@ ${text.slice(0, 30000)}`;
 
             $('btnSettingsSave').addEventListener('click', () => {
                 const currentSettings = loadSettings();
+                const parsedSens = Math.min(5, Math.max(1, parseInt($('inputSensitivity').value, 10) || 1));
+                $('inputSensitivity').value = parsedSens;
                 saveSettings({
                     apiKey: $('inputApiKey').value.trim(),
                     groqKey: currentSettings.groqKey,
@@ -6049,10 +6062,25 @@ ${text.slice(0, 30000)}`;
                     webhookUrl: currentSettings.webhookUrl,
                     serverUrl: $('inputServerUrl').value.trim(),
                     uploadEngine: _tempSettingUploadEngine,
-                    sensitivity: parseInt($('inputSensitivity').value) || 1,
+                    sensitivity: parsedSens,
                 });
+
+                // 기기 간 동기화: 구글 시트(GAS 스크립트 속성)에 자동 매칭 민감도·등록 엔진 백그라운드 저장
+                if (_runtimePin) {
+                    const webhookUrl = currentSettings.webhookUrl || GAS_WEBAPP_URL;
+                    fetch(webhookUrl, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'saveAppSettings',
+                            pin: _runtimePin,
+                            sensitivity: parsedSens,
+                            uploadEngine: _tempSettingUploadEngine
+                        })
+                    }).catch(() => {});
+                }
+
                 const engineLabel = _tempSettingUploadEngine === 'ai' ? 'AI 직접 판독' : '코닥 파서';
-                showToast(`설정 저장됨 (문서 등록: ${engineLabel})`);
+                showToast(`설정 저장 및 동기화됨 (민감도: ${parsedSens}, 문서 등록: ${engineLabel})`);
                 $('settingsModal').classList.remove('show');
             });
 

@@ -36,6 +36,17 @@ function getDocSelectionState() {
   }
 }
 
+function getAppSettings() {
+  try {
+    var raw = PropertiesService.getScriptProperties().getProperty("APP_SETTINGS_STATE");
+    if (!raw) return {};
+    var parsed = JSON.parse(raw);
+    return (parsed && typeof parsed === "object") ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
 /**
  * 무차별 대입(Brute-Force) 방어: 5회 연속 실패 시 10분(600초)간 접속 완전 차단
  */
@@ -413,6 +424,26 @@ function doPost(e) {
       });
     }
 
+    // 2-3) 앱 공통 설정(자동 매칭 민감도 등) 기기 간 클라우드 동기화 저장
+    if (action === "saveAppSettings") {
+      var curSettings = getAppSettings();
+      if (data.sensitivity !== undefined && data.sensitivity !== null) {
+        var sens = parseInt(data.sensitivity, 10);
+        if (!isNaN(sens)) {
+          curSettings.sensitivity = Math.min(5, Math.max(1, sens));
+        }
+      }
+      if (data.uploadEngine === "ai" || data.uploadEngine === "kordoc") {
+        curSettings.uploadEngine = data.uploadEngine;
+      }
+      PropertiesService.getScriptProperties().setProperty("APP_SETTINGS_STATE", JSON.stringify(curSettings));
+      return responseJSON({
+        success: true,
+        action: "saveAppSettings",
+        appSettings: curSettings
+      });
+    }
+
     // 3) 기본 동작: 지식 DB 문서 업로드 ('업무문서' 탭과 '참고자료' 탭을 탭 이름으로 직접 탐색/생성)
     // 7열 표준 구조: A:업무구분 | B:참조상태 | C:문서제목 | D:사업구분/소제목(목차) | E:핵심내용 요약 | F:주요 키워드 | G:문서원문
     var docType = (data && data.docType === "참고자료") ? "참고자료" : "업무문서";
@@ -542,6 +573,7 @@ function doGet(e) {
     groqApiKey: getGroqApiKey(),
     rows: readKnowledgeDBRows(ss),
     docSelection: getDocSelectionState(),
+    appSettings: getAppSettings(),
     sheetUrl: sheetCsvUrl,
     message: "Meeting Copilot GAS Uploader is running." 
   });

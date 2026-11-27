@@ -2952,8 +2952,8 @@
                     const lastWord = sttStream.querySelector('.stt-word:last-of-type:not(.interim)');
                     if (lastWord) lastWord.classList.add('matched');
 
-                    // 답변 텍스트 추가
-                    addAnswer(row.title, row.summary, matchedKws);
+                    // 답변 텍스트 추가 (소제목/분류 함께 전달하여 동일 문서 내 서로 다른 파트 명확히 구분)
+                    addAnswer(row.title, row.summary, matchedKws, row.category);
 
                     setTimeout(() => state.lastMatchedIndices.delete(idx), state.matchCooldownMs);
                 }
@@ -2970,13 +2970,19 @@
         // ============================================================
         //  ANSWERS (미니멀 텍스트)
         // ============================================================
-        function addAnswer(label, text, matchedKws = []) {
+        function addAnswer(label, text, matchedKws = [], category = '') {
             flashEmpty.style.display = 'none';
             const acc = document.createElement('div');
             acc.className = 'keyword-accordion';
 
-            // 키워드 태그 (2줄 레이아웃용 깔끔한 표기)
-            const kwTag = matchedKws.length > 0 ? `<span class="accordion-kw">키워드: ${matchedKws.join(', ')}</span>` : '';
+            // 2줄째: 소제목(파트) + 키워드를 한눈에 구분되게 조합
+            const subParts = [];
+            const cleanCat = (category || '').trim();
+            if (cleanCat) subParts.push(cleanCat);
+            if (matchedKws.length > 0) subParts.push(`키워드: ${matchedKws.join(', ')}`);
+            const subLineHtml = subParts.length > 0
+                ? `<span class="accordion-kw" title="${subParts.join(' · ').replace(/"/g, '&quot;')}">${subParts.join(' · ')}</span>`
+                : '';
 
             // 본문 문장 단위 줄바꿈 및 불필요한 들여쓰기/공백 완벽 제거
             const formatted = text
@@ -2994,7 +3000,7 @@
                 <button type="button" class="keyword-accordion-header">
                     <div class="accordion-header-left">
                         <span class="accordion-title" title="${label}">${label}</span>
-                        ${kwTag}
+                        ${subLineHtml}
                     </div>
                     <span class="accordion-arrow">▼</span>
                 </button>
@@ -3883,8 +3889,9 @@ ${manualQuery}
 3. **이모지 및 마크다운 기호 배제**:
    - 이모지(🤖, 💡, 📌 등)를 사용하지 마세요. 하이픈이나 등호를 연속 나열하는 장식선을 그리지 마세요.
    - 핵심 불릿포인트 2~3개로만 작성하세요.
-4. **[출처/기준시점] + 핵심 수치 + 전후 사실관계 결합**:
-   - 각 불릿포인트의 시작 부분에 반드시 **[문서명/기준시점]**을 머리말로 명시하세요. (예: • **[2023년 결산보고서 기준]** ...)
+4. **핵심 수치 + 전후 사실관계 결합 및 정확한 출처 표기**:
+   - 기준 시점(예: 2026년 2분기 기준, 2026년 상반기 기준)은 문장 본문에 자연스럽게 녹여 쓰고, **문장 끝에 '[참고 자료]' 헤더의 [문서명: ...]에 적힌 정확한 문서명 그대로만 '[문서명]' 형식으로 표기**하세요.
+   - 문서명 뒤에 '/2026년 2분기 기준'처럼 슬래시·시점을 붙이거나 두 문서명을 '및'으로 합치지 말고, 복수 출처는 반드시 '[문서명1] [문서명2]'처럼 각각 독립된 대괄호로 표기하세요.
    - 단순 수치만 나열하지 말고, **수치가 나오게 된 중요한 배경, 진행 경과, 관련 조건 등 사실관계(Fact)**를 하나의 자연스러운 문장으로 결합하세요.
    - 중요한 수치와 핵심 키워드는 반드시 **볼드체**로 강조하세요.
 5. **시점 차이 주의**:
@@ -3897,7 +3904,7 @@ ${contextData || '(등록된 자료 없음)'}
 [최근 회의 대화 기록]
 ${recentText}
 
-위 대화 흐름에서 팩트체크가 필요한 핵심 쟁점을 파악하고, [참고 자료]의 다중 문서를 종합 대조하여 [출처/시점]이 명시된 2~3개의 정밀 팩트체크 불릿포인트를 작성해 주세요.`;
+위 대화 흐름에서 팩트체크가 필요한 핵심 쟁점을 파악하고, [참고 자료]에서 관련 문서만 선별해 정확한 [문서명] 출처가 명시된 2~3개의 정밀 팩트체크 불릿포인트를 작성해 주세요.`;
                 }
 
                 const candidateModels = ['gemini-3.6-flash'];
